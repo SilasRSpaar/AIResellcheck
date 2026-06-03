@@ -76,27 +76,30 @@ async function getEbayPrices(searchQuery) {
   const encoded = encodeURIComponent(searchQuery);
   const headers = { Authorization: `Bearer ${tokenRes.access_token}`, 'X-EBAY-C-MARKETPLACE-ID': 'EBAY_DE', 'Content-Type': 'application/json' };
 
-  const [activeRes, recentRes] = await Promise.all([
-    httpsGet('api.ebay.com', `/buy/browse/v1/item_summary/search?q=${encoded}&limit=30&sort=price`, headers),
-    httpsGet('api.ebay.com', `/buy/browse/v1/item_summary/search?q=${encoded}&limit=30&filter=buyingOptions:%7BFIXED_PRICE%7D&sort=-endDate`, headers),
-  ]);
+  const searchRes = await httpsGet('api.ebay.com',
+    `/buy/browse/v1/item_summary/search?q=${encoded}&limit=50&sort=price`,
+    headers);
 
-  const activeItems = activeRes.body?.itemSummaries || [];
-  const recentItems = recentRes.body?.itemSummaries || [];
-  const allItems = [...activeItems, ...recentItems];
-  if (allItems.length === 0) return null;
+  const items = searchRes.body?.itemSummaries || [];
+  if (items.length === 0) return null;
 
-  const allPrices = allItems.map(i=>parseFloat(i.price?.value||0)).filter(p=>p>0).sort((a,b)=>a-b);
-  const activePrices = activeItems.map(i=>parseFloat(i.price?.value||0)).filter(p=>p>0).sort((a,b)=>a-b);
+  let prices = items.map(i=>parseFloat(i.price?.value||0)).filter(p=>p>0).sort((a,b)=>a-b);
 
-  const trim = (arr) => { const t=Math.floor(arr.length*0.1); return arr.slice(t, arr.length-t||undefined); };
-  const trimmed = trim(allPrices);
-  const avg = trimmed.reduce((a,b)=>a+b,0) / (trimmed.length||1);
-  const src = activePrices.length >= 5 ? activePrices : allPrices;
-  const min = src[Math.floor(src.length*0.1)] || src[0];
-  const max = src[Math.floor(src.length*0.85)] || src[src.length-1];
+  // Remove outliers: filter out items below 15% of median (likely accessories)
+  const median = prices[Math.floor(prices.length/2)];
+  prices = prices.filter(p => p >= median * 0.15);
+  if (prices.length === 0) return null;
 
-  return { priceMin: min.toFixed(2), priceMax: max.toFixed(2), marketAvg: avg.toFixed(2), listingCount: allItems.length, activeCount: activeItems.length };
+  // Trim top/bottom 10% for avg
+  const t = Math.floor(prices.length * 0.1);
+  const trimmed = prices.slice(t, prices.length - t > 0 ? prices.length - t : prices.length);
+  const avg = trimmed.reduce((a,b)=>a+b,0) / trimmed.length;
+
+  // Min/Max from 10th and 85th percentile of cleaned dataset
+  const min = prices[Math.floor(prices.length * 0.10)];
+  const max = prices[Math.floor(prices.length * 0.85)];
+
+  return { priceMin: min.toFixed(2), priceMax: max.toFixed(2), marketAvg: avg.toFixed(2), listingCount: prices.length, aiEstimate: false };
 }
 
 function analyzeDemandAndChannels(objectInfo, ebayData) {
