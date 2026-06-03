@@ -146,6 +146,26 @@ async function generateFairnessNote(objectInfo, ebayData, askedPrice) {
   return result.body.choices?.[0]?.message?.content?.trim() || '';
 }
 
+
+async function estimatePriceWithAI(objectInfo) {
+  const lines = [
+    "Estimate the resale price on German/Swiss secondhand market.",
+    "Item: " + objectInfo.objectName + " (" + objectInfo.category + "), Condition: " + objectInfo.condition,
+    "Reply ONLY with valid JSON: {\"priceMin\":\"number\",\"priceMax\":\"number\",\"marketAvg\":\"number\"}"
+  ];
+  const prompt = lines.join("\n");
+  const result = await httpsPost("api.openai.com", "/v1/chat/completions",
+    {"Content-Type": "application/json", "Authorization": "Bearer " + process.env.OPENAI_API_KEY},
+    {model: "gpt-4o-mini", max_tokens: 80, messages: [{role: "user", content: prompt}]}
+  );
+  const raw = result.body.choices?.[0]?.message?.content || "{}";
+  const clean = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  try {
+    const p = JSON.parse(clean);
+    return {priceMin: p.priceMin, priceMax: p.priceMax, marketAvg: p.marketAvg, listingCount: 0, aiEstimate: true};
+  } catch(e) { return null; }
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { image, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null } = req.body || {};
@@ -164,6 +184,9 @@ module.exports = async function handler(req, res) {
         ebayData = await getEbayPrices(query);
       }
     } catch(e) { console.error('eBay error:', e.message); }
+    if (!ebayData) {
+      try { ebayData = await estimatePriceWithAI(objectInfo); } catch(e2) { console.error('AI price fallback:', e2.message); }
+    }
 
     let aiNote = '';
 
@@ -193,3 +216,5 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: err.message || 'Analyse fehlgeschlagen' });
   }
 };
+
+// This line intentionally left blank - file integrity check
