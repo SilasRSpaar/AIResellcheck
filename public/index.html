@@ -223,10 +223,34 @@
       font-size: 11px; color: var(--text-muted);
     }
 
+    /* FEES TABLE */
+    .fees-card { background: var(--surface); border-radius: var(--radius); padding: 14px; }
+    .fees-title { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; font-weight: 600; }
+    .fee-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .fee-row:last-child { border-bottom: none; font-weight: 700; color: var(--text); }
+    .fee-label { color: var(--text-muted); }
+    .fee-val { font-weight: 600; }
+    .fee-val.green { color: var(--green); }
+    .fee-val.red { color: var(--red); }
+
     .ai-note {
       background: var(--surface); border-radius: var(--radius);
       padding: 14px; font-size: 14px; line-height: 1.6;
       color: var(--text-muted); border-left: 3px solid var(--accent);
+    }
+
+    /* CONDITION PILLS */
+    .condition-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+    .cond-btn {
+      flex: 1; min-width: 80px; padding: 10px 8px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      background: var(--surface2); color: var(--text-muted);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all 0.15s; text-align: center;
+    }
+    .cond-btn.active {
+      border-color: var(--accent); color: white;
+      background: rgba(99,102,241,0.2);
     }
 
     #fileInput { display: none; }
@@ -267,6 +291,19 @@
       <div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>
     </div>
     <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="onImageSelected(event)" />
+
+    <!-- Zustandsauswahl (erscheint nach Foto) -->
+    <div class="input-group" id="conditionGroup" style="display:none;">
+      <div class="input-row">
+        <label>Zustand des Objekts</label>
+        <div class="condition-pills">
+          <button class="cond-btn active" data-val="Sehr gut" onclick="setCondition(this)">✨ Sehr gut</button>
+          <button class="cond-btn" data-val="Gut" onclick="setCondition(this)">👍 Gut</button>
+          <button class="cond-btn" data-val="Akzeptabel" onclick="setCondition(this)">👌 Akzeptabel</button>
+          <button class="cond-btn" data-val="Beschädigt" onclick="setCondition(this)">⚠️ Beschädigt</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Resell inputs -->
     <div class="input-group" id="inputsResell">
@@ -326,6 +363,7 @@
   let selectedImage = null;
   let imageBase64 = null;
   let currentMode = 'resell'; // 'resell' | 'fairness'
+  let selectedCondition = 'Sehr gut';
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -365,6 +403,13 @@
 
   function updateAnalyzeBtn() {
     document.getElementById('analyzeBtn').disabled = !imageBase64;
+    document.getElementById('conditionGroup').style.display = imageBase64 ? '' : 'none';
+  }
+
+  function setCondition(btn) {
+    document.querySelectorAll('.cond-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedCondition = btn.dataset.val;
   }
 
   function showView(id) {
@@ -399,7 +444,7 @@
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: imageBase64, mode: currentMode, buyPrice, sellPrice, askedPrice }),
+        body: JSON.stringify({ image: imageBase64, mode: currentMode, buyPrice, sellPrice, askedPrice, condition: selectedCondition }),
       });
 
       clearInterval(stepInterval);
@@ -487,9 +532,31 @@
         <div class="section-title" style="margin-bottom:8px;">Empfohlene Verkaufskanäle</div>
         <div class="channels-list">${channelsHtml}</div>
       </div>
+      ${sellPrice > 0 ? renderFees(sellPrice, data.channels) : ''}
+
       ${data.aiNote ? `<div class="ai-note">💡 ${data.aiNote}</div>` : ''}
     `;
     showView('resultView');
+  }
+
+  function renderFees(sellPrice, channels) {
+    const fees = [
+      { name: 'Ricardo.ch', rate: 0.08 },
+      { name: 'eBay.de', rate: 0.13 },
+      { name: 'Vinted', rate: 0.05 },
+    ];
+    const rows = fees.map(f => {
+      const fee = sellPrice * f.rate;
+      const net = sellPrice - fee;
+      return `<div class="fee-row">
+        <span class="fee-label">${f.name} (${(f.rate*100).toFixed(0)}% Gebühr)</span>
+        <span class="fee-val">CHF ${net.toFixed(2)} netto</span>
+      </div>`;
+    }).join('');
+    return `<div class="fees-card">
+      <div class="fees-title">💰 Netto-Erlös nach Plattformgebühren</div>
+      ${rows}
+    </div>`;
   }
 
   // ── FAIRNESS RESULT ────────────────────────────────────────────────────────
@@ -572,11 +639,13 @@
   }
 
   function resetApp() {
-    selectedImage = null; imageBase64 = null;
+    selectedImage = null; imageBase64 = null; selectedCondition = 'Sehr gut';
     document.getElementById('fileInput').value = '';
     document.getElementById('buyPrice').value   = '';
     document.getElementById('sellPrice').value  = '';
     document.getElementById('askedPrice').value = '';
+    document.getElementById('conditionGroup').style.display = 'none';
+    document.querySelectorAll('.cond-btn').forEach((b,i) => b.classList.toggle('active', i===0));
     const area = document.getElementById('cameraArea');
     area.innerHTML = `<div class="camera-icon">📷</div><div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>`;
     document.getElementById('analyzeBtn').disabled = true;
