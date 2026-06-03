@@ -1,4 +1,4 @@
-const CACHE_NAME = 'resellcheck-v1';
+const CACHE_NAME = 'pricesnap-v1';
 const STATIC_ASSETS = ['/', '/manifest.json'];
 
 self.addEventListener('install', (event) => {

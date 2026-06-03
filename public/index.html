@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="ResellCheck" />
+  <meta name="apple-mobile-web-app-title" content="PriceSnap" />
   <meta name="theme-color" content="#6366f1" />
-  <title>ResellCheck</title>
+  <title>PriceSnap</title>
   <link rel="manifest" href="/manifest.json" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,214 +36,164 @@
       overflow-x: hidden;
     }
 
-    #app {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
+    #app { min-height: 100vh; display: flex; flex-direction: column; }
 
     /* HEADER */
     header {
       padding: 16px 20px 12px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      display: flex; align-items: center; gap: 10px;
       border-bottom: 1px solid var(--border);
     }
     .logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
     .logo span { color: var(--accent-light); }
+    /* PriceSnap branding */
     .badge {
-      margin-left: auto;
-      font-size: 11px;
-      background: var(--accent);
-      color: white;
-      padding: 3px 8px;
-      border-radius: 20px;
-      font-weight: 600;
+      margin-left: auto; font-size: 11px;
+      background: var(--accent); color: white;
+      padding: 3px 8px; border-radius: 20px; font-weight: 600;
+    }
+
+    /* MODE SWITCHER */
+    .mode-label {
+      font-size: 12px; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .mode-switcher {
+      display: flex;
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 5px;
+      gap: 5px;
+      border: 1px solid var(--border);
+    }
+    .mode-btn {
+      flex: 1; padding: 13px 8px;
+      border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s;
+      background: transparent; color: var(--text-muted);
+      line-height: 1.3;
+    }
+    .mode-btn.active {
+      background: var(--accent); color: white;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.4);
     }
 
     /* VIEWS */
     .view { display: none; flex-direction: column; flex: 1; padding: 20px; gap: 16px; }
     .view.active { display: flex; }
 
-    /* SCAN VIEW */
+    /* CAMERA */
     .camera-area {
       background: var(--surface);
       border: 2px dashed var(--border);
       border-radius: var(--radius);
       aspect-ratio: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      cursor: pointer;
-      transition: border-color 0.2s;
-      overflow: hidden;
-      position: relative;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px; cursor: pointer; transition: border-color 0.2s;
+      overflow: hidden; position: relative;
     }
     .camera-area:active { border-color: var(--accent); }
-    .camera-area img {
-      width: 100%; height: 100%;
-      object-fit: cover;
-      position: absolute; top: 0; left: 0;
-    }
+    .camera-area img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
     .camera-icon { font-size: 48px; opacity: 0.4; }
     .camera-label { color: var(--text-muted); font-size: 15px; text-align: center; line-height: 1.4; }
 
+    /* INPUTS */
     .btn-row { display: flex; gap: 10px; }
     .btn {
-      flex: 1;
-      padding: 15px;
-      border: none;
-      border-radius: var(--radius);
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
+      flex: 1; padding: 15px; border: none;
+      border-radius: var(--radius); font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s, transform 0.1s;
     }
     .btn:active { transform: scale(0.97); opacity: 0.85; }
     .btn-primary { background: var(--accent); color: white; }
     .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* PRICE INPUTS */
     .input-group {
-      background: var(--surface);
-      border-radius: var(--radius);
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      background: var(--surface); border-radius: var(--radius);
+      padding: 16px; display: flex; flex-direction: column; gap: 12px;
     }
     .input-row { display: flex; flex-direction: column; gap: 6px; }
     label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
     .input-with-currency {
-      display: flex;
-      align-items: center;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
+      display: flex; align-items: center;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden;
     }
     .currency-tag {
-      padding: 0 12px;
-      color: var(--text-muted);
-      font-size: 14px;
-      font-weight: 600;
-      border-right: 1px solid var(--border);
-      height: 46px;
-      display: flex;
-      align-items: center;
+      padding: 0 12px; color: var(--text-muted); font-size: 14px; font-weight: 600;
+      border-right: 1px solid var(--border); height: 46px; display: flex; align-items: center;
     }
     input[type="number"] {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--text);
-      font-size: 16px;
-      padding: 12px;
-      font-weight: 500;
-      width: 100%;
+      flex: 1; background: transparent; border: none; outline: none;
+      color: var(--text); font-size: 16px; padding: 12px; font-weight: 500; width: 100%;
     }
     input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 
-    /* LOADING */
-    #loadingView {
-      align-items: center;
-      justify-content: center;
-      gap: 24px;
-      text-align: center;
+    /* MODE HINT */
+    .mode-hint {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 12px 14px; font-size: 13px; color: var(--text-muted);
+      border-left: 3px solid var(--accent); line-height: 1.5;
     }
+
+    /* LOADING */
+    #loadingView { align-items: center; justify-content: center; gap: 24px; text-align: center; }
     .spinner {
       width: 60px; height: 60px;
-      border: 4px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      border: 4px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { color: var(--text-muted); font-size: 15px; }
 
-    /* RESULT VIEW */
+    /* RESULTS */
     .result-header {
-      background: var(--surface);
-      border-radius: var(--radius);
-      padding: 16px;
-      display: flex;
-      gap: 14px;
-      align-items: center;
+      background: var(--surface); border-radius: var(--radius);
+      padding: 16px; display: flex; gap: 14px; align-items: center;
     }
     .result-thumb {
-      width: 72px; height: 72px;
-      border-radius: 10px;
-      object-fit: cover;
-      flex-shrink: 0;
-      background: var(--surface2);
+      width: 72px; height: 72px; border-radius: 10px;
+      object-fit: cover; flex-shrink: 0; background: var(--surface2);
     }
     .result-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
     .result-category { font-size: 13px; color: var(--text-muted); }
 
     .verdict-card {
-      border-radius: var(--radius);
-      padding: 18px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
+      border-radius: var(--radius); padding: 18px;
+      display: flex; align-items: center; gap: 14px;
     }
-    .verdict-card.go { background: #052e16; border: 1px solid #166534; }
+    .verdict-card.go      { background: #052e16; border: 1px solid #166534; }
     .verdict-card.caution { background: #2d1b06; border: 1px solid #92400e; }
-    .verdict-card.stop { background: #1f0707; border: 1px solid #7f1d1d; }
+    .verdict-card.stop    { background: #1f0707; border: 1px solid #7f1d1d; }
     .verdict-icon { font-size: 36px; flex-shrink: 0; }
     .verdict-title { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
     .verdict-sub { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    .stat-card {
-      background: var(--surface);
-      border-radius: var(--radius);
-      padding: 14px;
-    }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat-card { background: var(--surface); border-radius: var(--radius); padding: 14px; }
     .stat-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
     .stat-value { font-size: 20px; font-weight: 700; }
     .stat-value.green { color: var(--green); }
-    .stat-value.red { color: var(--red); }
-    .stat-value.yellow { color: var(--yellow); }
+    .stat-value.red   { color: var(--red); }
+    .stat-value.yellow{ color: var(--yellow); }
     .stat-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
     .section-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
 
     .channels-list { display: flex; flex-direction: column; gap: 8px; }
     .channel-item {
-      background: var(--surface);
-      border-radius: 12px;
-      padding: 12px 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      background: var(--surface); border-radius: 12px;
+      padding: 12px 14px; display: flex; align-items: center; justify-content: space-between;
     }
     .channel-name { font-size: 15px; font-weight: 600; }
     .channel-reach { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-    .channel-tag {
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 20px;
-      font-weight: 600;
-    }
+    .channel-tag { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 600; }
     .tag-best { background: #052e16; color: var(--green); }
     .tag-good { background: #1c1917; color: var(--yellow); }
-
-    .demand-bar-wrap { background: var(--surface); border-radius: var(--radius); padding: 14px; }
-    .demand-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .demand-label { font-size: 14px; font-weight: 600; }
-    .demand-score { font-size: 14px; font-weight: 700; }
-    .demand-bar-bg { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
-    .demand-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
 
     .price-range { background: var(--surface); border-radius: var(--radius); padding: 14px; }
     .price-range-title { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
@@ -253,20 +203,38 @@
     .price-lbl { font-size: 11px; color: var(--text-muted); }
     .price-mid { font-size: 13px; color: var(--text-muted); }
 
-    .ai-note { background: var(--surface); border-radius: var(--radius); padding: 14px; font-size: 14px; line-height: 1.6; color: var(--text-muted); border-left: 3px solid var(--accent); }
+    /* PRICE FAIRNESS INDICATOR */
+    .fairness-bar-wrap { background: var(--surface); border-radius: var(--radius); padding: 16px; }
+    .fairness-title { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+    .fairness-track {
+      position: relative; height: 12px;
+      background: linear-gradient(to right, #22c55e 0%, #f59e0b 50%, #ef4444 100%);
+      border-radius: 6px; margin-bottom: 8px;
+    }
+    .fairness-marker {
+      position: absolute; top: -4px;
+      width: 20px; height: 20px;
+      background: white; border: 3px solid var(--accent);
+      border-radius: 50%; transform: translateX(-50%);
+      transition: left 1s ease;
+    }
+    .fairness-labels {
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: var(--text-muted);
+    }
 
-    /* Hidden file input */
+    .ai-note {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 14px; font-size: 14px; line-height: 1.6;
+      color: var(--text-muted); border-left: 3px solid var(--accent);
+    }
+
     #fileInput { display: none; }
 
-    /* Error */
     .error-box {
-      background: #1f0707;
-      border: 1px solid #7f1d1d;
-      border-radius: var(--radius);
-      padding: 14px;
-      font-size: 14px;
-      color: #fca5a5;
-      line-height: 1.5;
+      background: #1f0707; border: 1px solid #7f1d1d;
+      border-radius: var(--radius); padding: 14px;
+      font-size: 14px; color: #fca5a5; line-height: 1.5;
     }
 
     .bottom-safe { height: env(safe-area-inset-bottom, 20px); }
@@ -275,19 +243,33 @@
 <body>
 <div id="app">
   <header>
-    <div class="logo">Resell<span>Check</span></div>
+    <div class="logo">Price<span>Snap</span></div>
     <div class="badge">AI</div>
   </header>
 
   <!-- SCAN VIEW -->
   <div id="scanView" class="view active">
+
+    <!-- Mode Switcher -->
+    <div class="mode-label">Was möchtest du tun?</div>
+    <div class="mode-switcher">
+      <button class="mode-btn active" id="modeResell" onclick="setMode('resell')">🔄 Kaufen &amp;<br>Weiterverkaufen</button>
+      <button class="mode-btn" id="modeFairness" onclick="setMode('fairness')">🔍 Preis<br>überprüfen</button>
+    </div>
+
+    <!-- Mode hint -->
+    <div class="mode-hint" id="modeHint">
+      Kaufe ich es günstig genug, um Gewinn zu machen? Gib Kaufpreis und Zielpreis ein.
+    </div>
+
     <div class="camera-area" id="cameraArea" onclick="triggerCamera()">
       <div class="camera-icon">📷</div>
       <div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>
     </div>
     <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="onImageSelected(event)" />
 
-    <div class="input-group">
+    <!-- Resell inputs -->
+    <div class="input-group" id="inputsResell">
       <div class="input-row">
         <label>Kaufpreis (was du bezahlst)</label>
         <div class="input-with-currency">
@@ -300,6 +282,17 @@
         <div class="input-with-currency">
           <span class="currency-tag">CHF</span>
           <input type="number" id="sellPrice" placeholder="0.00" min="0" step="0.01" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Fairness inputs -->
+    <div class="input-group" id="inputsFairness" style="display:none;">
+      <div class="input-row">
+        <label>Verlangter Preis (was der Verkäufer will)</label>
+        <div class="input-with-currency">
+          <span class="currency-tag">CHF</span>
+          <input type="number" id="askedPrice" placeholder="0.00" min="0" step="0.01" />
         </div>
       </div>
     </div>
@@ -327,16 +320,26 @@
     <button class="btn btn-secondary" onclick="resetApp()">← Neues Objekt scannen</button>
     <div class="bottom-safe"></div>
   </div>
-
 </div>
 
 <script>
   let selectedImage = null;
   let imageBase64 = null;
+  let currentMode = 'resell'; // 'resell' | 'fairness'
 
-  // Register Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+
+  function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('modeResell').classList.toggle('active', mode === 'resell');
+    document.getElementById('modeFairness').classList.toggle('active', mode === 'fairness');
+    document.getElementById('inputsResell').style.display  = mode === 'resell'   ? '' : 'none';
+    document.getElementById('inputsFairness').style.display = mode === 'fairness' ? '' : 'none';
+    document.getElementById('modeHint').textContent = mode === 'resell'
+      ? 'Kaufe ich es günstig genug, um Gewinn zu machen? Gib Kaufpreis und Zielpreis ein.'
+      : 'Ist der verlangte Preis fair? Gib den Preis ein den der Verkäufer verlangt.';
   }
 
   function triggerCamera() {
@@ -347,7 +350,6 @@
     const file = event.target.files[0];
     if (!file) return;
     selectedImage = file;
-
     const reader = new FileReader();
     reader.onload = (e) => {
       imageBase64 = e.target.result.split(',')[1];
@@ -356,14 +358,13 @@
       const area = document.getElementById('cameraArea');
       area.innerHTML = '';
       area.appendChild(img);
+      updateAnalyzeBtn(); // Fix: inside async callback
     };
     reader.readAsDataURL(file);
-    updateAnalyzeBtn();
   }
 
   function updateAnalyzeBtn() {
-    const btn = document.getElementById('analyzeBtn');
-    btn.disabled = !imageBase64;
+    document.getElementById('analyzeBtn').disabled = !imageBase64;
   }
 
   function showView(id) {
@@ -375,19 +376,18 @@
     'KI erkennt Objekt…',
     'Marktpreise werden abgefragt…',
     'Nachfrage wird analysiert…',
-    'Verkaufskanäle werden bewertet…',
-    'Gewinn wird kalkuliert…',
+    'Preis wird bewertet…',
+    'Ergebnis wird aufbereitet…',
   ];
 
   async function startAnalysis() {
     if (!imageBase64) return;
 
-    const buyPrice = parseFloat(document.getElementById('buyPrice').value) || 0;
-    const sellPrice = parseFloat(document.getElementById('sellPrice').value) || 0;
+    const buyPrice   = parseFloat(document.getElementById('buyPrice').value)   || 0;
+    const sellPrice  = parseFloat(document.getElementById('sellPrice').value)  || 0;
+    const askedPrice = parseFloat(document.getElementById('askedPrice').value) || 0;
 
     showView('loadingView');
-
-    // Cycle through loading messages
     let stepIdx = 0;
     const stepEl = document.getElementById('loadingStep');
     const stepInterval = setInterval(() => {
@@ -399,7 +399,7 @@
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: imageBase64, buyPrice, sellPrice }),
+        body: JSON.stringify({ image: imageBase64, mode: currentMode, buyPrice, sellPrice, askedPrice }),
       });
 
       clearInterval(stepInterval);
@@ -410,7 +410,8 @@
       }
 
       const data = await response.json();
-      renderResult(data, buyPrice, sellPrice);
+      currentMode === 'resell' ? renderResellResult(data, buyPrice, sellPrice) : renderFairnessResult(data, askedPrice);
+
     } catch (err) {
       clearInterval(stepInterval);
       showView('resultView');
@@ -422,30 +423,22 @@
     }
   }
 
-  function renderResult(data, buyPrice, sellPrice) {
+  // ── RESELL RESULT ──────────────────────────────────────────────────────────
+  function renderResellResult(data, buyPrice, sellPrice) {
     const profit = sellPrice - buyPrice;
     const roi = buyPrice > 0 ? ((profit / buyPrice) * 100).toFixed(0) : 0;
     const profitColor = profit > 0 ? 'green' : profit < 0 ? 'red' : '';
 
-    let verdict, verdictClass;
-    if (profit > 0 && data.demandScore >= 60) {
-      verdict = { icon: '✅', title: 'Guter Deal', sub: 'Hohe Nachfrage und positiver Gewinn.', cls: 'go' };
-    } else if (profit > 0 && data.demandScore >= 30) {
-      verdict = { icon: '⚠️', title: 'Mittelmässig', sub: 'Gewinn möglich, aber Nachfrage verhalten.', cls: 'caution' };
-    } else if (profit <= 0) {
-      verdict = { icon: '🚫', title: 'Kein Gewinn', sub: 'Kaufpreis ist zu hoch für diesen Zielpreis.', cls: 'stop' };
-    } else {
-      verdict = { icon: '⚠️', title: 'Niedriges Interesse', sub: 'Schwierig zu verkaufen, Geduld nötig.', cls: 'caution' };
-    }
+    let verdict;
+    if (profit > 0 && data.demandScore >= 60)      verdict = { icon: '✅', title: 'Guter Deal',       sub: 'Hohe Nachfrage und positiver Gewinn.',              cls: 'go' };
+    else if (profit > 0 && data.demandScore >= 30) verdict = { icon: '⚠️', title: 'Mittelmässig',     sub: 'Gewinn möglich, aber Nachfrage verhalten.',         cls: 'caution' };
+    else if (profit <= 0)                          verdict = { icon: '🚫', title: 'Kein Gewinn',       sub: 'Kaufpreis ist zu hoch für diesen Zielpreis.',       cls: 'stop' };
+    else                                           verdict = { icon: '⚠️', title: 'Niedriges Interesse', sub: 'Schwierig zu verkaufen, Geduld nötig.',          cls: 'caution' };
 
     const demandColor = data.demandScore >= 70 ? '#22c55e' : data.demandScore >= 40 ? '#f59e0b' : '#ef4444';
-
     const channelsHtml = (data.channels || []).map((ch, i) => `
       <div class="channel-item">
-        <div>
-          <div class="channel-name">${ch.name}</div>
-          <div class="channel-reach">${ch.reason}</div>
-        </div>
+        <div><div class="channel-name">${ch.name}</div><div class="channel-reach">${ch.reason}</div></div>
         <span class="channel-tag ${i === 0 ? 'tag-best' : 'tag-good'}">${i === 0 ? 'Beste Wahl' : 'Gut'}</span>
       </div>`).join('');
 
@@ -454,20 +447,12 @@
     document.getElementById('resultContent').innerHTML = `
       <div class="result-header">
         ${thumb}
-        <div>
-          <div class="result-title">${data.objectName || 'Objekt'}</div>
-          <div class="result-category">${data.category || ''}</div>
-        </div>
+        <div><div class="result-title">${data.objectName || 'Objekt'}</div><div class="result-category">${data.category || ''}</div></div>
       </div>
-
       <div class="verdict-card ${verdict.cls}">
         <div class="verdict-icon">${verdict.icon}</div>
-        <div>
-          <div class="verdict-title">${verdict.title}</div>
-          <div class="verdict-sub">${verdict.sub}</div>
-        </div>
+        <div><div class="verdict-title">${verdict.title}</div><div class="verdict-sub">${verdict.sub}</div></div>
       </div>
-
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-label">Dein Gewinn</div>
@@ -490,39 +475,108 @@
           <div class="stat-sub">${data.demandLabel || ''}</div>
         </div>
       </div>
-
       <div class="price-range">
         <div class="price-range-title">Marktpreis-Spanne</div>
         <div class="price-range-row">
-          <div class="price-min">
-            <div class="price-val">CHF ${data.priceMin || '–'}</div>
-            <div class="price-lbl">Minimum</div>
-          </div>
+          <div class="price-min"><div class="price-val">CHF ${data.priceMin || '–'}</div><div class="price-lbl">Minimum</div></div>
           <div class="price-mid">↔</div>
-          <div class="price-max">
-            <div class="price-val">CHF ${data.priceMax || '–'}</div>
-            <div class="price-lbl">Maximum</div>
-          </div>
+          <div class="price-max"><div class="price-val">CHF ${data.priceMax || '–'}</div><div class="price-lbl">Maximum</div></div>
         </div>
       </div>
-
       <div>
         <div class="section-title" style="margin-bottom:8px;">Empfohlene Verkaufskanäle</div>
         <div class="channels-list">${channelsHtml}</div>
       </div>
+      ${data.aiNote ? `<div class="ai-note">💡 ${data.aiNote}</div>` : ''}
+    `;
+    showView('resultView');
+  }
+
+  // ── FAIRNESS RESULT ────────────────────────────────────────────────────────
+  function renderFairnessResult(data, askedPrice) {
+    const avg = parseFloat(data.marketAvg) || 0;
+    const min = parseFloat(data.priceMin)  || 0;
+    const max = parseFloat(data.priceMax)  || 0;
+
+    // Fairness score: 0 = Schnäppchen, 100 = viel zu teuer
+    let fairnessScore = 50;
+    let verdict;
+    if (avg > 0) {
+      const ratio = askedPrice / avg;
+      fairnessScore = Math.min(100, Math.max(0, Math.round((ratio - 0.5) * 100)));
+      if (ratio <= 0.75)       verdict = { icon: '🤑', title: 'Schnäppchen!',      sub: `Deutlich unter Marktpreis (Ø CHF ${avg}).`,      cls: 'go' };
+      else if (ratio <= 0.95)  verdict = { icon: '✅', title: 'Fairer Preis',       sub: `Leicht unter Marktpreis (Ø CHF ${avg}).`,        cls: 'go' };
+      else if (ratio <= 1.10)  verdict = { icon: '👍', title: 'Marktkonform',       sub: `Entspricht dem Marktpreis (Ø CHF ${avg}).`,      cls: 'caution' };
+      else if (ratio <= 1.35)  verdict = { icon: '⚠️', title: 'Leicht überteuert', sub: `Etwas über Marktpreis (Ø CHF ${avg}).`,          cls: 'caution' };
+      else                     verdict = { icon: '🚫', title: 'Zu teuer',           sub: `Deutlich über Marktpreis (Ø CHF ${avg}).`,       cls: 'stop' };
+    } else {
+      verdict = { icon: '❓', title: 'Keine Vergleichsdaten', sub: 'Zu wenig Marktdaten für dieses Objekt.', cls: 'caution' };
+    }
+
+    const diff = avg > 0 ? (askedPrice - avg).toFixed(2) : null;
+    const diffColor = diff < 0 ? 'green' : diff > 0 ? 'red' : '';
+    const diffLabel = diff < 0 ? `CHF ${Math.abs(diff)} unter Markt` : diff > 0 ? `CHF ${diff} über Markt` : 'Marktkonform';
+
+    const thumb = imageBase64 ? `<img class="result-thumb" src="data:image/jpeg;base64,${imageBase64}" />` : '';
+
+    // Marker position: fairnessScore 0-100 → left 5%-95%
+    const markerLeft = Math.round(5 + (fairnessScore / 100) * 90);
+
+    document.getElementById('resultContent').innerHTML = `
+      <div class="result-header">
+        ${thumb}
+        <div><div class="result-title">${data.objectName || 'Objekt'}</div><div class="result-category">${data.category || ''}</div></div>
+      </div>
+      <div class="verdict-card ${verdict.cls}">
+        <div class="verdict-icon">${verdict.icon}</div>
+        <div><div class="verdict-title">${verdict.title}</div><div class="verdict-sub">${verdict.sub}</div></div>
+      </div>
+
+      <div class="fairness-bar-wrap">
+        <div class="fairness-title">Preisposition im Markt</div>
+        <div class="fairness-track">
+          <div class="fairness-marker" style="left: ${markerLeft}%"></div>
+        </div>
+        <div class="fairness-labels">
+          <span>🤑 Schnäppchen</span>
+          <span>Fair</span>
+          <span>🚫 Zu teuer</span>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Verlangter Preis</div>
+          <div class="stat-value">CHF ${askedPrice.toFixed(2)}</div>
+          <div class="stat-sub">${avg > 0 ? diffLabel : '–'}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Markt-Ø Preis</div>
+          <div class="stat-value">CHF ${avg > 0 ? avg.toFixed(2) : '–'}</div>
+          <div class="stat-sub">Aktuell</div>
+        </div>
+      </div>
+
+      <div class="price-range">
+        <div class="price-range-title">Marktpreis-Spanne</div>
+        <div class="price-range-row">
+          <div class="price-min"><div class="price-val">CHF ${data.priceMin || '–'}</div><div class="price-lbl">Minimum</div></div>
+          <div class="price-mid">↔</div>
+          <div class="price-max"><div class="price-val">CHF ${data.priceMax || '–'}</div><div class="price-lbl">Maximum</div></div>
+        </div>
+      </div>
 
       ${data.aiNote ? `<div class="ai-note">💡 ${data.aiNote}</div>` : ''}
     `;
-
     showView('resultView');
   }
 
   function resetApp() {
-    selectedImage = null;
-    imageBase64 = null;
+    selectedImage = null; imageBase64 = null;
     document.getElementById('fileInput').value = '';
-    document.getElementById('buyPrice').value = '';
-    document.getElementById('sellPrice').value = '';
+    document.getElementById('buyPrice').value   = '';
+    document.getElementById('sellPrice').value  = '';
+    document.getElementById('askedPrice').value = '';
     const area = document.getElementById('cameraArea');
     area.innerHTML = `<div class="camera-icon">📷</div><div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>`;
     document.getElementById('analyzeBtn').disabled = true;

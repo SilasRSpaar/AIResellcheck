@@ -1,6 +1,6 @@
 {
-  "name": "ResellCheck",
-  "short_name": "ResellCheck",
+  "name": "PriceSnap",
+  "short_name": "PriceSnap",
   "description": "Fotografiere ein Objekt und erfahre sofort ob es sich zum Wiederverkauf lohnt.",
   "start_url": "/",
   "display": "standalone",

@@ -66,13 +66,13 @@ async function identifyObject(base64Image) {
             },
             {
               type: 'text',
-              text: `Identify this object for resale analysis. Respond ONLY with a valid JSON object (no markdown) with these fields:
+              text: `Identify this object for resale analysis. Respond ONLY with a valid JSON object (no markdown, no extra text) with these exact fields:
 {
-  "objectName": "specific product name and model if visible",
-  "category": "e.g. Elektronik, Kleidung, Spielzeug, Möbel, Schmuck, Sport, Sonstiges",
-  "brand": "brand name or null",
-  "condition": "Neu / Sehr gut / Gut / Akzeptabel / Beschädigt",
-  "ebaySearchQuery": "best English search query for eBay (max 5 words)",
+  "objectName": "spezifischer Produktname und Modell auf Deutsch, z.B. 'iPhone 13 Pro 256GB' oder 'Levi's 501 Jeans'",
+  "category": "eine dieser Kategorien auf Deutsch: Elektronik, Kleidung, Spielzeug, Möbel, Schmuck, Uhren, Sport, Bücher, Haushalt, Sonstiges",
+  "brand": "Markenname oder null",
+  "condition": "eines von: Neu / Sehr gut / Gut / Akzeptabel / Beschädigt",
+  "ebaySearchQuery": "best English search query for eBay sold listings (max 5 words, include brand and model)",
   "confidence": 0-100
 }`,
             },
@@ -123,14 +123,14 @@ async function getEbayPrices(searchQuery) {
 
   if (!tokenRes.access_token) throw new Error('eBay Auth fehlgeschlagen');
 
-  // Search active listings
+  // Search active listings on eBay DE (German/Swiss market)
   const encoded = encodeURIComponent(searchQuery);
   const searchRes = await httpsGet(
     'api.ebay.com',
-    `/buy/browse/v1/item_summary/search?q=${encoded}&limit=20&sort=price`,
+    `/buy/browse/v1/item_summary/search?q=${encoded}&limit=30&sort=price&filter=conditionIds:%7B1000|1500|2000|2500|3000%7D`,
     {
       Authorization: `Bearer ${tokenRes.access_token}`,
-      'X-EBAY-C-MARKETPLACE-ID': 'EBAY_DE', // German/Swiss market
+      'X-EBAY-C-MARKETPLACE-ID': 'EBAY_DE',
       'Content-Type': 'application/json',
     }
   );
@@ -143,9 +143,12 @@ async function getEbayPrices(searchQuery) {
     .filter((p) => p > 0)
     .sort((a, b) => a - b);
 
-  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
-  const min = prices[0];
-  const max = prices[prices.length - 1];
+  // Remove top and bottom 10% outliers for more accurate average
+  const trimCount = Math.floor(prices.length * 0.1);
+  const trimmed = prices.slice(trimCount, prices.length - trimCount || undefined);
+  const avg = trimmed.reduce((a, b) => a + b, 0) / trimmed.length;
+  const min = prices[Math.floor(prices.length * 0.1)]; // 10th percentile
+  const max = prices[Math.floor(prices.length * 0.9)]; // 90th percentile
   const soldCount = items.length;
 
   return {
@@ -231,6 +234,37 @@ Markt-Ø: CHF ${ebayData?.marketAvg || 'unbekannt'}
 Nachfrage-Score: ${demandScore}/100
 Sei direkt, ehrlich und praktisch. Keine Floskeln.`;
 
+
+  const result = await httpsPost(
+    'api.openai.com',
+    '/v1/chat/completions',
+    {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    {
+      model: 'gpt-4o-mini',
+      max_tokens: 120,
+      messages: [{ role: 'user', content: prompt }],
+    }
+  );
+
+  return result.body.choices?.[0]?.message?.content?.trim() || '';
+}
+
+// ── Step 4b: AI fairness note ─────────────────────────────────────────────────
+
+async function generateFairnessNote(objectInfo, ebayData, askedPrice) {
+  const avg = parseFloat(ebayData?.marketAvg) || 0;
+  const ratio = avg > 0 ? (askedPrice / avg).toFixed(2) : null;
+
+  const prompt = `Du bist ein Marktpreis-Experte. Bewerte diesen Preis in 1-2 Sätzen auf Deutsch.
+Objekt: ${objectInfo.objectName} (${objectInfo.category})
+Verlangter Preis: CHF ${askedPrice}
+Markt-Ø: CHF ${avg || 'unbekannt'}
+Preisverhältnis: ${ratio ? ratio + 'x Marktpreis' : 'unbekannt'}
+Sei direkt und sag ob es sich lohnt zu kaufen. Keine Floskeln.`;
+
   const result = await httpsPost(
     'api.openai.com',
     '/v1/chat/completions',
@@ -255,7 +289,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { image, buyPrice = 0, sellPrice = 0 } = req.body || {};
+  const { image, mode = 'resell', buyPrice = 0, sellPrice = 0, askedPrice = 0 } = req.body || {};
   if (!image) return res.status(400).json({ error: 'Kein Bild übermittelt' });
 
   try {
@@ -272,13 +306,34 @@ module.exports = async function handler(req, res) {
       console.error('eBay error (non-fatal):', e.message);
     }
 
-    // 3. Demand & channels
+    // 3. Mode-specific logic
+    let aiNote = '';
+
+    if (mode === 'fairness') {
+      // Fairness mode: just need market data + AI note
+      try {
+        aiNote = await generateFairnessNote(objectInfo, ebayData, askedPrice);
+      } catch (e) {
+        console.error('AI fairness note error (non-fatal):', e.message);
+      }
+
+      return res.status(200).json({
+        objectName: objectInfo.objectName,
+        category:   objectInfo.category,
+        brand:      objectInfo.brand,
+        condition:  objectInfo.condition,
+        priceMin:   ebayData?.priceMin   || null,
+        priceMax:   ebayData?.priceMax   || null,
+        marketAvg:  ebayData?.marketAvg  || null,
+        aiNote,
+      });
+    }
+
+    // Resell mode (default)
     const { demandScore, demandLabel, timeToSell, channels } = analyzeDemandAndChannels(
       objectInfo, ebayData, buyPrice, sellPrice
     );
 
-    // 4. AI note
-    let aiNote = '';
     try {
       aiNote = await generateNote(objectInfo, ebayData, buyPrice, sellPrice, demandScore);
     } catch (e) {
@@ -287,12 +342,12 @@ module.exports = async function handler(req, res) {
 
     return res.status(200).json({
       objectName: objectInfo.objectName,
-      category: objectInfo.category,
-      brand: objectInfo.brand,
-      condition: objectInfo.condition,
-      priceMin: ebayData?.priceMin || null,
-      priceMax: ebayData?.priceMax || null,
-      marketAvg: ebayData?.marketAvg || null,
+      category:   objectInfo.category,
+      brand:      objectInfo.brand,
+      condition:  objectInfo.condition,
+      priceMin:   ebayData?.priceMin   || null,
+      priceMax:   ebayData?.priceMax   || null,
+      marketAvg:  ebayData?.marketAvg  || null,
       demandScore,
       demandLabel,
       timeToSell,
