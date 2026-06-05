@@ -68,6 +68,61 @@ async function identifyObject(base64Image) {
   return JSON.parse(clean);
 }
 
+async function identifyWithBrand(base64Image, userBrand, userModel, userSize, userCategory) {
+  const contextParts = [
+    `Marke: ${userBrand}`,
+    userModel ? `Modell: ${userModel}` : null,
+    userSize  ? `Grösse: ${userSize}`  : null,
+    userCategory ? `Kategorie: ${userCategory}` : null,
+  ].filter(Boolean).join(', ');
+
+  const prompt = `Du analysierst einen Flohmarkt-Artikel mit folgenden Nutzerangaben: ${contextParts}.
+
+Kombiniere dein Markenwissen über "${userBrand}" (Produktkategorien, typische Artikel, Preisrange) mit der visuellen Analyse des Fotos.
+
+Identifiziere so präzise wie möglich:
+- Exakter Produkttyp (z.B. "Hoodie", "Laufschuh", "Lederjacke")
+- Modell/Linie falls sichtbar (z.B. "Box Logo", "Air Force 1", "501")
+- Farbe/Colorway
+- Zustand basierend auf dem Foto
+- Optimierter eBay.de Suchbegriff: Marke + Produkttyp + Modell + Farbe (5-8 Wörter, kein Artikel, KEINE Grösse)
+
+Antworte NUR als JSON (kein Markdown):
+{
+  "objectName": "vollständiger Produktname auf Deutsch",
+  "category": "Kleidung|Schuhe|Elektronik|Schmuck|Uhren|Moebel|Haushalt|Spielzeug|Buecher|Sport|Musik|Sonstiges",
+  "brand": "${userBrand}",
+  "productLine": "Modell/Linie oder null",
+  "color": "Farbe",
+  "condition": "Sehr gut",
+  "ebaySearchQuery": "Obey Box Logo Hoodie schwarz",
+  "confidence": 90
+}`;
+
+  const result = await httpsPost(
+    'api.openai.com', '/v1/chat/completions',
+    { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+    {
+      model: 'gpt-4o', max_tokens: 300,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt },
+          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}`, detail: 'auto' } }
+        ]
+      }]
+    }
+  );
+  if (result.status !== 200) throw new Error('OpenAI Brand-Vision Fehler: ' + JSON.stringify(result.body));
+  const content = result.body.choices?.[0]?.message?.content || '{}';
+  const clean = content.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+  const parsed = JSON.parse(clean);
+  // Merge user-provided size back (for display, not for search query)
+  if (userSize) parsed.size = userSize;
+  if (userCategory && !parsed.category) parsed.category = userCategory;
+  return parsed;
+}
+
 async function getEbayPrices(searchQuery) {
   const credentials = Buffer.from(`${process.env.EBAY_CLIENT_ID}:${process.env.EBAY_CLIENT_SECRET}`).toString('base64');
   const tokenRes = await new Promise((resolve, reject) => {
@@ -297,10 +352,11 @@ module.exports = async function handler(req, res) {
   if (!image) return res.status(400).json({ error: 'Kein Bild übermittelt' });
 
   try {
-    // Skip expensive GPT-Vision call if user provided brand info
+    // Brand provided: use Vision + brand knowledge for precise identification
+    // No brand: standard Vision-only identification
     let objectInfo;
-    if (userBrand) {
-      objectInfo = buildObjectInfoFromUser(userBrand, userModel, userSize, userCategory);
+    if (userBrand && image) {
+      objectInfo = await identifyWithBrand(image, userBrand, userModel, userSize, userCategory);
     } else {
       objectInfo = await identifyObject(image);
     }
@@ -311,28 +367,11 @@ module.exports = async function handler(req, res) {
     let ebayData = null;
     let retailData = null;
     try {
-      const searchQuery = (() => {
-        // User-provided info always wins over AI detection
-        if (userBrand || userModel) {
-          const parts = [];
-          if (userBrand) parts.push(userBrand);
-          if (userModel) parts.push(userModel);
-          if (userYear) parts.push(userYear.toString());
-          // Size only for clothing (not useful for electronics etc.)
-          const clothingSizes = ['xxs','xs','s','m','l','xl','xxl'];
-          if (userSize && clothingSizes.includes(userSize.toLowerCase().trim())) {
-            parts.push(userSize);
-          }
-          return parts.join(' ');
-        }
-        // Fall back to AI-detected query with brand prepended
-        let q = objectInfo.ebaySearchQuery || objectInfo.objectName;
-        if (objectInfo.brand && objectInfo.brand !== 'null' && objectInfo.brand !== null &&
-            !q.toLowerCase().includes(objectInfo.brand.toLowerCase())) {
-          q = objectInfo.brand + ' ' + q;
-        }
-        return q;
-      })();
+      // GPT always returns optimized ebaySearchQuery – use it directly
+      // Fallback: brand + model + year if somehow missing
+      const searchQuery = objectInfo.ebaySearchQuery ||
+        [userBrand, userModel, userYear].filter(Boolean).join(' ') ||
+        objectInfo.objectName;
       const [ebayResult, retailResult, vintedResult, pcResult] = await Promise.allSettled([
         objectInfo.ebaySearchQuery || (userBrand || userModel) ? getEbayPrices(searchQuery) : Promise.resolve(null),
         estimateRetailPrice(objectInfo),
