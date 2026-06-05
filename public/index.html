@@ -689,7 +689,7 @@
         <div class="stat-card">
           <div class="stat-label">🏷️ Neupreis</div>
           <div class="stat-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
-          <div class="stat-sub">${data.retailPrice ? (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung') : 'Nicht verfügbar'}</div>
+          <div class="stat-sub">${data.retailPrice ? (data.retailSource ? data.retailSource : data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung') : 'Nicht verfügbar'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Nachfrage</div>
@@ -805,7 +805,7 @@
         <div class="stat-card">
           <div class="stat-label">🏷️ Neupreis</div>
           <div class="stat-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
-          <div class="stat-sub">${data.retailPrice ? (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung') : 'Nicht verfügbar'}</div>
+          <div class="stat-sub">${data.retailPrice ? (data.retailSource ? data.retailSource : data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung') : 'Nicht verfügbar'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Du sparst / zahlst mehr</div>

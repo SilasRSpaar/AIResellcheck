@@ -346,6 +346,97 @@ function mapUPCCategory(cat) {
   return 'Sonstiges';
 }
 
+async function getKleinanzeigenListings(searchQuery) {
+  try {
+    const slug = encodeURIComponent(searchQuery);
+    const result = await withTimeout(
+      httpsGet('www.kleinanzeigen.de',
+        `/s-anzeige/suchanfrage?keywords=${slug}&pageNum=0`,
+        {
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
+          'Accept': 'application/json, text/html',
+          'Accept-Language': 'de-DE,de;q=0.9',
+        }
+      ), 3000, null
+    );
+    if (!result || result.status !== 200) return [];
+    // Try JSON response first (mobile API)
+    if (result.body?.ads) {
+      return result.body.ads.slice(0, 3).map(ad => ({
+        title: (ad.title || '').substring(0, 60),
+        price: ad.price?.amount ? parseFloat(ad.price.amount).toFixed(2) : null,
+        currency: 'EUR',
+        url: ad.link ? 'https://www.kleinanzeigen.de' + ad.link : 'https://www.kleinanzeigen.de',
+        source: 'Kleinanzeigen'
+      })).filter(l => l.price && parseFloat(l.price) > 0);
+    }
+    // Fallback: parse embedded JSON from HTML
+    const html = typeof result.body === 'string' ? result.body : '';
+    const jsonMatch = html.match(/"ads"\s*:\s*(\[[\s\S]*?\])/);
+    if (!jsonMatch) return [];
+    const ads = JSON.parse(jsonMatch[1]);
+    return ads.slice(0, 3).map(ad => ({
+      title: (ad.title || '').substring(0, 60),
+      price: ad.price?.amount ? parseFloat(ad.price.amount).toFixed(2) : null,
+      currency: 'EUR',
+      url: 'https://www.kleinanzeigen.de',
+      source: 'Kleinanzeigen'
+    })).filter(l => l.price && parseFloat(l.price) > 0);
+  } catch(e) { console.error('Kleinanzeigen error:', e.message); return []; }
+}
+
+async function getRicardoListings(searchQuery) {
+  try {
+    const encoded = encodeURIComponent(searchQuery);
+    const result = await withTimeout(
+      httpsGet('www.ricardo.ch',
+        `/api/public/v1/listings?q=${encoded}&limit=5&offset=0&sort=relevance`,
+        {
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
+          'Accept': 'application/json',
+          'Accept-Language': 'de-CH,de;q=0.9',
+        }
+      ), 3000, null
+    );
+    if (!result || result.status !== 200 || !result.body?.data) return [];
+    return result.body.data.slice(0, 3).map(item => ({
+      title: (item.title || '').substring(0, 60),
+      price: item.buyNowPrice?.amount
+        ? parseFloat(item.buyNowPrice.amount).toFixed(2)
+        : item.startPrice?.amount
+          ? parseFloat(item.startPrice.amount).toFixed(2)
+          : null,
+      currency: 'CHF',
+      url: item.links?.detail ? 'https://www.ricardo.ch' + item.links.detail : 'https://www.ricardo.ch',
+      source: 'Ricardo.ch'
+    })).filter(l => l.price && parseFloat(l.price) > 0);
+  } catch(e) { console.error('Ricardo error:', e.message); return []; }
+}
+
+async function getKeepaRetailPrice(searchQuery) {
+  if (!process.env.KEEPA_API_KEY) return null;
+  try {
+    const encoded = encodeURIComponent(searchQuery);
+    const result = await withTimeout(
+      httpsGet('api.keepa.com',
+        `/search?key=${process.env.KEEPA_API_KEY}&domain=3&type=product&term=${encoded}&page=0`,
+        { 'Accept': 'application/json' }
+      ), 3000, null
+    );
+    if (!result || result.status !== 200 || !result.body?.products?.length) return null;
+    const product = result.body.products[0];
+    // Keepa prices are in 1/100 EUR (Keepa-cents). -1 = not available.
+    const priceKeepa = product.stats?.current?.[0];
+    if (!priceKeepa || priceKeepa === -1) return null;
+    const priceEUR = (priceKeepa / 100).toFixed(2);
+    return {
+      retailPrice: priceEUR,
+      retailConfidence: 'high',
+      retailSource: 'Amazon.de'
+    };
+  } catch(e) { console.error('Keepa error:', e.message); return null; }
+}
+
 async function estimateRetailPrice(objectInfo) {
   const name = objectInfo.objectName + (objectInfo.brand ? ', ' + objectInfo.brand : '');
   const prompt = "You are a product pricing expert. What is the typical new retail price for this item in Europe (EUR/CHF)?\nItem: " + name + "\nReply ONLY with valid JSON: {\"retailPrice\":number_or_null,\"confidence\":\"high|medium|low\"}\nIf the item is too generic or unknown, set retailPrice to null.";
@@ -422,11 +513,20 @@ module.exports = async function handler(req, res) {
       const searchQuery = objectInfo.ebaySearchQuery ||
         [userBrand, userModel, userYear].filter(Boolean).join(' ') ||
         objectInfo.objectName;
-      const [ebayResult, retailResult, vintedResult, pcResult] = await Promise.allSettled([
-        objectInfo.ebaySearchQuery || (userBrand || userModel) ? getEbayPrices(searchQuery) : Promise.resolve(null),
-        estimateRetailPrice(objectInfo),
+      // Retail price: Keepa (real Amazon.de price) → fallback GPT estimate
+      const retailPromise = (async () => {
+        const keepa = await getKeepaRetailPrice(searchQuery);
+        if (keepa) return keepa;
+        return estimateRetailPrice(objectInfo);
+      })();
+
+      const [ebayResult, retailResult, vintedResult, pcResult, kleinResult, ricardoResult] = await Promise.allSettled([
+        getEbayPrices(searchQuery),
+        retailPromise,
         withTimeout(getVintedListings(searchQuery), 2000, []),
-        withTimeout(getPriceChartingListings(searchQuery), 2000, [])
+        withTimeout(getPriceChartingListings(searchQuery), 2000, []),
+        withTimeout(getKleinanzeigenListings(searchQuery), 3000, []),
+        withTimeout(getRicardoListings(searchQuery), 3000, [])
       ]);
       if (ebayResult.status === 'fulfilled') ebayData = ebayResult.value;
       if (retailResult.status === 'fulfilled') retailData = retailResult.value;
@@ -435,13 +535,24 @@ module.exports = async function handler(req, res) {
         const mid = ((objectInfo.upcRetailPriceMin + objectInfo.upcRetailPriceMax) / 2);
         retailData = { retailPrice: mid.toFixed(2), retailConfidence: 'high' };
       }
-      const vintedListings = vintedResult.status === 'fulfilled' ? vintedResult.value : [];
-      const pcListings = pcResult.status === 'fulfilled' ? pcResult.value : [];
+      const vintedListings   = vintedResult.status   === 'fulfilled' ? vintedResult.value   : [];
+      const pcListings       = pcResult.status       === 'fulfilled' ? pcResult.value       : [];
+      const kleinListings    = kleinResult.status    === 'fulfilled' ? kleinResult.value    : [];
+      const ricardoListings  = ricardoResult.status  === 'fulfilled' ? ricardoResult.value  : [];
 
-      // Merge extra listings into ebayData.topListings
+      // Merge all sources into topListings
       if (ebayData) {
-        const extra = [...vintedListings, ...pcListings];
+        const extra = [...vintedListings, ...pcListings, ...kleinListings, ...ricardoListings];
         ebayData.topListings = [...(ebayData.topListings || []).map(l => ({...l, source:'eBay'})), ...extra];
+      } else if (kleinListings.length || ricardoListings.length || vintedListings.length) {
+        // No eBay data: build synthetic ebayData from other sources for display
+        const allExtra = [...vintedListings, ...kleinListings, ...ricardoListings, ...pcListings];
+        const prices = allExtra.map(l => parseFloat(l.price)).filter(p => p > 0);
+        if (prices.length) {
+          const avg = (prices.reduce((a,b)=>a+b,0)/prices.length).toFixed(2);
+          ebayData = { priceMin: Math.min(...prices).toFixed(2), priceMax: Math.max(...prices).toFixed(2),
+            marketAvg: avg, listingCount: prices.length, aiEstimate: false, topListings: allExtra };
+        }
       }
     } catch(e) { console.error('Data fetch error:', e.message); }
     if (!ebayData) {
@@ -458,6 +569,7 @@ module.exports = async function handler(req, res) {
         priceMin: ebayData?.priceMin||null, priceMax: ebayData?.priceMax||null,
         marketAvg: ebayData?.marketAvg||null, aiNote,
         retailPrice: retailData?.retailPrice||null, retailConfidence: retailData?.retailConfidence||null,
+        retailSource: retailData?.retailSource||null,
         topListings: ebayData?.topListings||[],
       });
     }
@@ -472,6 +584,7 @@ module.exports = async function handler(req, res) {
       marketAvg: ebayData?.marketAvg||null,
       demandScore, demandLabel, timeToSell, channels, aiNote,
       retailPrice: retailData?.retailPrice||null, retailConfidence: retailData?.retailConfidence||null,
+      retailSource: retailData?.retailSource||null,
       topListings: ebayData?.topListings||[],
     });
 
