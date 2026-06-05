@@ -262,6 +262,10 @@
     }
 
     .bottom-safe { height: env(safe-area-inset-bottom, 20px); }
+    .cat-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+    .cat-btn { flex: 1 0 calc(25% - 6px); min-width: 70px; padding: 10px 4px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text-muted); font-size: 11px; font-weight: 600; cursor: pointer; text-align: center; line-height: 1.4; transition: all 0.15s; }
+    .cat-btn .cat-icon { font-size: 20px; display: block; margin-bottom: 3px; }
+    .cat-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
     .details-toggle { background: none; border: 1px dashed var(--border); border-radius: 10px; color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 10px 14px; width: 100%; cursor: pointer; text-align: left; transition: all 0.2s; }
     .details-toggle:hover { border-color: var(--accent); color: var(--accent-light); }
     .details-fields { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
@@ -316,10 +320,27 @@
     <div id="detailsSection" style="display:none;">
       <button class="details-toggle" onclick="toggleDetails()" id="detailsToggleBtn">＋ Angaben verfeinern (optional)</button>
       <div id="detailsFields" style="display:none;" class="details-fields">
-        <input class="detail-input" type="text" id="userBrand" placeholder="Marke (z.B. Nike, Sony, Apple)" />
-        <input class="detail-input" type="text" id="userModel" placeholder="Modell (z.B. Air Max 90, iPhone 13)" />
-        <input class="detail-input" type="text" id="userYear" placeholder="Jahr (z.B. 2021)" />
-        <input class="detail-input" type="text" id="userSize" placeholder="Grösse (z.B. 42, M, 128GB) – optional" />
+        <div>
+          <label style="margin-bottom:8px;display:block;">Kategorie</label>
+          <div class="cat-picker" id="catPicker">
+            <button class="cat-btn" data-cat="Elektronik" onclick="setCategory(this)"><span class="cat-icon">📱</span>Elektronik</button>
+            <button class="cat-btn" data-cat="Kleidung" onclick="setCategory(this)"><span class="cat-icon">👕</span>Kleidung</button>
+            <button class="cat-btn" data-cat="Schuhe" onclick="setCategory(this)"><span class="cat-icon">👟</span>Schuhe</button>
+            <button class="cat-btn" data-cat="Spielzeug" onclick="setCategory(this)"><span class="cat-icon">🧸</span>Spielzeug</button>
+            <button class="cat-btn" data-cat="Buecher" onclick="setCategory(this)"><span class="cat-icon">📚</span>Bücher</button>
+            <button class="cat-btn" data-cat="Haushalt" onclick="setCategory(this)"><span class="cat-icon">🏠</span>Haushalt</button>
+            <button class="cat-btn" data-cat="Moebel" onclick="setCategory(this)"><span class="cat-icon">🪑</span>Möbel</button>
+            <button class="cat-btn" data-cat="Schmuck" onclick="setCategory(this)"><span class="cat-icon">💍</span>Schmuck</button>
+            <button class="cat-btn" data-cat="Uhren" onclick="setCategory(this)"><span class="cat-icon">⌚</span>Uhren</button>
+            <button class="cat-btn" data-cat="Sport" onclick="setCategory(this)"><span class="cat-icon">⚽</span>Sport</button>
+            <button class="cat-btn" data-cat="Musik" onclick="setCategory(this)"><span class="cat-icon">🎵</span>Musik</button>
+            <button class="cat-btn" data-cat="Sonstiges" onclick="setCategory(this)"><span class="cat-icon">📦</span>Sonstiges</button>
+          </div>
+        </div>
+        <input class="detail-input" type="text" id="userBrand" placeholder="Marke (z.B. Nike, Sony, Lego, Ikea)" />
+        <input class="detail-input" type="text" id="userModel" placeholder="Modell / Beschreibung (z.B. Air Max 90)" />
+        <input class="detail-input" type="text" id="userYear" placeholder="Jahr (z.B. 2021) – optional" />
+        <input class="detail-input" type="text" id="userSize" placeholder="Grösse / Variante (z.B. 42, M, 128GB) – optional" />
       </div>
     </div>
 
@@ -382,6 +403,7 @@
   let imageBase64 = null;
   let currentMode = 'resell'; // 'resell' | 'fairness'
   let selectedCondition = 'Sehr gut';
+  let selectedCategory = null;
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -433,6 +455,12 @@
     btn.textContent = open ? '－ Angaben verfeinern' : '＋ Angaben verfeinern (optional)';
   }
 
+  function setCategory(btn) {
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedCategory = btn.dataset.cat;
+  }
+
   function setCondition(btn) {
     document.querySelectorAll('.cond-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
@@ -479,6 +507,7 @@
           userModel: document.getElementById('userModel').value.trim() || null,
           userYear: document.getElementById('userYear').value.trim() || null,
           userSize: document.getElementById('userSize').value.trim() || null,
+          userCategory: selectedCategory || null,
         }),
       });
 
@@ -724,6 +753,8 @@
     document.getElementById('userYear').value = '';
     document.getElementById('userSize').value = '';
     document.getElementById('detailsFields').style.display = 'none';
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    selectedCategory = null;
     document.getElementById('detailsToggleBtn').textContent = '＋ Angaben verfeinern (optional)';
     document.getElementById('detailsSection').style.display = 'none';
     document.getElementById('conditionGroup').style.display = 'none';

@@ -140,12 +140,24 @@ function analyzeDemandAndChannels(objectInfo, ebayData) {
   let channels;
   if (cat.includes('elektron')||cat.includes('handy')) {
     channels = [{name:'Ricardo.ch',reason:'Grösster CH-Marktplatz für Elektronik'},{name:'eBay.de',reason:'Grosse Reichweite in DACH'},{name:'Facebook Marketplace',reason:'Lokal & schnell'}];
-  } else if (cat.includes('kleider')||cat.includes('mode')||cat.includes('kleidung')) {
-    channels = [{name:'Vinted',reason:'Beste Plattform für Mode in CH'},{name:'Tutti.ch',reason:'Lokale Käufer, schnell'},{name:'Facebook Marketplace',reason:'Kostenlos & direkt'}];
-  } else if (cat.includes('schmuck')||cat.includes('uhren')) {
-    channels = [{name:'Chrono24 / Catawiki',reason:'Spezialisiert auf Luxusgüter'},{name:'Ricardo.ch',reason:'Gut für Schweizer Käufer'},{name:'eBay.de',reason:'Internationale Reichweite'}];
-  } else if (cat.includes('moebel')||cat.includes('haushalt')) {
+  } else if (cat.includes('kleider')||cat.includes('mode')||cat.includes('kleidung')||cat.includes('schuhe')) {
+    channels = [{name:'Vinted',reason:'Beste Plattform für Mode & Schuhe in CH'},{name:'Ricardo.ch',reason:'Grosse Reichweite in CH'},{name:'Facebook Marketplace',reason:'Lokal & kostenlos'}];
+  } else if (cat.includes('schmuck')) {
+    channels = [{name:'Ricardo.ch',reason:'Gut für Schweizer Käufer'},{name:'Catawiki',reason:'Spezialisiert auf Sammlerstücke'},{name:'eBay.de',reason:'Internationale Reichweite'}];
+  } else if (cat.includes('uhren')) {
+    channels = [{name:'Chrono24',reason:'Weltgrösste Uhren-Plattform'},{name:'Ricardo.ch',reason:'Gut für Schweizer Käufer'},{name:'eBay.de',reason:'Internationale Reichweite'}];
+  } else if (cat.includes('moebel')) {
     channels = [{name:'Facebook Marketplace',reason:'Ideal für Möbel (Abholung)'},{name:'Tutti.ch',reason:'Starke lokale Präsenz in CH'},{name:'Ricardo.ch',reason:'Bekannter CH-Marktplatz'}];
+  } else if (cat.includes('haushalt')) {
+    channels = [{name:'Ricardo.ch',reason:'Grosse Reichweite in CH'},{name:'Tutti.ch',reason:'Lokal & kostenlos'},{name:'Facebook Marketplace',reason:'Schnell & direkt'}];
+  } else if (cat.includes('spielzeug')) {
+    channels = [{name:'Ricardo.ch',reason:'Top-Plattform für Spielzeug in CH'},{name:'eBay.de',reason:'Grosse Nachfrage für Sammlerstücke'},{name:'Facebook Marketplace',reason:'Lokal & schnell'}];
+  } else if (cat.includes('buch')||cat.includes('buecher')) {
+    channels = [{name:'ZVAB / AbeBooks',reason:'Spezialisiert auf Bücher & Antiquariat'},{name:'Ricardo.ch',reason:'CH-Marktplatz'},{name:'Facebook Marketplace',reason:'Lokal, kostenlos'}];
+  } else if (cat.includes('sport')) {
+    channels = [{name:'Ricardo.ch',reason:'Gut für Sportartikel in CH'},{name:'Facebook Marketplace',reason:'Lokal & schnell'},{name:'eBay.de',reason:'Grosse Reichweite'}];
+  } else if (cat.includes('musik')) {
+    channels = [{name:'Ricardo.ch',reason:'CH-Marktplatz für Instrumente'},{name:'eBay.de',reason:'Grosse Musikbörse'},{name:'Facebook Marketplace',reason:'Lokal & direkt'}];
   } else {
     channels = [{name:'Ricardo.ch',reason:'Grösster Schweizer Marktplatz'},{name:'Tutti.ch',reason:'Kostenlos, lokal'},{name:'eBay.de',reason:'Internationale Reichweite'}];
   }
@@ -260,15 +272,16 @@ async function estimateRetailPrice(objectInfo) {
 }
 
 
-function buildObjectInfoFromUser(userBrand, userModel, userSize) {
-  // Infer category from size hint (clothing sizes = Kleidung)
-  const clothingSizes = ['xxs','xs','s','m','l','xl','xxl','xxxs','xxxxl','34','36','38','40','42','44','46','48','50','52'];
-  const isClothing = userSize && clothingSizes.includes(userSize.toLowerCase().trim());
-  const category = isClothing ? 'Kleidung' : 'Sonstiges';
-  const objectName = [userBrand, userModel].filter(Boolean).join(' ');
-  const ebaySearchQuery = [userBrand, userModel].filter(Boolean).join(' ').substring(0, 40);
+function buildObjectInfoFromUser(userBrand, userModel, userSize, userCategory) {
+  const category = userCategory || 'Sonstiges';
+  const parts = [userBrand, userModel].filter(Boolean);
+  const objectName = parts.join(' ') || userBrand || 'Artikel';
+  // Build targeted eBay query: brand + model + size for clothing
+  const queryParts = [...parts];
+  if (userSize && ['Kleidung','Schuhe','Sport'].includes(category)) queryParts.push(userSize);
+  const ebaySearchQuery = queryParts.join(' ').substring(0, 50);
   return {
-    objectName: objectName || userBrand,
+    objectName,
     category,
     brand: userBrand,
     condition: 'Gut',
@@ -280,14 +293,14 @@ function buildObjectInfoFromUser(userBrand, userModel, userSize) {
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { image, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null, userBrand=null, userModel=null, userYear=null, userSize=null } = req.body || {};
+  const { image, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null, userBrand=null, userModel=null, userYear=null, userSize=null, userCategory=null } = req.body || {};
   if (!image) return res.status(400).json({ error: 'Kein Bild übermittelt' });
 
   try {
     // Skip expensive GPT-Vision call if user provided brand info
     let objectInfo;
     if (userBrand) {
-      objectInfo = buildObjectInfoFromUser(userBrand, userModel, userSize);
+      objectInfo = buildObjectInfoFromUser(userBrand, userModel, userSize, userCategory);
     } else {
       objectInfo = await identifyObject(image);
     }
