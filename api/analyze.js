@@ -167,11 +167,17 @@ async function getEbayPrices(searchQuery) {
 
   let prices = items.map(i=>parseFloat(i.price?.value||0)).filter(p=>p>0).sort((a,b)=>a-b);
 
-  // Remove outliers: use 75th percentile as anchor to handle bimodal distributions
-  // (e.g. PS5 accessories at 3-8 EUR + controllers at 40-65 EUR)
-  // Filter anything below 25% of the 75th-percentile price
-  const anchor = prices[Math.floor(prices.length * 0.75)];
-  prices = prices.filter(p => p >= anchor * 0.25);
+  // Two-pass outlier removal (works across all categories):
+  // Pass 1: remove extreme low-end (below 8% of max) – catches accessories/parts
+  const maxPrice = prices[prices.length - 1];
+  prices = prices.filter(p => p >= maxPrice * 0.08);
+  if (prices.length === 0) return null;
+  // Pass 2: remove items below 30% of mean of cleaned set – catches remaining outliers
+  if (prices.length > 3) {
+    const mean = prices.reduce((a,b) => a+b, 0) / prices.length;
+    const filtered = prices.filter(p => p >= mean * 0.30);
+    if (filtered.length >= 3) prices = filtered;
+  }
   if (prices.length === 0) return null;
 
   // Trim top/bottom 10% for avg
