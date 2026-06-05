@@ -262,6 +262,12 @@
     }
 
     .bottom-safe { height: env(safe-area-inset-bottom, 20px); }
+    .details-toggle { background: none; border: 1px dashed var(--border); border-radius: 10px; color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 10px 14px; width: 100%; cursor: pointer; text-align: left; transition: all 0.2s; }
+    .details-toggle:hover { border-color: var(--accent); color: var(--accent-light); }
+    .details-fields { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+    .detail-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; color: var(--text); font-size: 15px; width: 100%; outline: none; }
+    .detail-input:focus { border-color: var(--accent); }
+    .detail-input::placeholder { color: var(--text-muted); }
     .listing-source { font-size: 10px; font-weight: 700; color: var(--text-muted); background: var(--border); border-radius: 4px; padding: 2px 5px; white-space: nowrap; flex-shrink: 0; }
   </style>
 </head>
@@ -303,6 +309,17 @@
           <button class="cond-btn" data-val="Akzeptabel" onclick="setCondition(this)">👌 Akzeptabel</button>
           <button class="cond-btn" data-val="Beschädigt" onclick="setCondition(this)">⚠️ Beschädigt</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Optional detail inputs (erscheint nach Foto) -->
+    <div id="detailsSection" style="display:none;">
+      <button class="details-toggle" onclick="toggleDetails()" id="detailsToggleBtn">＋ Angaben verfeinern (optional)</button>
+      <div id="detailsFields" style="display:none;" class="details-fields">
+        <input class="detail-input" type="text" id="userBrand" placeholder="Marke (z.B. Nike, Sony, Apple)" />
+        <input class="detail-input" type="text" id="userModel" placeholder="Modell (z.B. Air Max 90, iPhone 13)" />
+        <input class="detail-input" type="text" id="userYear" placeholder="Jahr (z.B. 2021)" />
+        <input class="detail-input" type="text" id="userSize" placeholder="Grösse (z.B. 42, M, 128GB) – optional" />
       </div>
     </div>
 
@@ -405,6 +422,15 @@
   function updateAnalyzeBtn() {
     document.getElementById('analyzeBtn').disabled = !imageBase64;
     document.getElementById('conditionGroup').style.display = imageBase64 ? '' : 'none';
+    document.getElementById('detailsSection').style.display = imageBase64 ? '' : 'none';
+  }
+
+  function toggleDetails() {
+    const fields = document.getElementById('detailsFields');
+    const btn = document.getElementById('detailsToggleBtn');
+    const open = fields.style.display === 'none';
+    fields.style.display = open ? '' : 'none';
+    btn.textContent = open ? '－ Angaben verfeinern' : '＋ Angaben verfeinern (optional)';
   }
 
   function setCondition(btn) {
@@ -446,7 +472,14 @@
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: imageBase64, mode: currentMode, buyPrice, sellPrice, askedPrice, condition: selectedCondition }),
+        body: JSON.stringify({
+          image: imageBase64, mode: currentMode, buyPrice, sellPrice, askedPrice,
+          condition: selectedCondition,
+          userBrand: document.getElementById('userBrand').value.trim() || null,
+          userModel: document.getElementById('userModel').value.trim() || null,
+          userYear: document.getElementById('userYear').value.trim() || null,
+          userSize: document.getElementById('userSize').value.trim() || null,
+        }),
       });
 
       clearInterval(stepInterval);
@@ -686,6 +719,13 @@
     document.getElementById('buyPrice').value   = '';
     document.getElementById('sellPrice').value  = '';
     document.getElementById('askedPrice').value = '';
+    document.getElementById('userBrand').value = '';
+    document.getElementById('userModel').value = '';
+    document.getElementById('userYear').value = '';
+    document.getElementById('userSize').value = '';
+    document.getElementById('detailsFields').style.display = 'none';
+    document.getElementById('detailsToggleBtn').textContent = '＋ Angaben verfeinern (optional)';
+    document.getElementById('detailsSection').style.display = 'none';
     document.getElementById('conditionGroup').style.display = 'none';
     document.querySelectorAll('.cond-btn').forEach((b,i) => b.classList.toggle('active', i===0));
     const area = document.getElementById('cameraArea');

@@ -253,17 +253,29 @@ async function estimateRetailPrice(objectInfo) {
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { image, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null } = req.body || {};
+  const { image, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null, userBrand=null, userModel=null, userYear=null, userSize=null } = req.body || {};
   if (!image) return res.status(400).json({ error: 'Kein Bild übermittelt' });
 
   try {
     const objectInfo = await identifyObject(image);
     if (condition) objectInfo.condition = condition;
+    if (userBrand) objectInfo.brand = userBrand;
+    if (userModel) objectInfo.model = userModel;
 
     let ebayData = null;
     let retailData = null;
     try {
       const searchQuery = (() => {
+        // User-provided info always wins over AI detection
+        if (userBrand || userModel) {
+          const parts = [];
+          if (userBrand) parts.push(userBrand);
+          if (userModel) parts.push(userModel);
+          if (userYear) parts.push(userYear.toString());
+          if (userSize) parts.push(userSize.toString());
+          return parts.join(' ');
+        }
+        // Fall back to AI-detected query with brand prepended
         let q = objectInfo.ebaySearchQuery || objectInfo.objectName;
         if (objectInfo.brand && objectInfo.brand !== 'null' && objectInfo.brand !== null &&
             !q.toLowerCase().includes(objectInfo.brand.toLowerCase())) {
