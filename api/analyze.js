@@ -48,7 +48,7 @@ async function identifyObject(base64Image) {
       messages: [{
         role: 'user',
         content: [
-          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}`, detail: 'high' } },
+          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}`, detail: 'auto' } },
           { type: 'text', text: 'Identify this object. Respond ONLY with valid JSON (no markdown):\n{"objectName":"Produktname auf Deutsch","category":"Elektronik|Kleidung|Spielzeug|Moebel|Schmuck|Uhren|Sport|Buecher|Haushalt|Sonstiges","brand":"Marke oder null","condition":"Neu|Sehr gut|Gut|Akzeptabel|Beschaedigt","ebaySearchQuery":"best english ebay search max 5 words","confidence":0}' }
         ]
       }]
