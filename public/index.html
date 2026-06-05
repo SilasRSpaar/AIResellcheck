@@ -662,25 +662,22 @@
     if (!listings || listings.length === 0) return '';
     const items = listings.map(l => {
       const priceStr = 'CHF ' + parseFloat(l.price).toFixed(0);
-      const badge = l.source ? `<span class="listing-source">${l.source}</span>` : '';
+      const badge = l.source ? '<span class="listing-source">' + l.source + '</span>' : '';
       if (l.url) {
-        return `<a class="listing-item" href="${l.url}" target="_blank" rel="noopener">
-          ${badge}
-          <span class="listing-title">${l.title}</span>
-          <span class="listing-price">${priceStr}</span>
-          <span class="listing-arrow">↗</span>
-        </a>`;
+        return '<a class="listing-item" href="' + l.url + '" target="_blank" rel="noopener">' +
+          badge +
+          '<span class="listing-title">' + l.title + '</span>' +
+          '<span class="listing-price">' + priceStr + '</span>' +
+          '<span class="listing-arrow">↗</span>' +
+          '</a>';
       }
-      return `<div class="listing-item">
-        ${badge}
-        <span class="listing-title">${l.title}</span>
-        <span class="listing-price">${priceStr}</span>
-      </div>`;
+      return '<div class="listing-item">' +
+        badge +
+        '<span class="listing-title">' + l.title + '</span>' +
+        '<span class="listing-price">' + priceStr + '</span>' +
+        '</div>';
     }).join('');
-    return `<div class="listings-section">
-      <div class="listings-title">Ähnliche Angebote</div>
-      ${items}
-    </div>`;
+    return '<div class="listings-section"><div class="listings-title">Ähnliche Angebote</div>' + items + '</div>';
   }
 
   function resetApp() {
@@ -692,4 +689,10 @@
     document.getElementById('conditionGroup').style.display = 'none';
     document.querySelectorAll('.cond-btn').forEach((b,i) => b.classList.toggle('active', i===0));
     const area = document.getElementById('cameraArea');
-    area.innerHTML = `<div class="camera-icon">📷</div><div 
+    area.innerHTML = `<div class="camera-icon">📷</div><div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>`;
+    document.getElementById('analyzeBtn').disabled = true;
+    showView('scanView');
+  }
+</script>
+</body>
+</html>
