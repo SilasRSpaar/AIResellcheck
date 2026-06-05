@@ -187,6 +187,52 @@ async function estimatePriceWithAI(objectInfo) {
 }
 
 
+
+async function getVintedListings(searchQuery) {
+  try {
+    const encoded = encodeURIComponent(searchQuery);
+    const result = await httpsGet('www.vinted.de',
+      `/api/v2/catalog/items?search_text=${encoded}&per_page=20&order=relevance`,
+      {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
+        'Accept': 'application/json',
+        'Accept-Language': 'de-DE,de;q=0.9',
+      }
+    );
+    if (result.status !== 200 || !result.body?.items) return [];
+    return result.body.items
+      .filter(i => parseFloat(i.price_numeric) > 0)
+      .slice(0, 3)
+      .map(i => ({
+        title: (i.title || '').substring(0, 60),
+        price: parseFloat(i.price_numeric).toFixed(2),
+        currency: i.currency || 'EUR',
+        url: `https://www.vinted.de/items/${i.id}`,
+        condition: i.status || null,
+        source: 'Vinted'
+      }));
+  } catch(e) { console.error('Vinted error:', e.message); return []; }
+}
+
+async function getPriceChartingListings(searchQuery) {
+  if (!process.env.PRICECHARTING_API_KEY) return [];
+  try {
+    const encoded = encodeURIComponent(searchQuery);
+    const result = await httpsGet('www.pricecharting.com',
+      `/api/product?status=200&q=${encoded}&apikey=${process.env.PRICECHARTING_API_KEY}`,
+      { 'Accept': 'application/json' }
+    );
+    if (result.status !== 200 || !result.body?.products) return [];
+    return result.body.products.slice(0, 2).map(p => ({
+      title: (p['product-name'] || '').substring(0, 60),
+      price: ((p['loose-price'] || 0) / 100 * 0.92).toFixed(2), // USD → EUR approx
+      currency: 'EUR',
+      url: p.id ? `https://www.pricecharting.com/game/${p.id}` : null,
+      source: 'PriceCharting'
+    })).filter(p => parseFloat(p.price) > 0);
+  } catch(e) { console.error('PriceCharting error:', e.message); return []; }
+}
+
 async function estimateRetailPrice(objectInfo) {
   const name = objectInfo.objectName + (objectInfo.brand ? ', ' + objectInfo.brand : '');
   const prompt = "You are a product pricing expert. What is the typical new retail price for this item in Europe (EUR/CHF)?\nItem: " + name + "\nReply ONLY with valid JSON: {\"retailPrice\":number_or_null,\"confidence\":\"high|medium|low\"}\nIf the item is too generic or unknown, set retailPrice to null.";
@@ -217,21 +263,33 @@ module.exports = async function handler(req, res) {
     let ebayData = null;
     let retailData = null;
     try {
-      const [ebayResult, retailResult] = await Promise.allSettled([
-        objectInfo.ebaySearchQuery ? (async () => {
-          let query = objectInfo.ebaySearchQuery;
-          if (objectInfo.brand && objectInfo.brand !== 'null' && objectInfo.brand !== null &&
-              !query.toLowerCase().includes(objectInfo.brand.toLowerCase())) {
-            query = objectInfo.brand + ' ' + query;
-          }
-          const condFilterMap = {'Neu':'NEW','Sehr gut':'USED','Gut':'USED','Akzeptabel':'USED','Beschaedigt':'UNSPECIFIED'};
-          const condFilter = condFilterMap[objectInfo.condition] || null;
-          return await getEbayPrices(query, condFilter);
-        })() : Promise.resolve(null),
-        estimateRetailPrice(objectInfo)
+      const searchQuery = (() => {
+        let q = objectInfo.ebaySearchQuery || objectInfo.objectName;
+        if (objectInfo.brand && objectInfo.brand !== 'null' && objectInfo.brand !== null &&
+            !q.toLowerCase().includes(objectInfo.brand.toLowerCase())) {
+          q = objectInfo.brand + ' ' + q;
+        }
+        return q;
+      })();
+      const condFilterMap = {'Neu':'NEW','Sehr gut':'USED','Gut':'USED','Akzeptabel':'USED','Beschaedigt':'UNSPECIFIED'};
+      const condFilter = condFilterMap[objectInfo.condition] || null;
+
+      const [ebayResult, retailResult, vintedResult, pcResult] = await Promise.allSettled([
+        objectInfo.ebaySearchQuery ? getEbayPrices(searchQuery, condFilter) : Promise.resolve(null),
+        estimateRetailPrice(objectInfo),
+        getVintedListings(searchQuery),
+        getPriceChartingListings(searchQuery)
       ]);
       if (ebayResult.status === 'fulfilled') ebayData = ebayResult.value;
       if (retailResult.status === 'fulfilled') retailData = retailResult.value;
+      const vintedListings = vintedResult.status === 'fulfilled' ? vintedResult.value : [];
+      const pcListings = pcResult.status === 'fulfilled' ? pcResult.value : [];
+
+      // Merge extra listings into ebayData.topListings
+      if (ebayData) {
+        const extra = [...vintedListings, ...pcListings];
+        ebayData.topListings = [...(ebayData.topListings || []).map(l => ({...l, source:'eBay'})), ...extra];
+      }
     } catch(e) { console.error('Data fetch error:', e.message); }
     if (!ebayData) {
       try { ebayData = await estimatePriceWithAI(objectInfo); } catch(e2) { console.error('AI price fallback:', e2.message); }
