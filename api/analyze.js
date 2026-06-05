@@ -39,6 +39,14 @@ function httpsGet(hostname, path, headers) {
   });
 }
 
+
+function withTimeout(promise, ms, fallback) {
+  return Promise.race([
+    promise,
+    new Promise(resolve => setTimeout(() => resolve(fallback), ms))
+  ]);
+}
+
 async function identifyObject(base64Image) {
   const result = await httpsPost(
     'api.openai.com', '/v1/chat/completions',
@@ -251,13 +259,38 @@ async function estimateRetailPrice(objectInfo) {
   } catch(e) { return null; }
 }
 
+
+function buildObjectInfoFromUser(userBrand, userModel, userSize) {
+  // Infer category from size hint (clothing sizes = Kleidung)
+  const clothingSizes = ['xxs','xs','s','m','l','xl','xxl','xxxs','xxxxl','34','36','38','40','42','44','46','48','50','52'];
+  const isClothing = userSize && clothingSizes.includes(userSize.toLowerCase().trim());
+  const category = isClothing ? 'Kleidung' : 'Sonstiges';
+  const objectName = [userBrand, userModel].filter(Boolean).join(' ');
+  const ebaySearchQuery = [userBrand, userModel].filter(Boolean).join(' ').substring(0, 40);
+  return {
+    objectName: objectName || userBrand,
+    category,
+    brand: userBrand,
+    condition: 'Gut',
+    ebaySearchQuery,
+    confidence: 90,
+    model: userModel || null
+  };
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { image, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null, userBrand=null, userModel=null, userYear=null, userSize=null } = req.body || {};
   if (!image) return res.status(400).json({ error: 'Kein Bild übermittelt' });
 
   try {
-    const objectInfo = await identifyObject(image);
+    // Skip expensive GPT-Vision call if user provided brand info
+    let objectInfo;
+    if (userBrand) {
+      objectInfo = buildObjectInfoFromUser(userBrand, userModel, userSize);
+    } else {
+      objectInfo = await identifyObject(image);
+    }
     if (condition) objectInfo.condition = condition;
     if (userBrand) objectInfo.brand = userBrand;
     if (userModel) objectInfo.model = userModel;
@@ -272,7 +305,11 @@ module.exports = async function handler(req, res) {
           if (userBrand) parts.push(userBrand);
           if (userModel) parts.push(userModel);
           if (userYear) parts.push(userYear.toString());
-          if (userSize) parts.push(userSize.toString());
+          // Size only for clothing (not useful for electronics etc.)
+          const clothingSizes = ['xxs','xs','s','m','l','xl','xxl'];
+          if (userSize && clothingSizes.includes(userSize.toLowerCase().trim())) {
+            parts.push(userSize);
+          }
           return parts.join(' ');
         }
         // Fall back to AI-detected query with brand prepended
@@ -289,8 +326,8 @@ module.exports = async function handler(req, res) {
       const [ebayResult, retailResult, vintedResult, pcResult] = await Promise.allSettled([
         objectInfo.ebaySearchQuery ? getEbayPrices(searchQuery, condFilter) : Promise.resolve(null),
         estimateRetailPrice(objectInfo),
-        getVintedListings(searchQuery),
-        getPriceChartingListings(searchQuery)
+        withTimeout(getVintedListings(searchQuery), 3000, []),
+        withTimeout(getPriceChartingListings(searchQuery), 3000, [])
       ]);
       if (ebayResult.status === 'fulfilled') ebayData = ebayResult.value;
       if (retailResult.status === 'fulfilled') retailData = retailResult.value;
