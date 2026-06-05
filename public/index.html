@@ -540,6 +540,7 @@
       </div>
       ${sellPrice > 0 ? renderFees(sellPrice, data.channels) : ''}
 
+      ${renderListings(data.topListings)}
       ${data.aiNote ? `<div class="ai-note">💡 ${data.aiNote}</div>` : ''}
     `;
     showView('resultView');
@@ -654,6 +655,28 @@
       ${data.aiNote ? `<div class="ai-note">💡 ${data.aiNote}</div>` : ''}
     `;
     showView('resultView');
+  }
+
+  function renderListings(listings) {
+    if (!listings || listings.length === 0) return '';
+    const items = listings.map(l => {
+      const priceStr = 'CHF ' + parseFloat(l.price).toFixed(0);
+      if (l.url) {
+        return `<a class="listing-item" href="${l.url}" target="_blank" rel="noopener">
+          <span class="listing-title">${l.title}</span>
+          <span class="listing-price">${priceStr}</span>
+          <span class="listing-arrow">↗</span>
+        </a>`;
+      }
+      return `<div class="listing-item">
+        <span class="listing-title">${l.title}</span>
+        <span class="listing-price">${priceStr}</span>
+      </div>`;
+    }).join('');
+    return `<div class="listings-section">
+      <div class="listings-title">Ähnliche Angebote auf eBay</div>
+      ${items}
+    </div>`;
   }
 
   function resetApp() {

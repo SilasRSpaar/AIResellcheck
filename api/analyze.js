@@ -100,7 +100,23 @@ async function getEbayPrices(searchQuery, conditionFilter = null) {
   const min = prices[Math.floor(prices.length * 0.10)];
   const max = prices[Math.floor(prices.length * 0.85)];
 
-  return { priceMin: min.toFixed(2), priceMax: max.toFixed(2), marketAvg: avg.toFixed(2), listingCount: prices.length, aiEstimate: false };
+  // Collect top 3 representative listings (near median price)
+  const medianPrice = prices[Math.floor(prices.length / 2)];
+  const topListings = items
+    .filter(i => {
+      const p = parseFloat(i.price?.value || 0);
+      return p >= medianPrice * 0.5 && p <= medianPrice * 2;
+    })
+    .slice(0, 3)
+    .map(i => ({
+      title: i.title ? i.title.substring(0, 60) : '',
+      price: parseFloat(i.price?.value || 0).toFixed(2),
+      currency: i.price?.currency || 'EUR',
+      url: i.itemWebUrl || null,
+      condition: i.condition || null
+    }));
+
+  return { priceMin: min.toFixed(2), priceMax: max.toFixed(2), marketAvg: avg.toFixed(2), listingCount: prices.length, aiEstimate: false, topListings };
 }
 
 function analyzeDemandAndChannels(objectInfo, ebayData) {
@@ -231,6 +247,7 @@ module.exports = async function handler(req, res) {
         priceMin: ebayData?.priceMin||null, priceMax: ebayData?.priceMax||null,
         marketAvg: ebayData?.marketAvg||null, aiNote,
         retailPrice: retailData?.retailPrice||null, retailConfidence: retailData?.retailConfidence||null,
+        topListings: ebayData?.topListings||[],
       });
     }
 
@@ -244,6 +261,7 @@ module.exports = async function handler(req, res) {
       marketAvg: ebayData?.marketAvg||null,
       demandScore, demandLabel, timeToSell, channels, aiNote,
       retailPrice: retailData?.retailPrice||null, retailConfidence: retailData?.retailConfidence||null,
+      topListings: ebayData?.topListings||[],
     });
 
   } catch(err) {
