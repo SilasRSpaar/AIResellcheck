@@ -47,6 +47,24 @@ function withTimeout(promise, ms, fallback) {
   ]);
 }
 
+function appendEbayAffiliate(url) {
+  if (!process.env.EBAY_AFFILIATE_CAMPAIGN_ID) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return url + sep + 'mkcid=1&mkrid=707-53477-19255-0&siteid=77&campid=' +
+    process.env.EBAY_AFFILIATE_CAMPAIGN_ID + '&toolid=10001&mkevt=1';
+}
+
+function buildEbaySearchUrl(query) {
+  const base = 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(query);
+  return appendEbayAffiliate(base);
+}
+
+function buildAmazonSearchUrl(query) {
+  let base = 'https://www.amazon.de/s?k=' + encodeURIComponent(query);
+  if (process.env.AMAZON_ASSOCIATE_TAG) base += '&tag=' + process.env.AMAZON_ASSOCIATE_TAG;
+  return base;
+}
+
 async function identifyObject(base64Image) {
   const result = await httpsPost(
     'api.openai.com', '/v1/chat/completions',
@@ -175,7 +193,7 @@ async function getEbayPrices(searchQuery) {
       title: i.title ? i.title.substring(0, 60) : '',
       price: parseFloat(i.price?.value || 0).toFixed(2),
       currency: i.price?.currency || 'EUR',
-      url: i.itemWebUrl || null,
+      url: i.itemWebUrl ? appendEbayAffiliate(i.itemWebUrl) : null,
       condition: i.condition || null
     }));
 
@@ -576,6 +594,8 @@ module.exports = async function handler(req, res) {
 
     if (mode === 'fairness') {
       try { aiNote = await generateFairnessNote(objectInfo, ebayData, askedPrice); } catch(e) { console.error('Fairness note error:', e.message); }
+      const ebaySearchUrl = buildEbaySearchUrl(searchQuery);
+      const amazonSearchUrl = buildAmazonSearchUrl(searchQuery);
       return res.status(200).json({
         objectName: objectInfo.objectName, category: objectInfo.category,
         brand: objectInfo.brand, condition: objectInfo.condition,
@@ -584,12 +604,15 @@ module.exports = async function handler(req, res) {
         retailPrice: retailData?.retailPrice||null, retailConfidence: retailData?.retailConfidence||null,
         retailSource: retailData?.retailSource||null,
         topListings: ebayData?.topListings||[],
+        ebaySearchUrl, amazonSearchUrl,
       });
     }
 
     const { demandScore, demandLabel, timeToSell, channels } = analyzeDemandAndChannels(objectInfo, ebayData);
     try { aiNote = await generateNote(objectInfo, ebayData, buyPrice, sellPrice, demandScore); } catch(e) { console.error('Note error:', e.message); }
 
+    const ebaySearchUrl = buildEbaySearchUrl(searchQuery);
+    const amazonSearchUrl = buildAmazonSearchUrl(searchQuery);
     return res.status(200).json({
       objectName: objectInfo.objectName, category: objectInfo.category,
       brand: objectInfo.brand, condition: objectInfo.condition,
@@ -599,6 +622,7 @@ module.exports = async function handler(req, res) {
       retailPrice: retailData?.retailPrice||null, retailConfidence: retailData?.retailConfidence||null,
       retailSource: retailData?.retailSource||null,
       topListings: ebayData?.topListings||[],
+      ebaySearchUrl, amazonSearchUrl,
     });
 
   } catch(err) {

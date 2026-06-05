@@ -703,13 +703,13 @@
           <div class="price-card-label">📦 Gebrauchtmarkt-Ø</div>
           <div class="price-card-value">CHF ${data.marketAvg ? parseFloat(data.marketAvg).toFixed(0) : '–'}</div>
           <div class="price-card-range">${data.priceMin && data.priceMax ? parseFloat(data.priceMin).toFixed(0) + '–' + parseFloat(data.priceMax).toFixed(0) + ' CHF' : ''}</div>
-          <a class="price-card-link" href="https://www.ebay.de/sch/i.html?_nkw=${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">eBay.de ansehen ↗</a>
+          <a class="price-card-link" href="${data.ebaySearchUrl || 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">eBay.de ansehen ↗</a>
         </div>
         <div class="price-card">
           <div class="price-card-label">🏷️ Neupreis</div>
           <div class="price-card-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
           <div class="price-card-source">${data.retailPrice ? (data.retailSource || (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung')) : 'Nicht verfügbar'}</div>
-          ${data.retailPrice ? '<a class="price-card-link" href="https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'') + '" target="_blank" rel="noopener">Amazon.de ansehen ↗</a>' : ''}
+          ${data.retailPrice ? '<a class="price-card-link" href="' + (data.amazonSearchUrl || 'https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'')) + '" target="_blank" rel="noopener">Amazon.de ansehen ↗</a>' : ''}
         </div>
         <div class="stat-card">
           <div class="stat-label">Nachfrage</div>
@@ -821,13 +821,13 @@
           <div class="price-card-label">📦 Gebrauchtmarkt-Ø</div>
           <div class="price-card-value">CHF ${avg > 0 ? avg.toFixed(0) : '–'}</div>
           <div class="price-card-range">${data.priceMin && data.priceMax ? parseFloat(data.priceMin).toFixed(0) + '–' + parseFloat(data.priceMax).toFixed(0) + ' CHF' : ''}</div>
-          <a class="price-card-link" href="https://www.ebay.de/sch/i.html?_nkw=${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">eBay.de ansehen ↗</a>
+          <a class="price-card-link" href="${data.ebaySearchUrl || 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">eBay.de ansehen ↗</a>
         </div>
         <div class="price-card">
           <div class="price-card-label">🏷️ Neupreis</div>
           <div class="price-card-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
           <div class="price-card-source">${data.retailPrice ? (data.retailSource || (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung')) : 'Nicht verfügbar'}</div>
-          ${data.retailPrice ? '<a class="price-card-link" href="https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'') + '" target="_blank" rel="noopener">Amazon.de ansehen ↗</a>' : ''}
+          ${data.retailPrice ? '<a class="price-card-link" href="' + (data.amazonSearchUrl || 'https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'')) + '" target="_blank" rel="noopener">Amazon.de ansehen ↗</a>' : ''}
         </div>
         <div class="stat-card">
           <div class="stat-label">Du sparst / zahlst mehr</div>
