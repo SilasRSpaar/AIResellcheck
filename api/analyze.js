@@ -48,7 +48,7 @@ async function identifyObject(base64Image) {
       messages: [{
         role: 'user',
         content: [
-          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}`, detail: 'low' } },
+          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}`, detail: 'high' } },
           { type: 'text', text: 'Identify this object. Respond ONLY with valid JSON (no markdown):\n{"objectName":"Produktname auf Deutsch","category":"Elektronik|Kleidung|Spielzeug|Moebel|Schmuck|Uhren|Sport|Buecher|Haushalt|Sonstiges","brand":"Marke oder null","condition":"Neu|Sehr gut|Gut|Akzeptabel|Beschaedigt","ebaySearchQuery":"best english ebay search max 5 words","confidence":0}' }
         ]
       }]
@@ -60,7 +60,7 @@ async function identifyObject(base64Image) {
   return JSON.parse(clean);
 }
 
-async function getEbayPrices(searchQuery) {
+async function getEbayPrices(searchQuery, conditionFilter = null) {
   const credentials = Buffer.from(`${process.env.EBAY_CLIENT_ID}:${process.env.EBAY_CLIENT_SECRET}`).toString('base64');
   const tokenRes = await new Promise((resolve, reject) => {
     const body = 'grant_type=client_credentials&scope=https%3A%2F%2Fapi.ebay.com%2Foauth%2Fapi_scope';
@@ -76,8 +76,9 @@ async function getEbayPrices(searchQuery) {
   const encoded = encodeURIComponent(searchQuery);
   const headers = { Authorization: `Bearer ${tokenRes.access_token}`, 'X-EBAY-C-MARKETPLACE-ID': 'EBAY_DE', 'Content-Type': 'application/json' };
 
+  const condParam = conditionFilter && conditionFilter !== 'UNSPECIFIED' ? `&filter=conditions:{${conditionFilter}}` : '';
   const searchRes = await httpsGet('api.ebay.com',
-    `/buy/browse/v1/item_summary/search?q=${encoded}&limit=50&sort=price`,
+    `/buy/browse/v1/item_summary/search?q=${encoded}&limit=50&sort=price${condParam}`,
     headers);
 
   const items = searchRes.body?.itemSummaries || [];
