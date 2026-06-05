@@ -68,7 +68,7 @@ async function identifyObject(base64Image) {
   return JSON.parse(clean);
 }
 
-async function getEbayPrices(searchQuery, conditionFilter = null) {
+async function getEbayPrices(searchQuery) {
   const credentials = Buffer.from(`${process.env.EBAY_CLIENT_ID}:${process.env.EBAY_CLIENT_SECRET}`).toString('base64');
   const tokenRes = await new Promise((resolve, reject) => {
     const body = 'grant_type=client_credentials&scope=https%3A%2F%2Fapi.ebay.com%2Foauth%2Fapi_scope';
@@ -84,9 +84,9 @@ async function getEbayPrices(searchQuery, conditionFilter = null) {
   const encoded = encodeURIComponent(searchQuery);
   const headers = { Authorization: `Bearer ${tokenRes.access_token}`, 'X-EBAY-C-MARKETPLACE-ID': 'EBAY_DE', 'Content-Type': 'application/json' };
 
-  const condParam = conditionFilter && conditionFilter !== 'UNSPECIFIED' ? `&filter=conditions:{${conditionFilter}}` : '';
+  // Note: eBay condition filter removed - curly braces in URL cause API rejection
   const searchRes = await httpsGet('api.ebay.com',
-    `/buy/browse/v1/item_summary/search?q=${encoded}&limit=50&sort=price${condParam}`,
+    `/buy/browse/v1/item_summary/search?q=${encoded}&limit=50&sort=price`,
     headers);
 
   const items = searchRes.body?.itemSummaries || [];
@@ -333,14 +333,11 @@ module.exports = async function handler(req, res) {
         }
         return q;
       })();
-      const condFilterMap = {'Neu':'NEW','Sehr gut':'USED','Gut':'USED','Akzeptabel':'USED','Beschaedigt':'UNSPECIFIED'};
-      const condFilter = condFilterMap[objectInfo.condition] || null;
-
       const [ebayResult, retailResult, vintedResult, pcResult] = await Promise.allSettled([
-        objectInfo.ebaySearchQuery ? getEbayPrices(searchQuery, condFilter) : Promise.resolve(null),
+        objectInfo.ebaySearchQuery || (userBrand || userModel) ? getEbayPrices(searchQuery) : Promise.resolve(null),
         estimateRetailPrice(objectInfo),
-        withTimeout(getVintedListings(searchQuery), 3000, []),
-        withTimeout(getPriceChartingListings(searchQuery), 3000, [])
+        withTimeout(getVintedListings(searchQuery), 2000, []),
+        withTimeout(getPriceChartingListings(searchQuery), 2000, [])
       ]);
       if (ebayResult.status === 'fulfilled') ebayData = ebayResult.value;
       if (retailResult.status === 'fulfilled') retailData = retailResult.value;
