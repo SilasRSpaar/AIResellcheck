@@ -538,12 +538,11 @@ module.exports = async function handler(req, res) {
 
     let ebayData = null;
     let retailData = null;
+    // searchQuery declared here so it's accessible outside the inner try block
+    const searchQuery = objectInfo.ebaySearchQuery ||
+      [userBrand, userModel, userYear].filter(Boolean).join(' ') ||
+      objectInfo.objectName;
     try {
-      // GPT always returns optimized ebaySearchQuery – use it directly
-      // Fallback: brand + model + year if somehow missing
-      const searchQuery = objectInfo.ebaySearchQuery ||
-        [userBrand, userModel, userYear].filter(Boolean).join(' ') ||
-        objectInfo.objectName;
       // Retail price: Keepa (real Amazon.de price) → fallback GPT estimate
       const retailPromise = (async () => {
         const keepa = await getKeepaRetailPrice(searchQuery);
