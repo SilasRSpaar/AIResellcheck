@@ -203,10 +203,14 @@ module.exports = async function handler(req, res) {
     try {
       const [ebayResult, retailResult] = await Promise.allSettled([
         objectInfo.ebaySearchQuery ? (async () => {
-          const condMap = {'Neu':'new','Sehr gut':'','Gut':'used','Akzeptabel':'used','Beschaedigt':'defective'};
-          const suffix = condMap[objectInfo.condition] || '';
-          const query = suffix ? `${objectInfo.ebaySearchQuery} ${suffix}` : objectInfo.ebaySearchQuery;
-          return await getEbayPrices(query);
+          let query = objectInfo.ebaySearchQuery;
+          if (objectInfo.brand && objectInfo.brand !== 'null' && objectInfo.brand !== null &&
+              !query.toLowerCase().includes(objectInfo.brand.toLowerCase())) {
+            query = objectInfo.brand + ' ' + query;
+          }
+          const condFilterMap = {'Neu':'NEW','Sehr gut':'USED','Gut':'USED','Akzeptabel':'USED','Beschaedigt':'UNSPECIFIED'};
+          const condFilter = condFilterMap[objectInfo.condition] || null;
+          return await getEbayPrices(query, condFilter);
         })() : Promise.resolve(null),
         estimateRetailPrice(objectInfo)
       ]);

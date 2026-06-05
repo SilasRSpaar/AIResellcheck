@@ -511,14 +511,14 @@
           <div class="stat-sub">Schätzung</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Markt-Ø Preis</div>
+          <div class="stat-label">📦 Gebrauchtmarkt-Ø</div>
           <div class="stat-value">CHF ${data.marketAvg || '–'}</div>
-          <div class="stat-sub">Gebrauchtmarkt</div>
+          <div class="stat-sub">eBay aktive Listings</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Neupreis (Referenz)</div>
-          <div class="stat-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + data.retailPrice : '–'}</div>
-          <div class="stat-sub">${data.retailConfidence === 'high' ? 'Hohe Genauigkeit' : data.retailConfidence === 'medium' ? 'Schätzwert' : data.retailPrice ? 'Schätzwert' : 'Nicht verfügbar'}</div>
+          <div class="stat-label">🏷️ Neupreis</div>
+          <div class="stat-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
+          <div class="stat-sub">${data.retailPrice ? (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung') : 'Nicht verfügbar'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Nachfrage</div>
@@ -626,14 +626,14 @@
           <div class="stat-sub">${avg > 0 ? diffLabel : '–'}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Markt-Ø Preis</div>
+          <div class="stat-label">📦 Gebrauchtmarkt-Ø</div>
           <div class="stat-value">CHF ${avg > 0 ? avg.toFixed(2) : '–'}</div>
-          <div class="stat-sub">Gebrauchtmarkt</div>
+          <div class="stat-sub">eBay aktive Listings</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Neupreis (Referenz)</div>
-          <div class="stat-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + data.retailPrice : '–'}</div>
-          <div class="stat-sub">${data.retailConfidence === 'high' ? 'Hohe Genauigkeit' : data.retailPrice ? 'Schätzwert' : 'Nicht verfügbar'}</div>
+          <div class="stat-label">🏷️ Neupreis</div>
+          <div class="stat-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
+          <div class="stat-sub">${data.retailPrice ? (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung') : 'Nicht verfügbar'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Du sparst / zahlst mehr</div>
