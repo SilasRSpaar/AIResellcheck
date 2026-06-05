@@ -290,7 +290,25 @@
     .detail-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; color: var(--text); font-size: 15px; width: 100%; outline: none; }
     .detail-input:focus { border-color: var(--accent); }
     .detail-input::placeholder { color: var(--text-muted); }
-    .listing-source { font-size: 10px; font-weight: 700; color: var(--text-muted); background: var(--border); border-radius: 4px; padding: 2px 5px; white-space: nowrap; flex-shrink: 0; }
+    .listing-source { font-size: 10px; font-weight: 700; border-radius: 4px; padding: 2px 6px; white-space: nowrap; flex-shrink: 0; }
+    .listing-source.src-ebay { background: #1a3a6b; color: #7ab3f5; }
+    .listing-source.src-vinted { background: #093b30; color: #34d399; }
+    .listing-source.src-kleinanzeigen { background: #2d2006; color: #fbbf24; }
+    .listing-source.src-ricardo { background: #3b0f0f; color: #f87171; }
+    .listing-source.src-default { background: var(--border); color: var(--text-muted); }
+
+    /* PRICE SPLIT CARDS */
+    .price-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .price-card {
+      background: var(--surface); border-radius: var(--radius); padding: 14px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .price-card-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+    .price-card-value { font-size: 22px; font-weight: 800; }
+    .price-card-source { font-size: 11px; color: var(--text-muted); }
+    .price-card-link { font-size: 11px; color: var(--accent-light); text-decoration: none; margin-top: 2px; }
+    .price-card-link:hover { text-decoration: underline; }
+    .price-card-range { font-size: 11px; color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -681,15 +699,17 @@
           <div class="stat-value">${data.timeToSell || '–'}</div>
           <div class="stat-sub">Schätzung</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">📦 Gebrauchtmarkt-Ø</div>
-          <div class="stat-value">CHF ${data.marketAvg || '–'}</div>
-          <div class="stat-sub">eBay aktive Listings</div>
+        <div class="price-card">
+          <div class="price-card-label">📦 Gebrauchtmarkt-Ø</div>
+          <div class="price-card-value">CHF ${data.marketAvg ? parseFloat(data.marketAvg).toFixed(0) : '–'}</div>
+          <div class="price-card-range">${data.priceMin && data.priceMax ? parseFloat(data.priceMin).toFixed(0) + '–' + parseFloat(data.priceMax).toFixed(0) + ' CHF' : ''}</div>
+          <a class="price-card-link" href="https://www.ebay.de/sch/i.html?_nkw=${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">eBay.de ansehen ↗</a>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">🏷️ Neupreis</div>
-          <div class="stat-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
-          <div class="stat-sub">${data.retailPrice ? (data.retailSource ? data.retailSource : data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung') : 'Nicht verfügbar'}</div>
+        <div class="price-card">
+          <div class="price-card-label">🏷️ Neupreis</div>
+          <div class="price-card-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
+          <div class="price-card-source">${data.retailPrice ? (data.retailSource || (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung')) : 'Nicht verfügbar'}</div>
+          ${data.retailPrice ? '<a class="price-card-link" href="https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'') + '" target="_blank" rel="noopener">Amazon.de ansehen ↗</a>' : ''}
         </div>
         <div class="stat-card">
           <div class="stat-label">Nachfrage</div>
@@ -797,15 +817,17 @@
           <div class="stat-value">CHF ${askedPrice.toFixed(2)}</div>
           <div class="stat-sub">${avg > 0 ? diffLabel : '–'}</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">📦 Gebrauchtmarkt-Ø</div>
-          <div class="stat-value">CHF ${avg > 0 ? avg.toFixed(2) : '–'}</div>
-          <div class="stat-sub">eBay aktive Listings</div>
+        <div class="price-card">
+          <div class="price-card-label">📦 Gebrauchtmarkt-Ø</div>
+          <div class="price-card-value">CHF ${avg > 0 ? avg.toFixed(0) : '–'}</div>
+          <div class="price-card-range">${data.priceMin && data.priceMax ? parseFloat(data.priceMin).toFixed(0) + '–' + parseFloat(data.priceMax).toFixed(0) + ' CHF' : ''}</div>
+          <a class="price-card-link" href="https://www.ebay.de/sch/i.html?_nkw=${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">eBay.de ansehen ↗</a>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">🏷️ Neupreis</div>
-          <div class="stat-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
-          <div class="stat-sub">${data.retailPrice ? (data.retailSource ? data.retailSource : data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung') : 'Nicht verfügbar'}</div>
+        <div class="price-card">
+          <div class="price-card-label">🏷️ Neupreis</div>
+          <div class="price-card-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
+          <div class="price-card-source">${data.retailPrice ? (data.retailSource || (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung')) : 'Nicht verfügbar'}</div>
+          ${data.retailPrice ? '<a class="price-card-link" href="https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'') + '" target="_blank" rel="noopener">Amazon.de ansehen ↗</a>' : ''}
         </div>
         <div class="stat-card">
           <div class="stat-label">Du sparst / zahlst mehr</div>
@@ -830,9 +852,14 @@
 
   function renderListings(listings) {
     if (!listings || listings.length === 0) return '';
+    const srcClass = {
+      'eBay': 'src-ebay', 'Vinted': 'src-vinted',
+      'Kleinanzeigen': 'src-kleinanzeigen', 'Ricardo.ch': 'src-ricardo'
+    };
     const items = listings.map(l => {
-      const priceStr = 'CHF ' + parseFloat(l.price).toFixed(0);
-      const badge = l.source ? '<span class="listing-source">' + l.source + '</span>' : '';
+      const priceStr = l.price ? 'CHF ' + parseFloat(l.price).toFixed(0) : '–';
+      const cls = l.source ? (srcClass[l.source] || 'src-default') : 'src-default';
+      const badge = l.source ? '<span class="listing-source ' + cls + '">' + l.source + '</span>' : '';
       if (l.url) {
         return '<a class="listing-item" href="' + l.url + '" target="_blank" rel="noopener">' +
           badge +

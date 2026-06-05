@@ -348,68 +348,81 @@ function mapUPCCategory(cat) {
 
 async function getKleinanzeigenListings(searchQuery) {
   try {
-    const slug = encodeURIComponent(searchQuery);
+    const encoded = encodeURIComponent(searchQuery);
+    // Kleinanzeigen search page returns HTML – extract price data via regex
     const result = await withTimeout(
       httpsGet('www.kleinanzeigen.de',
-        `/s-anzeige/suchanfrage?keywords=${slug}&pageNum=0`,
+        `/s-suchanfrage.html?keywords=${encoded}&categoryId=-1&locationId=0&radius=0&sortingField=RELEVANCE&pageNum=0`,
         {
           'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
-          'Accept': 'application/json, text/html',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'de-DE,de;q=0.9',
         }
       ), 3000, null
     );
     if (!result || result.status !== 200) return [];
-    // Try JSON response first (mobile API)
-    if (result.body?.ads) {
-      return result.body.ads.slice(0, 3).map(ad => ({
-        title: (ad.title || '').substring(0, 60),
-        price: ad.price?.amount ? parseFloat(ad.price.amount).toFixed(2) : null,
-        currency: 'EUR',
-        url: ad.link ? 'https://www.kleinanzeigen.de' + ad.link : 'https://www.kleinanzeigen.de',
-        source: 'Kleinanzeigen'
-      })).filter(l => l.price && parseFloat(l.price) > 0);
+    const html = typeof result.body === 'string' ? result.body : JSON.stringify(result.body);
+
+    // Extract listing data embedded as JSON in page or from article tags
+    const listings = [];
+    // Match price patterns: e.g. "10 €" or "10,50 €"
+    const articleRe = /data-href="([^"]+)"[^>]*>[\s\S]*?class="[^"]*text-module-begin[^"]*"[^>]*>([^<]{3,80})<[\s\S]*?(\d[\d\.,]{0,8})\s*€/g;
+    let m;
+    while ((m = articleRe.exec(html)) !== null && listings.length < 3) {
+      const url = 'https://www.kleinanzeigen.de' + m[1];
+      const title = m[2].trim();
+      const price = parseFloat(m[3].replace(',','.'));
+      if (price > 0) listings.push({ title: title.substring(0,60), price: price.toFixed(2), currency: 'EUR', url, source: 'Kleinanzeigen' });
     }
-    // Fallback: parse embedded JSON from HTML
-    const html = typeof result.body === 'string' ? result.body : '';
-    const jsonMatch = html.match(/"ads"\s*:\s*(\[[\s\S]*?\])/);
-    if (!jsonMatch) return [];
-    const ads = JSON.parse(jsonMatch[1]);
-    return ads.slice(0, 3).map(ad => ({
-      title: (ad.title || '').substring(0, 60),
-      price: ad.price?.amount ? parseFloat(ad.price.amount).toFixed(2) : null,
-      currency: 'EUR',
-      url: 'https://www.kleinanzeigen.de',
-      source: 'Kleinanzeigen'
-    })).filter(l => l.price && parseFloat(l.price) > 0);
+    // Fallback: simple price + title extraction
+    if (!listings.length) {
+      const priceRe = /class="[^"]*aditem-main[^"]*"[\s\S]*?<strong[^>]*>([\d\.,]+)\s*€<\/strong>[\s\S]*?class="[^"]*ellipsis[^"]*"[^>]*>([^<]{3,80})</g;
+      while ((m = priceRe.exec(html)) !== null && listings.length < 3) {
+        const price = parseFloat(m[1].replace(',','.'));
+        if (price > 0) listings.push({ title: m[2].trim().substring(0,60), price: price.toFixed(2), currency: 'EUR', url: 'https://www.kleinanzeigen.de/s-' + encoded, source: 'Kleinanzeigen' });
+      }
+    }
+    return listings;
   } catch(e) { console.error('Kleinanzeigen error:', e.message); return []; }
 }
 
 async function getRicardoListings(searchQuery) {
   try {
     const encoded = encodeURIComponent(searchQuery);
+    // Ricardo search page – extract embedded JSON (next.js __NEXT_DATA__)
     const result = await withTimeout(
       httpsGet('www.ricardo.ch',
-        `/api/public/v1/listings?q=${encoded}&limit=5&offset=0&sort=relevance`,
+        `/de/s/${encoded}/`,
         {
           'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
-          'Accept': 'application/json',
+          'Accept': 'text/html,application/xhtml+xml',
           'Accept-Language': 'de-CH,de;q=0.9',
         }
       ), 3000, null
     );
-    if (!result || result.status !== 200 || !result.body?.data) return [];
-    return result.body.data.slice(0, 3).map(item => ({
-      title: (item.title || '').substring(0, 60),
-      price: item.buyNowPrice?.amount
-        ? parseFloat(item.buyNowPrice.amount).toFixed(2)
-        : item.startPrice?.amount
-          ? parseFloat(item.startPrice.amount).toFixed(2)
-          : null,
-      currency: 'CHF',
-      url: item.links?.detail ? 'https://www.ricardo.ch' + item.links.detail : 'https://www.ricardo.ch',
-      source: 'Ricardo.ch'
-    })).filter(l => l.price && parseFloat(l.price) > 0);
+    if (!result || result.status !== 200) return [];
+    const html = typeof result.body === 'string' ? result.body : JSON.stringify(result.body);
+
+    // Extract __NEXT_DATA__ JSON embedded in page
+    const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    if (!nextDataMatch) return [];
+    const nextData = JSON.parse(nextDataMatch[1]);
+
+    // Navigate to listings in Ricardo's Next.js data structure
+    const results = nextData?.props?.pageProps?.searchResult?.results ||
+                    nextData?.props?.pageProps?.listings ||
+                    nextData?.props?.pageProps?.data?.listings || [];
+
+    return results.slice(0, 3).map(item => {
+      const price = item.buyNowPrice || item.startPrice || item.currentBidPrice;
+      return {
+        title: (item.title || '').substring(0, 60),
+        price: price ? parseFloat(price).toFixed(2) : null,
+        currency: 'CHF',
+        url: item.slug ? 'https://www.ricardo.ch/de/a/' + item.slug : 'https://www.ricardo.ch/de/s/' + encoded,
+        source: 'Ricardo.ch'
+      };
+    }).filter(l => l.price && parseFloat(l.price) > 0);
   } catch(e) { console.error('Ricardo error:', e.message); return []; }
 }
 
