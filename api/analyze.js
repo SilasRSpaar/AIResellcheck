@@ -169,6 +169,25 @@ async function estimatePriceWithAI(objectInfo) {
   } catch(e) { return null; }
 }
 
+
+async function estimateRetailPrice(objectInfo) {
+  const name = objectInfo.objectName + (objectInfo.brand ? ', ' + objectInfo.brand : '');
+  const prompt = "You are a product pricing expert. What is the typical new retail price for this item in Europe (EUR/CHF)?\nItem: " + name + "\nReply ONLY with valid JSON: {\"retailPrice\":number_or_null,\"confidence\":\"high|medium|low\"}\nIf the item is too generic or unknown, set retailPrice to null.";
+  const result = await httpsPost("api.openai.com", "/v1/chat/completions",
+    {"Content-Type": "application/json", "Authorization": "Bearer " + process.env.OPENAI_API_KEY},
+    {model: "gpt-4o-mini", max_tokens: 60, messages: [{role: "user", content: prompt}]}
+  );
+  const raw = result.body.choices?.[0]?.message?.content || "{}";
+  const clean = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  try {
+    const p = JSON.parse(clean);
+    if (p.retailPrice && parseFloat(p.retailPrice) > 0) {
+      return { retailPrice: parseFloat(p.retailPrice).toFixed(2), retailConfidence: p.confidence || "medium" };
+    }
+    return null;
+  } catch(e) { return null; }
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { image, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null } = req.body || {};
@@ -179,14 +198,20 @@ module.exports = async function handler(req, res) {
     if (condition) objectInfo.condition = condition;
 
     let ebayData = null;
+    let retailData = null;
     try {
-      if (objectInfo.ebaySearchQuery) {
-        const condMap = {'Neu':'new','Sehr gut':'','Gut':'used','Akzeptabel':'used','Beschaedigt':'defective'};
-        const suffix = condMap[objectInfo.condition] || '';
-        const query = suffix ? `${objectInfo.ebaySearchQuery} ${suffix}` : objectInfo.ebaySearchQuery;
-        ebayData = await getEbayPrices(query);
-      }
-    } catch(e) { console.error('eBay error:', e.message); }
+      const [ebayResult, retailResult] = await Promise.allSettled([
+        objectInfo.ebaySearchQuery ? (async () => {
+          const condMap = {'Neu':'new','Sehr gut':'','Gut':'used','Akzeptabel':'used','Beschaedigt':'defective'};
+          const suffix = condMap[objectInfo.condition] || '';
+          const query = suffix ? `${objectInfo.ebaySearchQuery} ${suffix}` : objectInfo.ebaySearchQuery;
+          return await getEbayPrices(query);
+        })() : Promise.resolve(null),
+        estimateRetailPrice(objectInfo)
+      ]);
+      if (ebayResult.status === 'fulfilled') ebayData = ebayResult.value;
+      if (retailResult.status === 'fulfilled') retailData = retailResult.value;
+    } catch(e) { console.error('Data fetch error:', e.message); }
     if (!ebayData) {
       try { ebayData = await estimatePriceWithAI(objectInfo); } catch(e2) { console.error('AI price fallback:', e2.message); }
     }
@@ -200,6 +225,7 @@ module.exports = async function handler(req, res) {
         brand: objectInfo.brand, condition: objectInfo.condition,
         priceMin: ebayData?.priceMin||null, priceMax: ebayData?.priceMax||null,
         marketAvg: ebayData?.marketAvg||null, aiNote,
+        retailPrice: retailData?.retailPrice||null, retailConfidence: retailData?.retailConfidence||null,
       });
     }
 
@@ -212,6 +238,7 @@ module.exports = async function handler(req, res) {
       priceMin: ebayData?.priceMin||null, priceMax: ebayData?.priceMax||null,
       marketAvg: ebayData?.marketAvg||null,
       demandScore, demandLabel, timeToSell, channels, aiNote,
+      retailPrice: retailData?.retailPrice||null, retailConfidence: retailData?.retailConfidence||null,
     });
 
   } catch(err) {

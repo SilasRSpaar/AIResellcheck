@@ -420,6 +420,7 @@
   const loadingSteps = [
     'KI erkennt Objekt…',
     'Marktpreise werden abgefragt…',
+    'Neupreis wird recherchiert…',
     'Nachfrage wird analysiert…',
     'Preis wird bewertet…',
     'Ergebnis wird aufbereitet…',
@@ -512,7 +513,12 @@
         <div class="stat-card">
           <div class="stat-label">Markt-Ø Preis</div>
           <div class="stat-value">CHF ${data.marketAvg || '–'}</div>
-          <div class="stat-sub">Aktuell</div>
+          <div class="stat-sub">Gebrauchtmarkt</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Neupreis (Referenz)</div>
+          <div class="stat-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + data.retailPrice : '–'}</div>
+          <div class="stat-sub">${data.retailConfidence === 'high' ? 'Hohe Genauigkeit' : data.retailConfidence === 'medium' ? 'Schätzwert' : data.retailPrice ? 'Schätzwert' : 'Nicht verfügbar'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Nachfrage</div>
@@ -622,7 +628,17 @@
         <div class="stat-card">
           <div class="stat-label">Markt-Ø Preis</div>
           <div class="stat-value">CHF ${avg > 0 ? avg.toFixed(2) : '–'}</div>
-          <div class="stat-sub">Aktuell</div>
+          <div class="stat-sub">Gebrauchtmarkt</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Neupreis (Referenz)</div>
+          <div class="stat-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + data.retailPrice : '–'}</div>
+          <div class="stat-sub">${data.retailConfidence === 'high' ? 'Hohe Genauigkeit' : data.retailPrice ? 'Schätzwert' : 'Nicht verfügbar'}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Du sparst / zahlst mehr</div>
+          <div class="stat-value ${diffColor}">${avg > 0 ? (diff < 0 ? '−' : '+') + 'CHF ' + Math.abs(diff) : '–'}</div>
+          <div class="stat-sub">vs. Gebrauchtmarkt</div>
         </div>
       </div>
 
