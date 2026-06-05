@@ -9,6 +9,7 @@
   <meta name="theme-color" content="#6366f1" />
   <title>PriceSnap</title>
   <link rel="manifest" href="/manifest.json" />
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -96,6 +97,23 @@
       overflow: hidden; position: relative;
     }
     .camera-area:active { border-color: var(--accent); }
+
+    /* BARCODE SCANNER */
+    .scan-mode-row { display: flex; gap: 8px; margin-bottom: 4px; }
+    .scan-mode-btn {
+      flex: 1; padding: 10px 8px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text-muted); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; text-align: center;
+    }
+    .scan-mode-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+    #barcodeScanner { width: 100%; border-radius: var(--radius); overflow: hidden; display: none; }
+    #barcodeScanner video { width: 100% !important; border-radius: var(--radius); }
+    .barcode-result {
+      background: var(--surface); border-radius: var(--radius); padding: 14px;
+      border-left: 3px solid var(--green); display: none;
+    }
+    .barcode-result-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .barcode-result-sub { font-size: 13px; color: var(--text-muted); }
     .camera-area img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
     .camera-icon { font-size: 48px; opacity: 0.4; }
     .camera-label { color: var(--text-muted); font-size: 15px; text-align: center; line-height: 1.4; }
@@ -297,9 +315,18 @@
       Kaufe ich es günstig genug, um Gewinn zu machen? Gib Kaufpreis und Zielpreis ein.
     </div>
 
+    <div class="scan-mode-row">
+      <button class="scan-mode-btn active" id="btnPhotoMode" onclick="setScanMode('photo')">📷 Foto</button>
+      <button class="scan-mode-btn" id="btnBarcodeMode" onclick="setScanMode('barcode')">🔍 Barcode</button>
+    </div>
     <div class="camera-area" id="cameraArea" onclick="triggerCamera()">
       <div class="camera-icon">📷</div>
       <div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>
+    </div>
+    <div id="barcodeScanner" style="display:none;"></div>
+    <div class="barcode-result" id="barcodeResult" style="display:none;">
+      <div class="barcode-result-title" id="barcodeProductName">—</div>
+      <div class="barcode-result-sub" id="barcodeProductSub">Produkt wird nach Analyse identifiziert…</div>
     </div>
     <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="onImageSelected(event)" />
 
@@ -401,6 +428,8 @@
 <script>
   let selectedImage = null;
   let imageBase64 = null;
+  let detectedBarcode = null;
+  let html5QrCode = null;
   let currentMode = 'resell'; // 'resell' | 'fairness'
   let selectedCondition = 'Sehr gut';
   let selectedCategory = null;
@@ -423,6 +452,66 @@
   function triggerCamera() {
     document.getElementById('fileInput').click();
   }
+
+  // ── Barcode Scanner ──────────────────────────────────────────────
+  let scanMode = 'photo';
+
+  function setScanMode(mode) {
+    scanMode = mode;
+    document.getElementById('btnPhotoMode').classList.toggle('active', mode === 'photo');
+    document.getElementById('btnBarcodeMode').classList.toggle('active', mode === 'barcode');
+    const cameraArea = document.getElementById('cameraArea');
+    const scannerDiv = document.getElementById('barcodeScanner');
+    if (mode === 'barcode') {
+      cameraArea.style.display = 'none';
+      scannerDiv.style.display = 'block';
+      startBarcodeScanner();
+    } else {
+      stopBarcodeScanner();
+      cameraArea.style.display = '';
+      scannerDiv.style.display = 'none';
+      document.getElementById('barcodeResult').style.display = 'none';
+      detectedBarcode = null;
+    }
+    updateAnalyzeBtn();
+  }
+
+  function startBarcodeScanner() {
+    detectedBarcode = null;
+    if (!html5QrCode) {
+      html5QrCode = new Html5Qrcode('barcodeScanner');
+    }
+    html5QrCode.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 240, height: 120 }, aspectRatio: 1.5 },
+      (decodedText) => {
+        detectedBarcode = decodedText;
+        stopBarcodeScanner();
+        showBarcodeDetected(decodedText);
+        updateAnalyzeBtn();
+      },
+      () => {}
+    ).catch(err => {
+      console.error('Scanner error:', err);
+      document.getElementById('barcodeScanner').innerHTML =
+        '<p style="padding:20px;color:var(--text-muted);text-align:center">Kamera-Zugriff verweigert oder nicht verfügbar</p>';
+    });
+  }
+
+  function stopBarcodeScanner() {
+    if (html5QrCode && html5QrCode.isScanning) {
+      html5QrCode.stop().catch(() => {});
+    }
+  }
+
+  function showBarcodeDetected(barcode) {
+    document.getElementById('barcodeScanner').style.display = 'none';
+    const resultDiv = document.getElementById('barcodeResult');
+    resultDiv.style.display = 'block';
+    document.getElementById('barcodeProductName').textContent = '✅ Barcode erkannt: ' + barcode;
+    document.getElementById('barcodeProductSub').textContent = 'Produkt wird nach der Analyse identifiziert…';
+  }
+  // ── End Barcode Scanner ───────────────────────────────────────────
 
   function onImageSelected(event) {
     const file = event.target.files[0];
@@ -458,9 +547,10 @@
   }
 
   function updateAnalyzeBtn() {
-    document.getElementById('analyzeBtn').disabled = !imageBase64;
-    document.getElementById('conditionGroup').style.display = imageBase64 ? '' : 'none';
-    document.getElementById('detailsSection').style.display = imageBase64 ? '' : 'none';
+    const ready = !!(imageBase64 || detectedBarcode);
+    document.getElementById('analyzeBtn').disabled = !ready;
+    document.getElementById('conditionGroup').style.display = ready ? '' : 'none';
+    document.getElementById('detailsSection').style.display = ready ? '' : 'none';
   }
 
   function toggleDetails() {
@@ -498,7 +588,7 @@
   ];
 
   async function startAnalysis() {
-    if (!imageBase64) return;
+    if (!imageBase64 && !detectedBarcode) return;
 
     const buyPrice   = parseFloat(document.getElementById('buyPrice').value)   || 0;
     const sellPrice  = parseFloat(document.getElementById('sellPrice').value)  || 0;
@@ -517,7 +607,9 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          image: imageBase64, mode: currentMode, buyPrice, sellPrice, askedPrice,
+          image: imageBase64 || null,
+          barcode: detectedBarcode || null,
+          mode: currentMode, buyPrice, sellPrice, askedPrice,
           condition: selectedCondition,
           userBrand: document.getElementById('userBrand').value.trim() || null,
           userModel: document.getElementById('userModel').value.trim() || null,
@@ -759,7 +851,9 @@
   }
 
   function resetApp() {
-    selectedImage = null; imageBase64 = null; selectedCondition = 'Sehr gut';
+    selectedImage = null; imageBase64 = null; detectedBarcode = null; selectedCondition = 'Sehr gut';
+    stopBarcodeScanner();
+    setScanMode('photo');
     document.getElementById('fileInput').value = '';
     document.getElementById('buyPrice').value   = '';
     document.getElementById('sellPrice').value  = '';

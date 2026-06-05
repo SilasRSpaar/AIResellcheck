@@ -308,6 +308,44 @@ async function getPriceChartingListings(searchQuery) {
   } catch(e) { console.error('PriceCharting error:', e.message); return []; }
 }
 
+async function lookupBarcode(barcode) {
+  try {
+    const result = await httpsGet('api.upcitemdb.com', `/prod/trial/lookup?upc=${barcode}`,
+      { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
+    );
+    if (result.status !== 200 || !result.body?.items?.length) return null;
+    const item = result.body.items[0];
+    const rawTitle = item.title || 'Artikel';
+    const ebayQuery = ((item.brand ? item.brand + ' ' : '') + rawTitle).substring(0, 60);
+    return {
+      objectName: rawTitle,
+      category: mapUPCCategory(item.category),
+      brand: item.brand || null,
+      condition: 'Sehr gut',
+      ebaySearchQuery: ebayQuery,
+      confidence: 99,
+      upcRetailPriceMin: item.lowest_recorded_price || null,
+      upcRetailPriceMax: item.highest_recorded_price || null,
+    };
+  } catch(e) { console.error('Barcode lookup error:', e.message); return null; }
+}
+
+function mapUPCCategory(cat) {
+  if (!cat) return 'Sonstiges';
+  const c = cat.toLowerCase();
+  if (c.includes('electron') || c.includes('computer') || c.includes('phone') || c.includes('camera')) return 'Elektronik';
+  if (c.includes('cloth') || c.includes('apparel') || c.includes('fashion') || c.includes('shirt') || c.includes('jacket')) return 'Kleidung';
+  if (c.includes('shoe') || c.includes('footwear') || c.includes('sneaker')) return 'Schuhe';
+  if (c.includes('toy') || c.includes('game') || c.includes('puzzle') || c.includes('lego')) return 'Spielzeug';
+  if (c.includes('book') || c.includes('media') || c.includes('magazine')) return 'Buecher';
+  if (c.includes('sport') || c.includes('outdoor') || c.includes('fitness') || c.includes('bike')) return 'Sport';
+  if (c.includes('music') || c.includes('instrument') || c.includes('vinyl')) return 'Musik';
+  if (c.includes('jewelry') || c.includes('jewellery') || c.includes('ring') || c.includes('necklace')) return 'Schmuck';
+  if (c.includes('watch') || c.includes('clock')) return 'Uhren';
+  if (c.includes('home') || c.includes('kitchen') || c.includes('furniture') || c.includes('garden')) return 'Haushalt';
+  return 'Sonstiges';
+}
+
 async function estimateRetailPrice(objectInfo) {
   const name = objectInfo.objectName + (objectInfo.brand ? ', ' + objectInfo.brand : '');
   const prompt = "You are a product pricing expert. What is the typical new retail price for this item in Europe (EUR/CHF)?\nItem: " + name + "\nReply ONLY with valid JSON: {\"retailPrice\":number_or_null,\"confidence\":\"high|medium|low\"}\nIf the item is too generic or unknown, set retailPrice to null.";
@@ -348,16 +386,28 @@ function buildObjectInfoFromUser(userBrand, userModel, userSize, userCategory) {
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { image, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null, userBrand=null, userModel=null, userYear=null, userSize=null, userCategory=null } = req.body || {};
-  if (!image) return res.status(400).json({ error: 'Kein Bild übermittelt' });
+  const { image, barcode=null, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null, userBrand=null, userModel=null, userYear=null, userSize=null, userCategory=null } = req.body || {};
+  if (!image && !barcode) return res.status(400).json({ error: 'Kein Bild oder Barcode übermittelt' });
 
   try {
-    // Brand provided: use Vision + brand knowledge for precise identification
-    // No brand: standard Vision-only identification
+    // Priority: barcode > brand+vision > vision-only
     let objectInfo;
-    if (userBrand && image) {
+    if (barcode) {
+      const barcodeInfo = await lookupBarcode(barcode);
+      if (barcodeInfo) {
+        objectInfo = barcodeInfo;
+      } else if (image) {
+        // Barcode lookup failed → fallback to vision
+        console.log('Barcode not found in UPC DB, falling back to Vision');
+        objectInfo = await identifyObject(image);
+      } else {
+        return res.status(400).json({ error: 'Barcode nicht erkannt und kein Foto verfügbar' });
+      }
+    } else if (userBrand && image) {
+      // Brand provided: combine brand knowledge + vision
       objectInfo = await identifyWithBrand(image, userBrand, userModel, userSize, userCategory);
     } else {
+      // Standard vision identification
       objectInfo = await identifyObject(image);
     }
     if (condition) objectInfo.condition = condition;
@@ -380,6 +430,11 @@ module.exports = async function handler(req, res) {
       ]);
       if (ebayResult.status === 'fulfilled') ebayData = ebayResult.value;
       if (retailResult.status === 'fulfilled') retailData = retailResult.value;
+      // If UPC lookup returned retail price range, use as fallback
+      if (!retailData && objectInfo.upcRetailPriceMin) {
+        const mid = ((objectInfo.upcRetailPriceMin + objectInfo.upcRetailPriceMax) / 2);
+        retailData = { retailPrice: mid.toFixed(2), retailConfidence: 'high' };
+      }
       const vintedListings = vintedResult.status === 'fulfilled' ? vintedResult.value : [];
       const pcListings = pcResult.status === 'fulfilled' ? pcResult.value : [];
 
