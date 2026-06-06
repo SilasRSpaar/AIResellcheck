@@ -1,4 +1,4 @@
-// ResellCheck – Serverless API Function (Vercel)
+// Comparadoo – Serverless API Function (Vercel)
 const https = require('https');
 
 function httpsPost(hostname, path, headers, body) {

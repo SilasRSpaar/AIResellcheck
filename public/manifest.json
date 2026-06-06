@@ -1,6 +1,6 @@
 {
-  "name": "PriceSnap",
-  "short_name": "PriceSnap",
+  "name": "Comparadoo",
+  "short_name": "Comparadoo",
   "description": "Fotografiere ein Objekt und erfahre sofort ob es sich zum Wiederverkauf lohnt.",
   "start_url": "/",
   "display": "standalone",
