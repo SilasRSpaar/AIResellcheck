@@ -167,15 +167,16 @@ async function getEbayPrices(searchQuery) {
 
   let prices = items.map(i=>parseFloat(i.price?.value||0)).filter(p=>p>0).sort((a,b)=>a-b);
 
-  // Two-pass outlier removal (works across all categories):
-  // Pass 1: remove extreme low-end (below 8% of max) – catches accessories/parts
-  const maxPrice = prices[prices.length - 1];
-  prices = prices.filter(p => p >= maxPrice * 0.08);
+  // Two-pass outlier removal:
+  // Pass 1: use 90th percentile as anchor (robust against single expensive outlier)
+  //         remove anything below 12% of that anchor – catches accessories/parts
+  const p90 = prices[Math.floor(prices.length * 0.90)];
+  prices = prices.filter(p => p >= p90 * 0.12);
   if (prices.length === 0) return null;
-  // Pass 2: remove items below 30% of mean of cleaned set – catches remaining outliers
+  // Pass 2: remove items below 40% of mean of cleaned set
   if (prices.length > 3) {
     const mean = prices.reduce((a,b) => a+b, 0) / prices.length;
-    const filtered = prices.filter(p => p >= mean * 0.30);
+    const filtered = prices.filter(p => p >= mean * 0.40);
     if (filtered.length >= 3) prices = filtered;
   }
   if (prices.length === 0) return null;
