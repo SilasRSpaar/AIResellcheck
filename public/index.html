@@ -383,14 +383,45 @@
     .price-card-range { font-size: 11px; color: var(--text-muted); }
 
     /* SPLASH – Step 1 hero */
+    #step1 {
+      background: radial-gradient(ellipse at 50% 18%, rgba(24,95,165,0.10) 0%, transparent 65%);
+    }
     .splash-hero {
       display: flex; flex-direction: column; align-items: center;
-      padding: 48px 0 28px; gap: 14px; flex: 1;
+      padding: 44px 0 24px; gap: 14px; flex: 1;
       justify-content: center;
     }
+
+    /* Logo glow wrapper */
+    .splash-logo-glow {
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .splash-logo-glow::before {
+      content: '';
+      position: absolute;
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(55,138,221,0.20) 0%, rgba(29,158,117,0.08) 50%, transparent 75%);
+      animation: logo-pulse 4s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes logo-pulse {
+      0%, 100% { transform: scale(0.92); opacity: 0.65; }
+      50%       { transform: scale(1.08); opacity: 1; }
+    }
+
+    /* Ring spin animations (transform-origin = SVG center 18px 18px) */
+    @keyframes spin-cw  { to { transform: rotate( 360deg); } }
+    @keyframes spin-ccw { to { transform: rotate(-360deg); } }
+    .ring-outer { animation: spin-cw   9s linear infinite; transform-origin: 18px 18px; }
+    .ring-middle { animation: spin-ccw  5.5s linear infinite; transform-origin: 18px 18px; }
+    .ring-inner  { animation: spin-cw   3s linear infinite; transform-origin: 18px 18px; }
+
     .splash-name {
       font-size: 34px; font-weight: 700; letter-spacing: -0.8px;
       text-align: center;
+      text-shadow: 0 0 28px rgba(55,138,221,0.28);
     }
     .splash-name span { color: var(--accent-light); }
     .splash-tagline {
@@ -402,6 +433,25 @@
       text-transform: uppercase; letter-spacing: 0.8px;
       text-align: center; padding-top: 8px;
     }
+
+    /* Staggered fade-in */
+    @keyframes splash-up {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    #step1.active .splash-hero     { animation: splash-up 0.55s 0.05s ease both; }
+    #step1.active .splash-divider  { animation: splash-up 0.55s 0.22s ease both; }
+    #step1.active .mode-cards      { animation: splash-up 0.55s 0.34s ease both; }
+    #step1.active .wizard-nav      { animation: splash-up 0.55s 0.44s ease both; }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      .ring-outer, .ring-middle, .ring-inner,
+      .splash-logo-glow::before { animation: none; }
+      #step1.active .splash-hero, #step1.active .splash-divider,
+      #step1.active .mode-cards, #step1.active .wizard-nav { animation: none; }
+    }
+
     /* hide header + progress when on step 1 */
     body.on-step1 #appHeader,
     body.on-step1 .wizard-top { display: none !important; }
@@ -441,29 +491,31 @@
       <div class="step active" id="step1">
         <!-- Hero -->
         <div class="splash-hero">
-          <svg width="110" height="110" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M 27.9 27.9 A 14 14 0 1 0 27.9 8.1" stroke="#378ADD" stroke-width="3.5" stroke-linecap="round"/>
-            <path d="M 24.36 24.36 A 9 9 0 1 0 24.36 11.64" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="round"/>
-            <path d="M 20.83 20.83 A 4 4 0 1 0 20.83 15.17" stroke="#BA7517" stroke-width="3.5" stroke-linecap="round"/>
-          </svg>
+          <div class="splash-logo-glow">
+            <svg width="110" height="110" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <g class="ring-outer"><path d="M 27.9 27.9 A 14 14 0 1 0 27.9 8.1" stroke="#378ADD" stroke-width="3.5" stroke-linecap="round"/></g>
+              <g class="ring-middle"><path d="M 24.36 24.36 A 9 9 0 1 0 24.36 11.64" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="round"/></g>
+              <g class="ring-inner"><path d="M 20.83 20.83 A 4 4 0 1 0 20.83 15.17" stroke="#BA7517" stroke-width="3.5" stroke-linecap="round"/></g>
+            </svg>
+          </div>
           <div class="splash-name">Compara<span>doo</span></div>
           <div class="splash-tagline">Der smarte Preischeck für Secondhand-Artikel</div>
         </div>
         <!-- Mode selection -->
         <div class="splash-divider">Was möchtest du tun?</div>
         <div class="mode-cards">
-          <div class="mode-card selected" id="cardResell" onclick="selectMode('resell')">
-            <div class="mode-card-icon">🔄</div>
-            <div>
-              <div class="mode-card-title">Kaufen &amp; Weiterverkaufen</div>
-              <div class="mode-card-desc">Lohnt sich der Kauf? Wie hoch ist dein Gewinnpotenzial?</div>
-            </div>
-          </div>
           <div class="mode-card" id="cardFairness" onclick="selectMode('fairness')">
             <div class="mode-card-icon">🔍</div>
             <div>
               <div class="mode-card-title">Preis überprüfen</div>
               <div class="mode-card-desc">Ist der verlangte Preis fair? Wie steht er zum Markt?</div>
+            </div>
+          </div>
+          <div class="mode-card selected" id="cardResell" onclick="selectMode('resell')">
+            <div class="mode-card-icon">🔄</div>
+            <div>
+              <div class="mode-card-title">Kaufen &amp; Weiterverkaufen</div>
+              <div class="mode-card-desc">Lohnt sich der Kauf? Wie hoch ist dein Gewinnpotenzial?</div>
             </div>
           </div>
         </div>
