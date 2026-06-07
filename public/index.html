@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Comparadoo" />
-  <meta name="theme-color" content="#6366f1" />
+  <meta name="theme-color" content="#185FA5" />
   <title>Comparadoo</title>
   <link rel="manifest" href="/manifest.json" />
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -14,17 +14,17 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0f0f13;
-      --surface: #1a1a24;
-      --surface2: #22222f;
-      --border: #2e2e42;
-      --accent: #6366f1;
-      --accent-light: #818cf8;
-      --green: #22c55e;
-      --red: #ef4444;
-      --yellow: #f59e0b;
-      --text: #f1f1f5;
-      --text-muted: #8b8ba7;
+      --bg: #080C18;
+      --surface: #0f1a2e;
+      --surface2: #162340;
+      --border: #1e3a5f;
+      --accent: #185FA5;
+      --accent-light: #378ADD;
+      --green: #1D9E75;
+      --red: #E24B4A;
+      --yellow: #BA7517;
+      --text: #f1f5f9;
+      --text-muted: #7a9cc0;
       --radius: 16px;
     }
 
@@ -41,17 +41,19 @@
 
     /* HEADER */
     header {
-      padding: 16px 20px 12px;
+      padding: 14px 20px 12px;
       display: flex; align-items: center; gap: 10px;
       border-bottom: 1px solid var(--border);
+      background: rgba(8,12,24,0.97);
     }
-    .logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo { font-size: 19px; font-weight: 500; letter-spacing: -0.4px; }
     .logo span { color: var(--accent-light); }
     /* Comparadoo branding */
     .badge {
-      margin-left: auto; font-size: 11px;
-      background: var(--accent); color: white;
-      padding: 3px 8px; border-radius: 20px; font-weight: 600;
+      margin-left: auto; font-size: 10px;
+      background: #0A1830; color: var(--accent-light);
+      padding: 3px 9px; border-radius: 20px; font-weight: 600;
+      border: 0.5px solid var(--border); letter-spacing: 0.3px;
     }
 
     /* MODE SWITCHER */
@@ -78,7 +80,7 @@
     }
     .mode-btn.active {
       background: var(--accent); color: white;
-      box-shadow: 0 2px 8px rgba(99,102,241,0.4);
+      box-shadow: 0 2px 8px rgba(24,95,165,0.4);
     }
 
     /* VIEWS */
@@ -184,9 +186,9 @@
       border-radius: var(--radius); padding: 18px;
       display: flex; align-items: center; gap: 14px;
     }
-    .verdict-card.go      { background: #052e16; border: 1px solid #166534; }
-    .verdict-card.caution { background: #2d1b06; border: 1px solid #92400e; }
-    .verdict-card.stop    { background: #1f0707; border: 1px solid #7f1d1d; }
+    .verdict-card.go      { background: #061f14; border: 1px solid #1D9E75; }
+    .verdict-card.caution { background: #1e1206; border: 1px solid #BA7517; }
+    .verdict-card.stop    { background: #1a0808; border: 1px solid #E24B4A; }
     .verdict-icon { font-size: 36px; flex-shrink: 0; }
     .verdict-title { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
     .verdict-sub { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
@@ -268,7 +270,7 @@
     }
     .cond-btn.active {
       border-color: var(--accent); color: white;
-      background: rgba(99,102,241,0.2);
+      background: rgba(24,95,165,0.25);
     }
 
     #fileInput { display: none; }
@@ -291,8 +293,8 @@
     .detail-input:focus { border-color: var(--accent); }
     .detail-input::placeholder { color: var(--text-muted); }
     .listing-source { font-size: 10px; font-weight: 700; border-radius: 4px; padding: 2px 6px; white-space: nowrap; flex-shrink: 0; }
-    .listing-source.src-ebay { background: #1a3a6b; color: #7ab3f5; }
-    .listing-source.src-vinted { background: #093b30; color: #34d399; }
+    .listing-source.src-ebay { background: #0a1e3d; color: #378ADD; }
+    .listing-source.src-vinted { background: #0a2e24; color: #1D9E75; }
     .listing-source.src-kleinanzeigen { background: #2d2006; color: #fbbf24; }
     .listing-source.src-ricardo { background: #3b0f0f; color: #f87171; }
     .listing-source.src-default { background: var(--border); color: var(--text-muted); }
@@ -314,6 +316,11 @@
 <body>
 <div id="app">
   <header>
+    <svg width="26" height="26" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0;">
+      <path d="M 27.9 27.9 A 14 14 0 1 0 27.9 8.1" stroke="#378ADD" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M 24.36 24.36 A 9 9 0 1 0 24.36 11.64" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M 20.83 20.83 A 4 4 0 1 0 20.83 15.17" stroke="#BA7517" stroke-width="3.5" stroke-linecap="round"/>
+    </svg>
     <div class="logo">Compara<span>doo</span></div>
     <div class="badge">AI</div>
   </header>

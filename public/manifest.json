@@ -4,8 +4,8 @@
   "description": "Fotografiere ein Objekt und erfahre sofort ob es sich zum Wiederverkauf lohnt.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f0f0f",
-  "theme_color": "#6366f1",
+  "background_color": "#080C18",
+  "theme_color": "#185FA5",
   "orientation": "portrait",
   "icons": [
     {
