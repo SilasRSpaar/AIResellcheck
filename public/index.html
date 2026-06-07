@@ -819,9 +819,15 @@
           <a class="price-card-link" href="${data.ebaySearchUrl || 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">eBay.de ansehen ↗</a>
         </div>
         <div class="price-card">
-          <div class="price-card-label">🏷️ Neupreis</div>
-          <div class="price-card-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
-          <div class="price-card-source">${data.retailPrice ? (data.retailSource || (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung')) : 'Nicht verfügbar'}</div>
+          <div class="price-card-label">🏷️ Neupreis (Referenz)</div>
+          <div class="price-card-value">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
+          <div class="price-card-range">${(() => {
+            if (!data.retailPrice || !data.marketAvg) return data.retailPrice ? (data.retailSource || (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung')) : 'Nicht verfügbar';
+            const pct = Math.round((1 - parseFloat(data.marketAvg) / parseFloat(data.retailPrice)) * 100);
+            if (pct > 0) return `Gebraucht ${pct}% günstiger`;
+            if (pct < 0) return `Gebraucht ${Math.abs(pct)}% teurer`;
+            return 'Gleich wie neu';
+          })()}</div>
           ${data.retailPrice ? '<a class="price-card-link" href="' + (data.amazonSearchUrl || 'https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'')) + '" target="_blank" rel="noopener">Amazon.de ansehen ↗</a>' : ''}
         </div>
         <div class="stat-card">
@@ -937,9 +943,15 @@
           <a class="price-card-link" href="${data.ebaySearchUrl || 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">eBay.de ansehen ↗</a>
         </div>
         <div class="price-card">
-          <div class="price-card-label">🏷️ Neupreis</div>
-          <div class="price-card-value" style="color:var(--text-muted)">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
-          <div class="price-card-source">${data.retailPrice ? (data.retailSource || (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung')) : 'Nicht verfügbar'}</div>
+          <div class="price-card-label">🏷️ Neupreis (Referenz)</div>
+          <div class="price-card-value">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
+          <div class="price-card-range">${(() => {
+            if (!data.retailPrice || !askedPrice) return data.retailPrice ? (data.retailSource || (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung')) : 'Nicht verfügbar';
+            const pct = Math.round((1 - askedPrice / parseFloat(data.retailPrice)) * 100);
+            if (pct > 0) return `${pct}% unter Neupreis`;
+            if (pct < 0) return `${Math.abs(pct)}% über Neupreis`;
+            return 'Zum Neupreis';
+          })()}</div>
           ${data.retailPrice ? '<a class="price-card-link" href="' + (data.amazonSearchUrl || 'https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'')) + '" target="_blank" rel="noopener">Amazon.de ansehen ↗</a>' : ''}
         </div>
         <div class="stat-card">

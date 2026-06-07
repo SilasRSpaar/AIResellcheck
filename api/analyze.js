@@ -497,12 +497,26 @@ async function getKeepaRetailPrice(searchQuery) {
   } catch(e) { console.error('Keepa error:', e.message); return null; }
 }
 
-async function estimateRetailPrice(objectInfo) {
-  const name = objectInfo.objectName + (objectInfo.brand ? ', ' + objectInfo.brand : '');
-  const prompt = "You are a product pricing expert. What is the typical new retail price for this item in Europe (EUR/CHF)?\nItem: " + name + "\nReply ONLY with valid JSON: {\"retailPrice\":number_or_null,\"confidence\":\"high|medium|low\"}\nIf the item is too generic or unknown, set retailPrice to null.";
+async function estimateRetailPrice(objectInfo, searchQuery) {
+  const contextLines = [
+    searchQuery               ? `Search: ${searchQuery}`                         : null,
+    objectInfo.objectName     ? `Product: ${objectInfo.objectName}`              : null,
+    objectInfo.brand          ? `Brand: ${objectInfo.brand}`                     : null,
+    objectInfo.model          ? `Model: ${objectInfo.model}`                     : null,
+    objectInfo.productLine    ? `Line: ${objectInfo.productLine}`                : null,
+    objectInfo.category       ? `Category: ${objectInfo.category}`               : null,
+  ].filter(Boolean).join('\n');
+
+  const prompt = `You are a European retail pricing expert with precise knowledge of current prices in Germany and Switzerland.
+${contextLines}
+What is the typical current RETAIL (new) price in EUR for this product?
+Be specific and precise: e.g. "Nike Air Force 1 Low White" → 120, "Sony DualSense PS5 Controller" → 75, "iPhone 14 128GB" → 699.
+Reply ONLY with valid JSON: {"retailPrice": number_or_null, "confidence": "high|medium|low"}
+Set retailPrice to null only if this is a completely unknown or one-of-a-kind item.`;
+
   const result = await httpsPost("api.openai.com", "/v1/chat/completions",
     {"Content-Type": "application/json", "Authorization": "Bearer " + process.env.OPENAI_API_KEY},
-    {model: "gpt-4o-mini", max_tokens: 60, messages: [{role: "user", content: prompt}]}
+    {model: "gpt-4o-mini", max_tokens: 80, messages: [{role: "user", content: prompt}]}
   );
   const raw = result.body.choices?.[0]?.message?.content || "{}";
   const clean = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
@@ -564,6 +578,7 @@ module.exports = async function handler(req, res) {
     if (condition) objectInfo.condition = condition;
     if (userBrand) objectInfo.brand = userBrand;
     if (userModel) objectInfo.model = userModel;
+    if (userYear)  objectInfo.year  = userYear;
 
     let ebayData = null;
     let retailData = null;
@@ -576,7 +591,7 @@ module.exports = async function handler(req, res) {
       const retailPromise = (async () => {
         const keepa = await getKeepaRetailPrice(searchQuery);
         if (keepa) return keepa;
-        return estimateRetailPrice(objectInfo);
+        return estimateRetailPrice(objectInfo, searchQuery);
       })();
 
       const [ebayResult, retailResult, vintedResult, pcResult, kleinResult, ricardoResult] = await Promise.allSettled([
