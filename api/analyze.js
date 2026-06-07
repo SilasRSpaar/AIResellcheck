@@ -156,53 +156,58 @@ confidence = integer 0-100 (NOT 0-1). 100 = completely certain. 85 = confident b
 }
 
 async function identifyWithBrand(base64Image, userBrand, userModel, userSize, userCategory, userRef) {
-  // Build confirmed facts list — these are user-provided and treated as 100% correct
+  // Build confirmed facts — brand and model are hard facts, category is a hint only
   const confirmedFacts = [
-    `Brand: ${userBrand} [CONFIRMED]`,
-    userModel    ? `Model: ${userModel} [CONFIRMED]`         : null,
-    userSize     ? `Size/Storage: ${userSize} [CONFIRMED]`   : null,
-    userCategory ? `Category: ${userCategory} [CONFIRMED]`   : null,
-    userRef      ? `Reference/Serial: ${userRef} [CONFIRMED]`: null,
+    userBrand    ? `Brand: ${userBrand} [CONFIRMED]`          : null,
+    userModel    ? `Model: ${userModel} [CONFIRMED]`           : null,
+    userSize     ? `Size/Storage: ${userSize} [CONFIRMED]`     : null,
+    userCategory ? `User category hint: ${userCategory} (use as guidance, but choose the best category for accurate pricing)` : null,
+    userRef      ? `Reference/Serial: ${userRef} [CONFIRMED]`  : null,
   ].filter(Boolean).join('\n');
 
   // Only ask GPT to fill in what the user didn't provide
   const missingFields = [
+    !userBrand    ? '- Brand (read from photo, labels, logos)' : null,
     !userModel    ? '- Exact model/product line (read from labels, text visible in image)' : null,
     '- Exact color / colorway',
     '- Condition based on visual inspection of the photo',
-    !userCategory ? '- Product category' : null,
+    '- Product category (IMPORTANT: sport/smart watches like Garmin, Suunto, Polar, Fitbit → Elektronik, NOT Uhren & Schmuck)',
     !userRef      ? '- Reference number / serial number if visible (especially for watches)' : null,
   ].filter(Boolean).join('\n');
 
-  const exampleQuery = `${userBrand}${userModel ? ' ' + userModel : ''} [color]`.substring(0, 40);
+  const knownBrand = userBrand || '[brand from photo]';
+  const knownModel = userModel || '[model from photo]';
+  const exampleQuery = `${knownBrand} ${knownModel}`.substring(0, 40);
 
-  const prompt = `You are identifying a secondhand item. The user has provided CONFIRMED FACTS — do not change or question them:
+  const prompt = `You are identifying a secondhand item for resale price estimation. The user has provided facts — treat CONFIRMED items as 100% correct:
 
 ${confirmedFacts}
 
 STEP 1 — Read ALL visible text in the photo: labels, model numbers, product codes, logos, serial numbers, hallmarks, tags.
 
-STEP 2 — Using the confirmed facts + visible text, identify ONLY what is missing:
+STEP 2 — Using the confirmed facts + visible text, identify what is missing:
 ${missingFields}
 
-STEP 3 — Build eBay search queries:
-- Specific (ebaySearchQuery): MUST start with confirmed brand${userModel ? ' + model' : ''}, then add color/variant. Max 8 words. NO size. (e.g. "${exampleQuery}")
-- Broad (ebaySearchQueryBroad): confirmed brand + product type only, 2-4 words.
+STEP 3 — Build eBay search queries that will find the EXACT item (not accessories or similar models):
+- Specific (ebaySearchQuery): ${userBrand ? 'confirmed brand' : 'detected brand'}${userModel ? ' + confirmed model' : ' + detected model'}, then add color/variant. Max 8 words. (e.g. "${exampleQuery} black")
+- Broad (ebaySearchQueryBroad): brand + product type only, 2-4 words.
+
+CRITICAL: If model is confirmed, the ebaySearchQuery MUST contain that exact model name.
 
 Reply ONLY with valid JSON (no markdown):
 {
-  "objectName": "Full product name in German using confirmed facts",
-  "brand": "${userBrand}",
-  "model": ${userModel ? `"${userModel}"` : '"identify from photo or null"'},
+  "objectName": "Full product name in German (use confirmed brand + model)",
+  "brand": "${userBrand || 'detected brand from photo'}",
+  "model": ${userModel ? `"${userModel}"` : '"detected model from photo"'},
   "color": "detected color",
-  "category": "${userCategory || 'Elektronik|Spielzeug|Uhren & Schmuck|Kleidung & Accessoires|Sport & Outdoor|Musik|Möbel & Wohnen|Antiquitäten & Kunst|Sammler|Haushalt & Küche'}",
-  "subType": "specific sub-type within category (e.g. Smartphone, Laptop, Uhr, Schuh, Gitarre) or null",
+  "category": "Elektronik|Spielzeug|Uhren & Schmuck|Kleidung & Accessoires|Sport & Outdoor|Musik|Möbel & Wohnen|Antiquitäten & Kunst|Sammler|Haushalt & Küche",
+  "subType": "specific sub-type (e.g. Smartphone, Smartwatch, Laptop, Uhr, Schuh) or null",
   "condition": "Neu|Sehr gut|Gut|Akzeptabel|Beschaedigt",
-  "ebaySearchQuery": "specific query — confirmed facts first",
-  "ebaySearchQueryBroad": "broad fallback — brand + type only",
+  "ebaySearchQuery": "query with confirmed facts — must match exact item on eBay",
+  "ebaySearchQueryBroad": "brand + product type only",
   "confidence": 90
 }
-confidence = integer 0-100 (NOT 0-1). 90 = confident. Use lower values only if image is unclear or item ambiguous.`;
+confidence = integer 0-100 (NOT 0-1). 90 = confident. Use lower values if image is unclear or item ambiguous.`;
 
   const result = await httpsPost(
     'api.openai.com', '/v1/chat/completions',
@@ -733,8 +738,8 @@ module.exports = async function handler(req, res) {
       } else {
         return res.status(400).json({ error: 'Barcode nicht erkannt und kein Foto verfügbar' });
       }
-    } else if (userBrand && image) {
-      // Brand provided: combine brand knowledge + vision
+    } else if ((userBrand || userModel) && image) {
+      // Brand or model provided: use confirmed facts + vision
       objectInfo = await identifyWithBrand(image, userBrand, userModel, userSize, userCategory, userRef);
     } else {
       // Standard vision identification
@@ -745,12 +750,16 @@ module.exports = async function handler(req, res) {
     if (userModel) objectInfo.model = userModel;
     if (userYear)  objectInfo.year  = userYear;
 
-    // CONFIRMED FACTS override: when user provided brand + model, force objectName
-    // and ebaySearchQuery to use those facts — GPT must not override with its own guess.
-    if (userBrand && userModel) {
-      objectInfo.objectName = [userBrand, userModel, userYear].filter(Boolean).join(' ');
-      objectInfo.ebaySearchQuery = [userBrand, userModel, userYear].filter(Boolean).join(' ');
-      objectInfo.ebaySearchQueryBroad = [userBrand, userModel].join(' ');
+    // CONFIRMED FACTS override: force model into objectName + ebaySearchQuery
+    if (userModel) {
+      const confirmedBrand = userBrand || objectInfo.brand || '';
+      objectInfo.objectName = [confirmedBrand, userModel, userYear].filter(Boolean).join(' ');
+      // Force model into query — GPT must not use a different model name
+      const q = objectInfo.ebaySearchQuery || '';
+      if (!q.toLowerCase().includes(userModel.toLowerCase())) {
+        objectInfo.ebaySearchQuery = [confirmedBrand, userModel, userYear].filter(Boolean).join(' ');
+        objectInfo.ebaySearchQueryBroad = [confirmedBrand, userModel].filter(Boolean).join(' ');
+      }
     } else if (userBrand) {
       // Brand only: prepend to GPT's query if not already there
       if (objectInfo.ebaySearchQuery && !objectInfo.ebaySearchQuery.toLowerCase().startsWith(userBrand.toLowerCase())) {
@@ -768,9 +777,10 @@ module.exports = async function handler(req, res) {
     let soldData = null;
     let usedFallbackQuery = false;
 
-    // Resolve eBay category ID from GPT-detected category + subType
+    // eBay category: use GPT's detected category only — userCategory is a hint to GPT, not forced here
+    // This ensures sport watches (Garmin → Elektronik) aren't filtered into luxury watch category
     const categoryEbayId = getCategoryEbayId(
-      objectInfo.category || userCategory,
+      objectInfo.category,
       objectInfo.subType || null
     );
 
