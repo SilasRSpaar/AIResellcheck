@@ -273,6 +273,53 @@
       background: rgba(24,95,165,0.25);
     }
 
+    /* ── WIZARD ─────────────────────────────────────────────────────── */
+    .wizard-top { padding: 16px 20px 0; }
+    .step-dots { display: flex; align-items: center; justify-content: center; }
+    .step-dot {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--surface2); border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: var(--text-muted);
+      transition: all 0.25s; flex-shrink: 0;
+    }
+    .step-dot.active { background: var(--accent); border-color: var(--accent); color: white; }
+    .step-dot.done   { background: var(--green);  border-color: var(--green);  color: white; }
+    .step-line { width: 36px; height: 1.5px; background: var(--border); transition: background 0.25s; }
+    .step-line.done { background: var(--green); }
+    .wizard-body { padding: 20px; flex: 1; display: flex; flex-direction: column; overflow-y: auto; gap: 0; }
+    .step { display: none; flex-direction: column; gap: 16px; }
+    .step.active { display: flex; }
+    .step-title { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .step-sub   { font-size: 14px; color: var(--text-muted); margin-top: 3px; }
+    .mode-cards { display: flex; flex-direction: column; gap: 12px; }
+    .mode-card {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 20px 18px;
+      cursor: pointer; transition: all 0.15s;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .mode-card:active { transform: scale(0.98); }
+    .mode-card.selected { border-color: var(--accent); background: rgba(24,95,165,0.12); }
+    .mode-card-icon { font-size: 30px; flex-shrink: 0; }
+    .mode-card-title { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
+    .mode-card-desc  { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
+    .camera-area.hero { aspect-ratio: unset; min-height: 280px; }
+    .wizard-nav { display: flex; gap: 10px; margin-top: 8px; padding-bottom: 4px; }
+    .btn-back {
+      background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+      border-radius: var(--radius); padding: 14px 18px;
+      font-size: 18px; cursor: pointer; flex-shrink: 0; transition: opacity 0.2s;
+    }
+    .btn-next {
+      flex: 1; background: var(--accent); color: white; border: none;
+      border-radius: var(--radius); padding: 15px;
+      font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-next:active { transform: scale(0.97); opacity: 0.85; }
+    .btn-next:disabled { opacity: 0.35; cursor: not-allowed; }
+    /* ── END WIZARD ──────────────────────────────────────────────────── */
+
     #fileInput { display: none; }
 
     .error-box {
@@ -325,54 +372,93 @@
     <div class="badge">AI</div>
   </header>
 
-  <!-- SCAN VIEW -->
-  <div id="scanView" class="view active">
+  <!-- WIZARD VIEW -->
+  <div id="wizardView" class="view active">
 
-    <!-- Mode Switcher -->
-    <div class="mode-label">Was möchtest du tun?</div>
-    <div class="mode-switcher">
-      <button class="mode-btn active" id="modeResell" onclick="setMode('resell')">🔄 Kaufen &amp;<br>Weiterverkaufen</button>
-      <button class="mode-btn" id="modeFairness" onclick="setMode('fairness')">🔍 Preis<br>überprüfen</button>
-    </div>
-
-    <!-- Mode hint -->
-    <div class="mode-hint" id="modeHint">
-      Kaufe ich es günstig genug, um Gewinn zu machen? Gib Kaufpreis und Zielpreis ein.
-    </div>
-
-    <div class="scan-mode-row">
-      <button class="scan-mode-btn active" id="btnPhotoMode" onclick="setScanMode('photo')">📷 Foto</button>
-      <button class="scan-mode-btn" id="btnBarcodeMode" onclick="setScanMode('barcode')">🔍 Barcode</button>
-    </div>
-    <div class="camera-area" id="cameraArea" onclick="triggerCamera()">
-      <div class="camera-icon">📷</div>
-      <div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>
-    </div>
-    <div id="barcodeScanner" style="display:none;"></div>
-    <div class="barcode-result" id="barcodeResult" style="display:none;">
-      <div class="barcode-result-title" id="barcodeProductName">—</div>
-      <div class="barcode-result-sub" id="barcodeProductSub">Produkt wird nach Analyse identifiziert…</div>
-    </div>
-    <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="onImageSelected(event)" />
-
-    <!-- Zustandsauswahl (erscheint nach Foto) -->
-    <div class="input-group" id="conditionGroup" style="display:none;">
-      <div class="input-row">
-        <label>Zustand des Objekts</label>
-        <div class="condition-pills">
-          <button class="cond-btn active" data-val="Sehr gut" onclick="setCondition(this)">✨ Sehr gut</button>
-          <button class="cond-btn" data-val="Gut" onclick="setCondition(this)">👍 Gut</button>
-          <button class="cond-btn" data-val="Akzeptabel" onclick="setCondition(this)">👌 Akzeptabel</button>
-          <button class="cond-btn" data-val="Beschädigt" onclick="setCondition(this)">⚠️ Beschädigt</button>
-        </div>
+    <!-- Progress indicator -->
+    <div class="wizard-top">
+      <div class="step-dots">
+        <div class="step-dot active" id="dot1">1</div>
+        <div class="step-line" id="line1"></div>
+        <div class="step-dot" id="dot2">2</div>
+        <div class="step-line" id="line2"></div>
+        <div class="step-dot" id="dot3">3</div>
+        <div class="step-line" id="line3"></div>
+        <div class="step-dot" id="dot4">4</div>
       </div>
     </div>
 
-    <!-- Optional detail inputs (erscheint nach Foto) -->
-    <div id="detailsSection" style="display:none;">
-      <button class="details-toggle" onclick="toggleDetails()" id="detailsToggleBtn">＋ Angaben verfeinern (optional)</button>
-      <div id="detailsFields" style="display:none;" class="details-fields">
+    <div class="wizard-body">
+
+      <!-- Step 1: Mode -->
+      <div class="step active" id="step1">
         <div>
+          <div class="step-title">Was möchtest du tun?</div>
+          <div class="step-sub">Wähle den Analyse-Typ.</div>
+        </div>
+        <div class="mode-cards">
+          <div class="mode-card selected" id="cardResell" onclick="selectMode('resell')">
+            <div class="mode-card-icon">🔄</div>
+            <div>
+              <div class="mode-card-title">Kaufen &amp; Weiterverkaufen</div>
+              <div class="mode-card-desc">Lohnt sich der Kauf? Wie hoch ist dein Gewinnpotenzial?</div>
+            </div>
+          </div>
+          <div class="mode-card" id="cardFairness" onclick="selectMode('fairness')">
+            <div class="mode-card-icon">🔍</div>
+            <div>
+              <div class="mode-card-title">Preis überprüfen</div>
+              <div class="mode-card-desc">Ist der verlangte Preis fair? Wie steht er zum Markt?</div>
+            </div>
+          </div>
+        </div>
+        <div class="wizard-nav">
+          <button class="btn-next" onclick="goToStep(2)">Weiter →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Foto -->
+      <div class="step" id="step2">
+        <div>
+          <div class="step-title">Objekt fotografieren</div>
+          <div class="step-sub">Klares Foto oder Barcode scannen.</div>
+        </div>
+        <div class="scan-mode-row">
+          <button class="scan-mode-btn active" id="btnPhotoMode" onclick="setScanMode('photo')">📷 Foto</button>
+          <button class="scan-mode-btn" id="btnBarcodeMode" onclick="setScanMode('barcode')">🔍 Barcode</button>
+        </div>
+        <div class="camera-area hero" id="cameraArea" onclick="triggerCamera()">
+          <div class="camera-icon">📷</div>
+          <div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>
+        </div>
+        <div id="barcodeScanner" style="display:none;"></div>
+        <div class="barcode-result" id="barcodeResult" style="display:none;">
+          <div class="barcode-result-title" id="barcodeProductName">—</div>
+          <div class="barcode-result-sub" id="barcodeProductSub">Produkt wird nach Analyse identifiziert…</div>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="onImageSelected(event)" />
+        <div class="wizard-nav">
+          <button class="btn-back" onclick="goToStep(1)">←</button>
+          <button class="btn-next" id="btnStep2Next" onclick="goToStep(3)" disabled>Weiter →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Details -->
+      <div class="step" id="step3">
+        <div>
+          <div class="step-title">Details angeben</div>
+          <div class="step-sub">Je mehr Details, desto präziser das Ergebnis.</div>
+        </div>
+        <div class="input-group">
+          <label>Zustand</label>
+          <div class="condition-pills" style="margin-top:8px;">
+            <button class="cond-btn active" data-val="Sehr gut" onclick="setCondition(this)">✨ Sehr gut</button>
+            <button class="cond-btn" data-val="Gut" onclick="setCondition(this)">👍 Gut</button>
+            <button class="cond-btn" data-val="Akzeptabel" onclick="setCondition(this)">👌 Akzeptabel</button>
+            <button class="cond-btn" data-val="Beschädigt" onclick="setCondition(this)">⚠️ Beschädigt</button>
+          </div>
+        </div>
+        <div class="input-group">
           <label style="margin-bottom:8px;display:block;">Kategorie</label>
           <div class="cat-picker" id="catPicker">
             <button class="cat-btn" data-cat="Elektronik" onclick="setCategory(this)"><span class="cat-icon">📱</span>Elektronik</button>
@@ -389,46 +475,56 @@
             <button class="cat-btn" data-cat="Sonstiges" onclick="setCategory(this)"><span class="cat-icon">📦</span>Sonstiges</button>
           </div>
         </div>
-        <input class="detail-input" type="text" id="userBrand" placeholder="Marke (z.B. Nike, Sony, Lego, Ikea)" />
-        <input class="detail-input" type="text" id="userModel" placeholder="Modell / Beschreibung (z.B. Air Max 90)" />
-        <input class="detail-input" type="text" id="userYear" placeholder="Jahr (z.B. 2021) – optional" />
-        <input class="detail-input" type="text" id="userSize" placeholder="Grösse / Variante (z.B. 42, M, 128GB) – optional" />
-      </div>
-    </div>
-
-    <!-- Resell inputs -->
-    <div class="input-group" id="inputsResell">
-      <div class="input-row">
-        <label>Kaufpreis (was du bezahlst)</label>
-        <div class="input-with-currency">
-          <span class="currency-tag">CHF</span>
-          <input type="number" id="buyPrice" placeholder="0.00" min="0" step="0.01" />
+        <div class="input-group">
+          <input class="detail-input" type="text" id="userBrand" placeholder="Marke (z.B. Nike, Sony, Lego)" />
+          <input class="detail-input" type="text" id="userModel" placeholder="Modell (z.B. Air Max 90)" />
+          <input class="detail-input" type="text" id="userYear" placeholder="Jahr (z.B. 2021) – optional" />
+          <input class="detail-input" type="text" id="userSize" placeholder="Grösse / Variante – optional" />
+        </div>
+        <div class="wizard-nav">
+          <button class="btn-back" onclick="goToStep(2)">←</button>
+          <button class="btn-next" onclick="goToStep(4)">Weiter →</button>
         </div>
       </div>
-      <div class="input-row">
-        <label>Zielpreis (was du verlangen willst)</label>
-        <div class="input-with-currency">
-          <span class="currency-tag">CHF</span>
-          <input type="number" id="sellPrice" placeholder="0.00" min="0" step="0.01" />
+
+      <!-- Step 4: Preis -->
+      <div class="step" id="step4">
+        <div>
+          <div class="step-title">Preisangaben</div>
+          <div class="step-sub">Gib die relevanten Preise ein.</div>
+        </div>
+        <div class="input-group" id="inputsResell">
+          <div class="input-row">
+            <label>Kaufpreis (was du bezahlst)</label>
+            <div class="input-with-currency">
+              <span class="currency-tag">CHF</span>
+              <input type="number" id="buyPrice" placeholder="0.00" min="0" step="0.01" />
+            </div>
+          </div>
+          <div class="input-row">
+            <label>Zielpreis (was du verlangen willst)</label>
+            <div class="input-with-currency">
+              <span class="currency-tag">CHF</span>
+              <input type="number" id="sellPrice" placeholder="0.00" min="0" step="0.01" />
+            </div>
+          </div>
+        </div>
+        <div class="input-group" id="inputsFairness" style="display:none;">
+          <div class="input-row">
+            <label>Verlangter Preis (was der Verkäufer will)</label>
+            <div class="input-with-currency">
+              <span class="currency-tag">CHF</span>
+              <input type="number" id="askedPrice" placeholder="0.00" min="0" step="0.01" />
+            </div>
+          </div>
+        </div>
+        <div class="wizard-nav">
+          <button class="btn-back" onclick="goToStep(3)">←</button>
+          <button class="btn-next" onclick="startAnalysis()">🔍 Analysieren</button>
         </div>
       </div>
-    </div>
 
-    <!-- Fairness inputs -->
-    <div class="input-group" id="inputsFairness" style="display:none;">
-      <div class="input-row">
-        <label>Verlangter Preis (was der Verkäufer will)</label>
-        <div class="input-with-currency">
-          <span class="currency-tag">CHF</span>
-          <input type="number" id="askedPrice" placeholder="0.00" min="0" step="0.01" />
-        </div>
-      </div>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn btn-secondary" onclick="triggerCamera()">📷 Foto</button>
-      <button class="btn btn-primary" id="analyzeBtn" onclick="startAnalysis()" disabled>Analysieren →</button>
-    </div>
+    </div><!-- end wizard-body -->
     <div class="bottom-safe"></div>
   </div>
 
@@ -458,20 +554,39 @@
   let currentMode = 'resell'; // 'resell' | 'fairness'
   let selectedCondition = 'Sehr gut';
   let selectedCategory = null;
+  let currentStep = 1;
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
 
-  function setMode(mode) {
+  function selectMode(mode) {
     currentMode = mode;
-    document.getElementById('modeResell').classList.toggle('active', mode === 'resell');
-    document.getElementById('modeFairness').classList.toggle('active', mode === 'fairness');
-    document.getElementById('inputsResell').style.display  = mode === 'resell'   ? '' : 'none';
+    document.getElementById('cardResell').classList.toggle('selected', mode === 'resell');
+    document.getElementById('cardFairness').classList.toggle('selected', mode === 'fairness');
+    document.getElementById('inputsResell').style.display   = mode === 'resell'   ? '' : 'none';
     document.getElementById('inputsFairness').style.display = mode === 'fairness' ? '' : 'none';
-    document.getElementById('modeHint').textContent = mode === 'resell'
-      ? 'Kaufe ich es günstig genug, um Gewinn zu machen? Gib Kaufpreis und Zielpreis ein.'
-      : 'Ist der verlangte Preis fair? Gib den Preis ein den der Verkäufer verlangt.';
+  }
+
+  function goToStep(n) {
+    document.getElementById('step' + currentStep).classList.remove('active');
+    for (let i = 1; i <= 4; i++) {
+      const dot  = document.getElementById('dot' + i);
+      const line = i < 4 ? document.getElementById('line' + i) : null;
+      if (i < n) {
+        dot.classList.add('done'); dot.classList.remove('active');
+        if (line) line.classList.add('done');
+      } else if (i === n) {
+        dot.classList.add('active'); dot.classList.remove('done');
+      } else {
+        dot.classList.remove('active', 'done');
+        if (line) line.classList.remove('done');
+      }
+    }
+    currentStep = n;
+    document.getElementById('step' + n).classList.add('active');
+    const body = document.querySelector('.wizard-body');
+    if (body) body.scrollTop = 0;
   }
 
   function triggerCamera() {
@@ -573,17 +688,8 @@
 
   function updateAnalyzeBtn() {
     const ready = !!(imageBase64 || detectedBarcode);
-    document.getElementById('analyzeBtn').disabled = !ready;
-    document.getElementById('conditionGroup').style.display = ready ? '' : 'none';
-    document.getElementById('detailsSection').style.display = ready ? '' : 'none';
-  }
-
-  function toggleDetails() {
-    const fields = document.getElementById('detailsFields');
-    const btn = document.getElementById('detailsToggleBtn');
-    const open = fields.style.display === 'none';
-    fields.style.display = open ? '' : 'none';
-    btn.textContent = open ? '－ Angaben verfeinern' : '＋ Angaben verfeinern (optional)';
+    const btn = document.getElementById('btnStep2Next');
+    if (btn) btn.disabled = !ready;
   }
 
   function setCategory(btn) {
@@ -885,28 +991,33 @@
   }
 
   function resetApp() {
-    selectedImage = null; imageBase64 = null; detectedBarcode = null; selectedCondition = 'Sehr gut';
+    selectedImage = null; imageBase64 = null; detectedBarcode = null;
+    selectedCondition = 'Sehr gut'; selectedCategory = null; currentStep = 1;
     stopBarcodeScanner();
     setScanMode('photo');
-    document.getElementById('fileInput').value = '';
-    document.getElementById('buyPrice').value   = '';
-    document.getElementById('sellPrice').value  = '';
-    document.getElementById('askedPrice').value = '';
-    document.getElementById('userBrand').value = '';
-    document.getElementById('userModel').value = '';
-    document.getElementById('userYear').value = '';
-    document.getElementById('userSize').value = '';
-    document.getElementById('detailsFields').style.display = 'none';
+    document.getElementById('fileInput').value  = '';
+    document.getElementById('buyPrice').value    = '';
+    document.getElementById('sellPrice').value   = '';
+    document.getElementById('askedPrice').value  = '';
+    document.getElementById('userBrand').value   = '';
+    document.getElementById('userModel').value   = '';
+    document.getElementById('userYear').value    = '';
+    document.getElementById('userSize').value    = '';
     document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-    selectedCategory = null;
-    document.getElementById('detailsToggleBtn').textContent = '＋ Angaben verfeinern (optional)';
-    document.getElementById('detailsSection').style.display = 'none';
-    document.getElementById('conditionGroup').style.display = 'none';
     document.querySelectorAll('.cond-btn').forEach((b,i) => b.classList.toggle('active', i===0));
     const area = document.getElementById('cameraArea');
     area.innerHTML = `<div class="camera-icon">📷</div><div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>`;
-    document.getElementById('analyzeBtn').disabled = true;
-    showView('scanView');
+    document.getElementById('btnStep2Next').disabled = true;
+    // Reset wizard steps
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step1').classList.add('active');
+    for (let i = 1; i <= 4; i++) {
+      const dot = document.getElementById('dot' + i);
+      dot.classList.remove('active', 'done');
+      if (i < 4) document.getElementById('line' + i).classList.remove('done');
+    }
+    document.getElementById('dot1').classList.add('active');
+    showView('wizardView');
   }
 </script>
 </body>
