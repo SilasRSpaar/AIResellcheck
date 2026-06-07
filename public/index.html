@@ -928,9 +928,14 @@
           <div class="stat-sub">Schätzung</div>
         </div>
         <div class="price-card">
-          <div class="price-card-label">📦 Gebrauchtmarkt-Ø</div>
-          <div class="price-card-value">CHF ${data.marketAvg ? parseFloat(data.marketAvg).toFixed(0) : '–'}</div>
-          <div class="price-card-range">${data.priceMin && data.priceMax ? parseFloat(data.priceMin).toFixed(0) + '–' + parseFloat(data.priceMax).toFixed(0) + ' CHF' : ''}</div>
+          ${data.soldAvg && data.soldCount >= 5
+            ? `<div class="price-card-label">✅ Verkauft Ø <span style="font-size:10px;opacity:0.7;">(${data.soldCount} verkauft)</span></div>
+               <div class="price-card-value">CHF ${parseFloat(data.soldAvg).toFixed(0)}</div>
+               <div class="price-card-range">${data.soldMin && data.soldMax ? parseFloat(data.soldMin).toFixed(0) + '–' + parseFloat(data.soldMax).toFixed(0) + ' CHF' : ''}</div>`
+            : `<div class="price-card-label">📦 Gebrauchtmarkt-Ø</div>
+               <div class="price-card-value">CHF ${data.marketAvg ? parseFloat(data.marketAvg).toFixed(0) : '–'}</div>
+               <div class="price-card-range">${data.priceMin && data.priceMax ? parseFloat(data.priceMin).toFixed(0) + '–' + parseFloat(data.priceMax).toFixed(0) + ' CHF' : ''}</div>`
+          }
           <a class="price-card-link" href="${data.ebaySearchUrl || 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">eBay.de ansehen ↗</a>
         </div>
         <div class="price-card">
@@ -993,9 +998,11 @@
 
   // ── FAIRNESS RESULT ────────────────────────────────────────────────────────
   function renderFairnessResult(data, askedPrice) {
-    const avg = parseFloat(data.marketAvg) || 0;
-    const min = parseFloat(data.priceMin)  || 0;
-    const max = parseFloat(data.priceMax)  || 0;
+    // Prefer sold prices (more accurate) over active listing prices
+    const useSold = data.soldAvg && data.soldCount >= 5;
+    const avg = useSold ? parseFloat(data.soldAvg) : (parseFloat(data.marketAvg) || 0);
+    const min = useSold ? parseFloat(data.soldMin)  : (parseFloat(data.priceMin)  || 0);
+    const max = useSold ? parseFloat(data.soldMax)  : (parseFloat(data.priceMax)  || 0);
 
     // Fairness score: 0 = Schnäppchen, 100 = viel zu teuer
     let fairnessScore = 50;

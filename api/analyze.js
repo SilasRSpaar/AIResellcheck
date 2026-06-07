@@ -228,6 +228,57 @@ confidence = integer 0-100 (NOT 0-1). 90 = confident. Use lower values only if i
   return parsed;
 }
 
+async function getEbaySoldPrices(searchQuery, categoryId = null) {
+  try {
+    const encoded = encodeURIComponent(searchQuery);
+    const catParam = categoryId ? `&categoryId=${categoryId}` : '';
+    const appId = process.env.EBAY_CLIENT_ID;
+
+    const result = await httpsGet(
+      'svcs.ebay.com',
+      `/services/search/FindingService/v1?OPERATION-NAME=findCompletedItems&SERVICE-VERSION=1.0.0&SECURITY-APPNAME=${appId}&RESPONSE-DATA-FORMAT=JSON&keywords=${encoded}&itemFilter%280%29.name=SoldItemsOnly&itemFilter%280%29.value=true${catParam}&paginationInput.entriesPerPage=50`,
+      { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
+    );
+
+    const items = result.body?.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.item || [];
+    if (items.length === 0) return null;
+
+    let prices = items
+      .map(i => parseFloat(i.sellingStatus?.[0]?.convertedCurrentPrice?.[0]?.__value__ || 0))
+      .filter(p => p > 0)
+      .sort((a, b) => a - b);
+    if (prices.length === 0) return null;
+
+    // Same cluster-detection as active listings to filter out accessories
+    if (prices.length >= 6) {
+      let bestGapRatio = 1, bestGapIdx = 0;
+      for (let i = 1; i < prices.length; i++) {
+        const ratio = prices[i] / prices[i - 1];
+        if (ratio > bestGapRatio) { bestGapRatio = ratio; bestGapIdx = i; }
+      }
+      const upperCount = prices.length - bestGapIdx;
+      if (bestGapRatio >= 2.0 && upperCount >= 3 && upperCount >= prices.length * 0.20) {
+        const upper = prices.slice(bestGapIdx);
+        if (upper[upper.length - 1] / upper[0] < 5) prices = upper;
+      }
+    }
+
+    const avg  = prices.reduce((a, b) => a + b, 0) / prices.length;
+    const low  = prices[Math.floor(prices.length * 0.10)];
+    const high = prices[Math.floor(prices.length * 0.90)];
+
+    return {
+      soldAvg:   parseFloat(avg.toFixed(2)),
+      soldMin:   parseFloat(low.toFixed(2)),
+      soldMax:   parseFloat(high.toFixed(2)),
+      soldCount: prices.length,
+    };
+  } catch(e) {
+    console.error('eBay Sold Prices error:', e.message);
+    return null;
+  }
+}
+
 async function getEbayPrices(searchQuery, categoryId = null) {
   const credentials = Buffer.from(`${process.env.EBAY_CLIENT_ID}:${process.env.EBAY_CLIENT_SECRET}`).toString('base64');
   const tokenRes = await new Promise((resolve, reject) => {
@@ -741,6 +792,7 @@ module.exports = async function handler(req, res) {
         if (keepa) return keepa;
         return estimateRetailPrice(objectInfo, specificQuery);
       })();
+      const soldPromise    = withTimeout(getEbaySoldPrices(specificQuery, categoryEbayId), 4000, null);
       const vintedPromise  = withTimeout(getVintedListings(specificQuery), 2000, []);
       const pcPromise      = withTimeout(getPriceChartingListings(specificQuery), 2000, []);
       const kleinPromise   = withTimeout(getKleinanzeigenListings(specificQuery), 3000, []);
@@ -769,10 +821,11 @@ module.exports = async function handler(req, res) {
       }
 
       // Collect parallel results (eBay already resolved above)
-      const [retailResult, vintedResult, pcResult, kleinResult, ricardoResult] = await Promise.allSettled([
-        retailPromise, vintedPromise, pcPromise, kleinPromise, ricardoPromise
+      const [retailResult, soldResult, vintedResult, pcResult, kleinResult, ricardoResult] = await Promise.allSettled([
+        retailPromise, soldPromise, vintedPromise, pcPromise, kleinPromise, ricardoPromise
       ]);
       if (retailResult.status === 'fulfilled') retailData = retailResult.value;
+      const soldData = soldResult.status === 'fulfilled' ? soldResult.value : null;
       // If UPC lookup returned retail price range, use as fallback
       if (!retailData && objectInfo.upcRetailPriceMin) {
         const mid = ((objectInfo.upcRetailPriceMin + objectInfo.upcRetailPriceMax) / 2);
@@ -813,6 +866,8 @@ module.exports = async function handler(req, res) {
         brand: objectInfo.brand, condition: objectInfo.condition,
         priceMin: ebayData?.priceMin||null, priceMax: ebayData?.priceMax||null,
         marketAvg: ebayData?.marketAvg||null, aiNote,
+        soldAvg: soldData?.soldAvg||null, soldMin: soldData?.soldMin||null,
+        soldMax: soldData?.soldMax||null, soldCount: soldData?.soldCount||null,
         retailPrice: retailData?.retailPrice||null, retailConfidence: retailData?.retailConfidence||null,
         retailSource: retailData?.retailSource||null,
         topListings: ebayData?.topListings||[],
@@ -832,6 +887,8 @@ module.exports = async function handler(req, res) {
       brand: objectInfo.brand, condition: objectInfo.condition,
       priceMin: ebayData?.priceMin||null, priceMax: ebayData?.priceMax||null,
       marketAvg: ebayData?.marketAvg||null,
+      soldAvg: soldData?.soldAvg||null, soldMin: soldData?.soldMin||null,
+      soldMax: soldData?.soldMax||null, soldCount: soldData?.soldCount||null,
       demandScore, demandLabel, timeToSell, channels, aiNote,
       retailPrice: retailData?.retailPrice||null, retailConfidence: retailData?.retailConfidence||null,
       retailSource: retailData?.retailSource||null,
