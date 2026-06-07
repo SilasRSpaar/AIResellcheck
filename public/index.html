@@ -381,11 +381,35 @@
     .price-card-link { font-size: 11px; color: var(--accent-light); text-decoration: none; margin-top: 2px; }
     .price-card-link:hover { text-decoration: underline; }
     .price-card-range { font-size: 11px; color: var(--text-muted); }
+
+    /* SPLASH – Step 1 hero */
+    .splash-hero {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 48px 0 28px; gap: 14px; flex: 1;
+      justify-content: center;
+    }
+    .splash-name {
+      font-size: 34px; font-weight: 700; letter-spacing: -0.8px;
+      text-align: center;
+    }
+    .splash-name span { color: var(--accent-light); }
+    .splash-tagline {
+      font-size: 14px; color: var(--text-muted); text-align: center; line-height: 1.5;
+      max-width: 260px;
+    }
+    .splash-divider {
+      font-size: 11px; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.8px;
+      text-align: center; padding-top: 8px;
+    }
+    /* hide header + progress when on step 1 */
+    body.on-step1 #appHeader,
+    body.on-step1 .wizard-top { display: none !important; }
   </style>
 </head>
-<body>
+<body class="on-step1">
 <div id="app">
-  <header>
+  <header id="appHeader">
     <svg width="26" height="26" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0;">
       <path d="M 27.9 27.9 A 14 14 0 1 0 27.9 8.1" stroke="#378ADD" stroke-width="3.5" stroke-linecap="round"/>
       <path d="M 24.36 24.36 A 9 9 0 1 0 24.36 11.64" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="round"/>
@@ -413,12 +437,20 @@
 
     <div class="wizard-body">
 
-      <!-- Step 1: Mode -->
+      <!-- Step 1: Splash / Mode -->
       <div class="step active" id="step1">
-        <div>
-          <div class="step-title">Was möchtest du tun?</div>
-          <div class="step-sub">Wähle den Analyse-Typ.</div>
+        <!-- Hero -->
+        <div class="splash-hero">
+          <svg width="110" height="110" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M 27.9 27.9 A 14 14 0 1 0 27.9 8.1" stroke="#378ADD" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M 24.36 24.36 A 9 9 0 1 0 24.36 11.64" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M 20.83 20.83 A 4 4 0 1 0 20.83 15.17" stroke="#BA7517" stroke-width="3.5" stroke-linecap="round"/>
+          </svg>
+          <div class="splash-name">Compara<span>doo</span></div>
+          <div class="splash-tagline">Der smarte Preischeck für Secondhand-Artikel</div>
         </div>
+        <!-- Mode selection -->
+        <div class="splash-divider">Was möchtest du tun?</div>
         <div class="mode-cards">
           <div class="mode-card selected" id="cardResell" onclick="selectMode('resell')">
             <div class="mode-card-icon">🔄</div>
@@ -607,6 +639,8 @@
     }
     currentStep = n;
     document.getElementById('step' + n).classList.add('active');
+    // Show/hide header + progress dots: hidden on splash (step 1), visible from step 2
+    document.body.classList.toggle('on-step1', n === 1);
     const body = document.querySelector('.wizard-body');
     if (body) body.scrollTop = 0;
   }
