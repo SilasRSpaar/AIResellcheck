@@ -995,8 +995,8 @@
         <div class="confidence-warning-left">
           <span class="confidence-icon">⚠️</span>
           <div>
-            <div class="confidence-title">Ergebnis bitte prüfen</div>
-            <div class="confidence-sub">${data.confidence != null ? `KI-Sicherheit: ${data.confidence}%` : 'Erweiterte Suche aktiviert'} — Erkennung könnte ungenau sein.</div>
+            <div class="confidence-title">Unsichere Erkennung</div>
+            <div class="confidence-sub">Preise können ungenau sein. Bitte Marke und Modell prüfen.</div>
           </div>
         </div>
         <button class="btn-rescan" onclick="resetApp()">Neu scannen</button>
@@ -1005,7 +1005,7 @@
     document.getElementById('resultContent').innerHTML = `
       <div class="result-header">
         ${thumb}
-        <div><div class="result-title">${data.objectName || 'Objekt'}</div><div class="result-category">${data.category || ''}${data.confidence != null && !showWarning ? ` · KI ${data.confidence}%` : ''}</div></div>
+        <div><div class="result-title">${data.objectName || 'Objekt'}</div><div class="result-category">${data.category || ''}</div></div>
       </div>
       ${confidenceWarningHtml}
       <div class="verdict-card ${verdict.cls}">
@@ -1131,8 +1131,8 @@
         <div class="confidence-warning-left">
           <span class="confidence-icon">⚠️</span>
           <div>
-            <div class="confidence-title">Ergebnis bitte prüfen</div>
-            <div class="confidence-sub">${data.confidence != null ? `KI-Sicherheit: ${data.confidence}%` : 'Erweiterte Suche aktiviert'} — Erkennung könnte ungenau sein.</div>
+            <div class="confidence-title">Unsichere Erkennung</div>
+            <div class="confidence-sub">Preise können ungenau sein. Bitte Marke und Modell prüfen.</div>
           </div>
         </div>
         <button class="btn-rescan" onclick="resetApp()">Neu scannen</button>
@@ -1141,7 +1141,7 @@
     document.getElementById('resultContent').innerHTML = `
       <div class="result-header">
         ${thumb}
-        <div><div class="result-title">${data.objectName || 'Objekt'}</div><div class="result-category">${data.category || ''}${data.confidence != null && !showWarningF ? ` · KI ${data.confidence}%` : ''}</div></div>
+        <div><div class="result-title">${data.objectName || 'Objekt'}</div><div class="result-category">${data.category || ''}</div></div>
       </div>
       ${confidenceWarningFHtml}
       <div class="verdict-card ${verdict.cls}">

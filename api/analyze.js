@@ -745,6 +745,19 @@ module.exports = async function handler(req, res) {
     if (userModel) objectInfo.model = userModel;
     if (userYear)  objectInfo.year  = userYear;
 
+    // CONFIRMED FACTS override: when user provided brand + model, force objectName
+    // and ebaySearchQuery to use those facts — GPT must not override with its own guess.
+    if (userBrand && userModel) {
+      objectInfo.objectName = [userBrand, userModel, userYear].filter(Boolean).join(' ');
+      objectInfo.ebaySearchQuery = [userBrand, userModel, userYear].filter(Boolean).join(' ');
+      objectInfo.ebaySearchQueryBroad = [userBrand, userModel].join(' ');
+    } else if (userBrand) {
+      // Brand only: prepend to GPT's query if not already there
+      if (objectInfo.ebaySearchQuery && !objectInfo.ebaySearchQuery.toLowerCase().startsWith(userBrand.toLowerCase())) {
+        objectInfo.ebaySearchQuery = userBrand + ' ' + objectInfo.ebaySearchQuery;
+      }
+    }
+
     // Normalize confidence: GPT sometimes returns 0-1 scale instead of 0-100
     if (objectInfo.confidence != null && objectInfo.confidence <= 1) {
       objectInfo.confidence = Math.round(objectInfo.confidence * 100);
@@ -761,7 +774,7 @@ module.exports = async function handler(req, res) {
       objectInfo.subType || null
     );
 
-    // Query hierarchy: GPT-specific → GPT-broad → user fields → objectName
+    // Query hierarchy: confirmed-facts query → GPT-broad → user fields → objectName
     let specificQuery = objectInfo.ebaySearchQuery ||
       [userBrand, userModel, userYear].filter(Boolean).join(' ') ||
       objectInfo.objectName;
