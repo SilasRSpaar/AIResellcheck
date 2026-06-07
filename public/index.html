@@ -400,7 +400,7 @@
     .splash-logo-glow::before {
       content: '';
       position: absolute;
-      width: 160px; height: 160px;
+      width: 210px; height: 210px;
       border-radius: 50%;
       background: radial-gradient(circle, rgba(55,138,221,0.20) 0%, rgba(29,158,117,0.08) 50%, transparent 75%);
       animation: logo-pulse 4s ease-in-out infinite;
@@ -411,12 +411,22 @@
       50%       { transform: scale(1.08); opacity: 1; }
     }
 
-    /* Ring spin animations (transform-origin = SVG center 18px 18px) */
-    @keyframes spin-cw  { to { transform: rotate( 360deg); } }
-    @keyframes spin-ccw { to { transform: rotate(-360deg); } }
-    .ring-outer { animation: spin-cw   9s linear infinite; transform-origin: 18px 18px; }
-    .ring-middle { animation: spin-ccw  5.5s linear infinite; transform-origin: 18px 18px; }
-    .ring-inner  { animation: spin-cw   3s linear infinite; transform-origin: 18px 18px; }
+    /* Sequential color-pulse: Blue → Green → Amber, 3.6s cycle, 1.2s offset */
+    @keyframes ring-pulse-outer {
+      0%, 22%, 100% { opacity: 0.32; filter: drop-shadow(0 0 0px transparent); }
+      11%            { opacity: 1;    filter: drop-shadow(0 0 5px #378ADD); }
+    }
+    @keyframes ring-pulse-middle {
+      0%, 22%, 100% { opacity: 0.32; filter: drop-shadow(0 0 0px transparent); }
+      11%            { opacity: 1;    filter: drop-shadow(0 0 5px #1D9E75); }
+    }
+    @keyframes ring-pulse-inner {
+      0%, 22%, 100% { opacity: 0.32; filter: drop-shadow(0 0 0px transparent); }
+      11%            { opacity: 1;    filter: drop-shadow(0 0 5px #BA7517); }
+    }
+    .ring-outer  { animation: ring-pulse-outer  3.6s ease-in-out infinite 0s; }
+    .ring-middle { animation: ring-pulse-middle 3.6s ease-in-out infinite 1.2s; }
+    .ring-inner  { animation: ring-pulse-inner  3.6s ease-in-out infinite 2.4s; }
 
     .splash-name {
       font-size: 34px; font-weight: 700; letter-spacing: -0.8px;
@@ -446,7 +456,7 @@
 
     /* Accessibility */
     @media (prefers-reduced-motion: reduce) {
-      .ring-outer, .ring-middle, .ring-inner,
+      .ring-outer, .ring-middle, .ring-inner { animation: none; opacity: 1; filter: none; }
       .splash-logo-glow::before { animation: none; }
       #step1.active .splash-hero, #step1.active .splash-divider,
       #step1.active .mode-cards, #step1.active .wizard-nav { animation: none; }
@@ -492,7 +502,7 @@
         <!-- Hero -->
         <div class="splash-hero">
           <div class="splash-logo-glow">
-            <svg width="110" height="110" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <svg width="148" height="148" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <g class="ring-outer"><path d="M 27.9 27.9 A 14 14 0 1 0 27.9 8.1" stroke="#378ADD" stroke-width="3.5" stroke-linecap="round"/></g>
               <g class="ring-middle"><path d="M 24.36 24.36 A 9 9 0 1 0 24.36 11.64" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="round"/></g>
               <g class="ring-inner"><path d="M 20.83 20.83 A 4 4 0 1 0 20.83 15.17" stroke="#BA7517" stroke-width="3.5" stroke-linecap="round"/></g>
