@@ -384,7 +384,7 @@
 
     /* SPLASH – Step 1 hero */
     #step1 {
-      background: radial-gradient(ellipse at 50% 18%, rgba(24,95,165,0.10) 0%, transparent 65%);
+      background: radial-gradient(ellipse at 50% 18%, rgba(24,95,165,0.18) 0%, rgba(29,158,117,0.06) 45%, transparent 70%);
     }
     .splash-hero {
       display: flex; flex-direction: column; align-items: center;
@@ -402,27 +402,27 @@
       position: absolute;
       width: 210px; height: 210px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(55,138,221,0.20) 0%, rgba(29,158,117,0.08) 50%, transparent 75%);
+      background: radial-gradient(circle, rgba(55,138,221,0.45) 0%, rgba(29,158,117,0.18) 50%, transparent 75%);
       animation: logo-pulse 4s ease-in-out infinite;
       pointer-events: none;
     }
     @keyframes logo-pulse {
-      0%, 100% { transform: scale(0.92); opacity: 0.65; }
-      50%       { transform: scale(1.08); opacity: 1; }
+      0%, 100% { transform: scale(0.88); opacity: 0.55; }
+      50%       { transform: scale(1.12); opacity: 1; }
     }
 
     /* Sequential color-pulse: Blue → Green → Amber, 3.6s cycle, 1.2s offset */
     @keyframes ring-pulse-outer {
-      0%, 22%, 100% { opacity: 0.32; filter: drop-shadow(0 0 0px transparent); }
-      11%            { opacity: 1;    filter: drop-shadow(0 0 5px #378ADD); }
+      0%, 22%, 100% { opacity: 0.28; filter: drop-shadow(0 0 0px transparent); }
+      11%            { opacity: 1;    filter: drop-shadow(0 0 10px #378ADD) drop-shadow(0 0 20px rgba(55,138,221,0.5)); }
     }
     @keyframes ring-pulse-middle {
-      0%, 22%, 100% { opacity: 0.32; filter: drop-shadow(0 0 0px transparent); }
-      11%            { opacity: 1;    filter: drop-shadow(0 0 5px #1D9E75); }
+      0%, 22%, 100% { opacity: 0.28; filter: drop-shadow(0 0 0px transparent); }
+      11%            { opacity: 1;    filter: drop-shadow(0 0 10px #1D9E75) drop-shadow(0 0 20px rgba(29,158,117,0.5)); }
     }
     @keyframes ring-pulse-inner {
-      0%, 22%, 100% { opacity: 0.32; filter: drop-shadow(0 0 0px transparent); }
-      11%            { opacity: 1;    filter: drop-shadow(0 0 5px #BA7517); }
+      0%, 22%, 100% { opacity: 0.28; filter: drop-shadow(0 0 0px transparent); }
+      11%            { opacity: 1;    filter: drop-shadow(0 0 10px #BA7517) drop-shadow(0 0 20px rgba(186,117,23,0.5)); }
     }
     .ring-outer  { animation: ring-pulse-outer  3.6s ease-in-out infinite 0s; }
     .ring-middle { animation: ring-pulse-middle 3.6s ease-in-out infinite 1.2s; }
@@ -431,7 +431,7 @@
     .splash-name {
       font-size: 34px; font-weight: 700; letter-spacing: -0.8px;
       text-align: center;
-      text-shadow: 0 0 28px rgba(55,138,221,0.28);
+      text-shadow: 0 0 20px rgba(55,138,221,0.7), 0 0 50px rgba(55,138,221,0.3);
     }
     .splash-name span { color: var(--accent-light); }
     .splash-tagline {
