@@ -182,6 +182,20 @@
     .result-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
     .result-category { font-size: 13px; color: var(--text-muted); }
 
+    .confidence-warning {
+      background: #1e1206; border: 1px solid #BA7517; border-radius: var(--radius);
+      padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .confidence-warning-left { display: flex; align-items: center; gap: 10px; flex: 1; }
+    .confidence-icon { font-size: 20px; flex-shrink: 0; }
+    .confidence-title { font-size: 13px; font-weight: 600; color: #BA7517; margin-bottom: 2px; }
+    .confidence-sub { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+    .btn-rescan {
+      background: #BA7517; color: white; border: none; border-radius: 8px;
+      padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;
+    }
+    .btn-rescan:active { opacity: 0.8; }
+
     .verdict-card {
       border-radius: var(--radius); padding: 18px;
       display: flex; align-items: center; gap: 14px;
@@ -792,11 +806,25 @@
 
     const thumb = imageBase64 ? `<img class="result-thumb" src="data:image/jpeg;base64,${imageBase64}" />` : '';
 
+    const showWarning = (data.confidence != null && data.confidence < 70) || data.usedFallbackQuery;
+    const confidenceWarningHtml = showWarning ? `
+      <div class="confidence-warning">
+        <div class="confidence-warning-left">
+          <span class="confidence-icon">⚠️</span>
+          <div>
+            <div class="confidence-title">Ergebnis bitte prüfen</div>
+            <div class="confidence-sub">${data.confidence != null ? `KI-Sicherheit: ${data.confidence}%` : 'Erweiterte Suche aktiviert'} — Erkennung könnte ungenau sein.</div>
+          </div>
+        </div>
+        <button class="btn-rescan" onclick="resetApp()">Neu scannen</button>
+      </div>` : '';
+
     document.getElementById('resultContent').innerHTML = `
       <div class="result-header">
         ${thumb}
-        <div><div class="result-title">${data.objectName || 'Objekt'}</div><div class="result-category">${data.category || ''}</div></div>
+        <div><div class="result-title">${data.objectName || 'Objekt'}</div><div class="result-category">${data.category || ''}${data.confidence != null && !showWarning ? ` · KI ${data.confidence}%` : ''}</div></div>
       </div>
+      ${confidenceWarningHtml}
       <div class="verdict-card ${verdict.cls}">
         <div class="verdict-icon">${verdict.icon}</div>
         <div><div class="verdict-title">${verdict.title}</div><div class="verdict-sub">${verdict.sub}</div></div>
@@ -907,11 +935,25 @@
     // Marker position: fairnessScore 0-100 → left 5%-95%
     const markerLeft = Math.round(5 + (fairnessScore / 100) * 90);
 
+    const showWarningF = (data.confidence != null && data.confidence < 70) || data.usedFallbackQuery;
+    const confidenceWarningFHtml = showWarningF ? `
+      <div class="confidence-warning">
+        <div class="confidence-warning-left">
+          <span class="confidence-icon">⚠️</span>
+          <div>
+            <div class="confidence-title">Ergebnis bitte prüfen</div>
+            <div class="confidence-sub">${data.confidence != null ? `KI-Sicherheit: ${data.confidence}%` : 'Erweiterte Suche aktiviert'} — Erkennung könnte ungenau sein.</div>
+          </div>
+        </div>
+        <button class="btn-rescan" onclick="resetApp()">Neu scannen</button>
+      </div>` : '';
+
     document.getElementById('resultContent').innerHTML = `
       <div class="result-header">
         ${thumb}
-        <div><div class="result-title">${data.objectName || 'Objekt'}</div><div class="result-category">${data.category || ''}</div></div>
+        <div><div class="result-title">${data.objectName || 'Objekt'}</div><div class="result-category">${data.category || ''}${data.confidence != null && !showWarningF ? ` · KI ${data.confidence}%` : ''}</div></div>
       </div>
+      ${confidenceWarningFHtml}
       <div class="verdict-card ${verdict.cls}">
         <div class="verdict-icon">${verdict.icon}</div>
         <div><div class="verdict-title">${verdict.title}</div><div class="verdict-sub">${verdict.sub}</div></div>

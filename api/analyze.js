@@ -106,34 +106,47 @@ Respond ONLY with valid JSON (no markdown):
 }
 
 async function identifyWithBrand(base64Image, userBrand, userModel, userSize, userCategory) {
-  const contextParts = [
-    `Marke: ${userBrand}`,
-    userModel ? `Modell: ${userModel}` : null,
-    userSize  ? `Grösse: ${userSize}`  : null,
-    userCategory ? `Kategorie: ${userCategory}` : null,
-  ].filter(Boolean).join(', ');
+  // Build confirmed facts list — these are user-provided and treated as 100% correct
+  const confirmedFacts = [
+    `Brand: ${userBrand} [CONFIRMED]`,
+    userModel    ? `Model: ${userModel} [CONFIRMED]`       : null,
+    userSize     ? `Size: ${userSize} [CONFIRMED]`         : null,
+    userCategory ? `Category: ${userCategory} [CONFIRMED]` : null,
+  ].filter(Boolean).join('\n');
 
-  const prompt = `Du analysierst einen Flohmarkt-Artikel mit folgenden Nutzerangaben: ${contextParts}.
+  // Only ask GPT to fill in what the user didn't provide
+  const missingFields = [
+    !userModel    ? '- Exact model/product line (read from labels, text visible in image)' : null,
+    '- Exact color / colorway',
+    '- Condition based on visual inspection of the photo',
+    !userCategory ? '- Product category' : null,
+  ].filter(Boolean).join('\n');
 
-SCHRITT 1 — Lies ALLE sichtbaren Texte im Foto: Etiketten, Modellbezeichnungen, Logos, Produktcodes, Seriennummern, Washing-Labels. Das ist entscheidend für die Präzision.
+  const exampleQuery = `${userBrand}${userModel ? ' ' + userModel : ''} [color]`.substring(0, 40);
 
-SCHRITT 2 — Kombiniere dein Markenwissen über "${userBrand}" mit dem Foto und den gelesenen Texten. Identifiziere:
-- Exakter Produkttyp (z.B. "Hoodie", "Laufschuh", "Lederjacke")
-- Modell/Linie (z.B. "Box Logo", "Air Force 1", "501") — nutze sichtbaren Text wenn vorhanden
-- Farbe/Colorway
-- Zustand basierend auf dem Foto
+  const prompt = `You are identifying a secondhand item. The user has provided CONFIRMED FACTS — do not change or question them:
 
-Antworte NUR als JSON (kein Markdown):
+${confirmedFacts}
+
+STEP 1 — Read ALL visible text in the photo: labels, model numbers, product codes, logos, serial numbers, tags.
+
+STEP 2 — Using the confirmed facts + visible text, identify ONLY what is missing:
+${missingFields}
+
+STEP 3 — Build eBay search queries:
+- Specific (ebaySearchQuery): MUST start with confirmed brand${userModel ? ' + model' : ''}, then add color/variant. Max 8 words. NO size. (e.g. "${exampleQuery}")
+- Broad (ebaySearchQueryBroad): confirmed brand + product type only, 2-4 words.
+
+Reply ONLY with valid JSON (no markdown):
 {
-  "objectName": "vollständiger Produktname auf Deutsch",
-  "category": "Kleidung|Schuhe|Elektronik|Schmuck|Uhren|Moebel|Haushalt|Spielzeug|Buecher|Sport|Musik|Sonstiges",
+  "objectName": "Full product name in German using confirmed facts",
   "brand": "${userBrand}",
-  "model": "Modellname oder null",
-  "productLine": "Produktlinie oder null",
-  "color": "Farbe",
-  "condition": "Sehr gut",
-  "ebaySearchQuery": "Spezifisch: Marke + Modell + Farbe, 4-8 Wörter, KEINE Grösse (z.B. Obey Box Logo Hoodie schwarz)",
-  "ebaySearchQueryBroad": "Breit: Marke + Produkttyp, 2-4 Wörter (z.B. Obey Box Logo Hoodie)",
+  "model": ${userModel ? `"${userModel}"` : '"identify from photo or null"'},
+  "color": "detected color",
+  "category": "${userCategory || 'Kleidung|Schuhe|Elektronik|Schmuck|Uhren|Moebel|Haushalt|Spielzeug|Buecher|Sport|Musik|Sonstiges'}",
+  "condition": "Neu|Sehr gut|Gut|Akzeptabel|Beschaedigt",
+  "ebaySearchQuery": "specific query — confirmed facts first",
+  "ebaySearchQueryBroad": "broad fallback — brand + type only",
   "confidence": 90
 }`;
 
@@ -602,11 +615,27 @@ module.exports = async function handler(req, res) {
 
     let ebayData = null;
     let retailData = null;
+    let usedFallbackQuery = false;
+
     // Query hierarchy: GPT-specific → GPT-broad → user fields → objectName
-    const specificQuery = objectInfo.ebaySearchQuery ||
+    let specificQuery = objectInfo.ebaySearchQuery ||
       [userBrand, userModel, userYear].filter(Boolean).join(' ') ||
       objectInfo.objectName;
-    const broadQuery = objectInfo.ebaySearchQueryBroad || null;
+    let broadQuery = objectInfo.ebaySearchQueryBroad || null;
+
+    // Force year into queries when user-provided (iPhone 13 ≠ iPhone 14)
+    if (userYear) {
+      if (!specificQuery.includes(userYear)) specificQuery = specificQuery + ' ' + userYear;
+      if (broadQuery && !broadQuery.includes(userYear)) broadQuery = broadQuery + ' ' + userYear;
+    }
+
+    // Condition-aware query: damaged items live in a different price segment on eBay
+    const isDefekt = (condition || objectInfo.condition || '').toLowerCase().includes('beschaed');
+    if (isDefekt) {
+      if (!specificQuery.toLowerCase().includes('defekt')) specificQuery = specificQuery + ' defekt';
+      if (broadQuery && !broadQuery.toLowerCase().includes('defekt')) broadQuery = broadQuery + ' defekt';
+    }
+
     const searchQuery = specificQuery; // used by non-eBay sources
 
     try {
@@ -628,6 +657,7 @@ module.exports = async function handler(req, res) {
         const broadResult = await getEbayPrices(broadQuery);
         if (broadResult && broadResult.listingCount > (ebayData?.listingCount || 0)) {
           ebayData = broadResult;
+          usedFallbackQuery = true;
         }
       }
       if (!ebayData || ebayData.listingCount < 3) {
@@ -637,6 +667,7 @@ module.exports = async function handler(req, res) {
           const nameResult = await getEbayPrices(nameQuery);
           if (nameResult && nameResult.listingCount > (ebayData?.listingCount || 0)) {
             ebayData = nameResult;
+            usedFallbackQuery = true;
           }
         }
       }
@@ -690,6 +721,8 @@ module.exports = async function handler(req, res) {
         retailSource: retailData?.retailSource||null,
         topListings: ebayData?.topListings||[],
         ebaySearchUrl, amazonSearchUrl,
+        confidence: objectInfo.confidence || null,
+        usedFallbackQuery,
       });
     }
 
@@ -708,6 +741,8 @@ module.exports = async function handler(req, res) {
       retailSource: retailData?.retailSource||null,
       topListings: ebayData?.topListings||[],
       ebaySearchUrl, amazonSearchUrl,
+      confidence: objectInfo.confidence || null,
+      usedFallbackQuery,
     });
 
   } catch(err) {
