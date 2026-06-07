@@ -131,8 +131,9 @@ Respond ONLY with valid JSON (no markdown):
   "condition": "Neu|Sehr gut|Gut|Akzeptabel|Beschaedigt",
   "ebaySearchQuery": "Specific search: brand + model + color, 4-8 words, NO size (e.g. Sony DualSense PS5 Controller weiss)",
   "ebaySearchQueryBroad": "Broad fallback: brand + product type only, 2-4 words (e.g. Sony DualSense PS5)",
-  "confidence": 0
-}`;
+  "confidence": 85
+}
+confidence = integer 0-100 (NOT 0-1). 100 = completely certain. 85 = confident but not 100%. Use lower values only if the image is unclear or the item is ambiguous.`;
 
   const result = await httpsPost(
     'api.openai.com', '/v1/chat/completions',
@@ -200,7 +201,8 @@ Reply ONLY with valid JSON (no markdown):
   "ebaySearchQuery": "specific query — confirmed facts first",
   "ebaySearchQueryBroad": "broad fallback — brand + type only",
   "confidence": 90
-}`;
+}
+confidence = integer 0-100 (NOT 0-1). 90 = confident. Use lower values only if image is unclear or item ambiguous.`;
 
   const result = await httpsPost(
     'api.openai.com', '/v1/chat/completions',
@@ -695,6 +697,11 @@ module.exports = async function handler(req, res) {
     if (userBrand) objectInfo.brand = userBrand;
     if (userModel) objectInfo.model = userModel;
     if (userYear)  objectInfo.year  = userYear;
+
+    // Normalize confidence: GPT sometimes returns 0-1 scale instead of 0-100
+    if (objectInfo.confidence != null && objectInfo.confidence <= 1) {
+      objectInfo.confidence = Math.round(objectInfo.confidence * 100);
+    }
 
     let ebayData = null;
     let retailData = null;
