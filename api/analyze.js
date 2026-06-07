@@ -66,16 +66,35 @@ function buildAmazonSearchUrl(query) {
 }
 
 async function identifyObject(base64Image) {
+  const prompt = `You are identifying a secondhand item for a resell price check app.
+
+STEP 1 — Read ALL visible text in the image: brand logos, model names, product codes, serial numbers, labels, tags, engravings. This is critical for accuracy.
+
+STEP 2 — Identify the item as precisely as possible using both visual analysis and the text you read.
+
+Respond ONLY with valid JSON (no markdown):
+{
+  "objectName": "Full product name in German (e.g. Sony DualSense PS5 Controller Weiss)",
+  "brand": "Brand or null",
+  "model": "Exact model/product line or null (e.g. Air Force 1, DualSense, iPhone 14 Pro, Levi 501)",
+  "color": "Color or null",
+  "category": "Elektronik|Kleidung|Schuhe|Spielzeug|Moebel|Schmuck|Uhren|Sport|Buecher|Haushalt|Musik|Sonstiges",
+  "condition": "Neu|Sehr gut|Gut|Akzeptabel|Beschaedigt",
+  "ebaySearchQuery": "Specific search: brand + model + color, 4-8 words, NO size (e.g. Sony DualSense PS5 Controller weiss)",
+  "ebaySearchQueryBroad": "Broad fallback: brand + product type only, 2-4 words (e.g. Sony DualSense PS5)",
+  "confidence": 0
+}`;
+
   const result = await httpsPost(
     'api.openai.com', '/v1/chat/completions',
     { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
     {
-      model: 'gpt-4o', max_tokens: 500,
+      model: 'gpt-4o', max_tokens: 600,
       messages: [{
         role: 'user',
         content: [
-          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}`, detail: 'auto' } },
-          { type: 'text', text: 'Identify this object. Respond ONLY with valid JSON (no markdown):\n{"objectName":"Produktname auf Deutsch","category":"Elektronik|Kleidung|Spielzeug|Moebel|Schmuck|Uhren|Sport|Buecher|Haushalt|Sonstiges","brand":"Marke oder null","condition":"Neu|Sehr gut|Gut|Akzeptabel|Beschaedigt","ebaySearchQuery":"best english ebay search max 5 words","confidence":0}' }
+          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}`, detail: 'high' } },
+          { type: 'text', text: prompt }
         ]
       }]
     }
@@ -96,24 +115,25 @@ async function identifyWithBrand(base64Image, userBrand, userModel, userSize, us
 
   const prompt = `Du analysierst einen Flohmarkt-Artikel mit folgenden Nutzerangaben: ${contextParts}.
 
-Kombiniere dein Markenwissen über "${userBrand}" (Produktkategorien, typische Artikel, Preisrange) mit der visuellen Analyse des Fotos.
+SCHRITT 1 — Lies ALLE sichtbaren Texte im Foto: Etiketten, Modellbezeichnungen, Logos, Produktcodes, Seriennummern, Washing-Labels. Das ist entscheidend für die Präzision.
 
-Identifiziere so präzise wie möglich:
+SCHRITT 2 — Kombiniere dein Markenwissen über "${userBrand}" mit dem Foto und den gelesenen Texten. Identifiziere:
 - Exakter Produkttyp (z.B. "Hoodie", "Laufschuh", "Lederjacke")
-- Modell/Linie falls sichtbar (z.B. "Box Logo", "Air Force 1", "501")
+- Modell/Linie (z.B. "Box Logo", "Air Force 1", "501") — nutze sichtbaren Text wenn vorhanden
 - Farbe/Colorway
 - Zustand basierend auf dem Foto
-- Optimierter eBay.de Suchbegriff: Marke + Produkttyp + Modell + Farbe (5-8 Wörter, kein Artikel, KEINE Grösse)
 
 Antworte NUR als JSON (kein Markdown):
 {
   "objectName": "vollständiger Produktname auf Deutsch",
   "category": "Kleidung|Schuhe|Elektronik|Schmuck|Uhren|Moebel|Haushalt|Spielzeug|Buecher|Sport|Musik|Sonstiges",
   "brand": "${userBrand}",
-  "productLine": "Modell/Linie oder null",
+  "model": "Modellname oder null",
+  "productLine": "Produktlinie oder null",
   "color": "Farbe",
   "condition": "Sehr gut",
-  "ebaySearchQuery": "Obey Box Logo Hoodie schwarz",
+  "ebaySearchQuery": "Spezifisch: Marke + Modell + Farbe, 4-8 Wörter, KEINE Grösse (z.B. Obey Box Logo Hoodie schwarz)",
+  "ebaySearchQueryBroad": "Breit: Marke + Produkttyp, 2-4 Wörter (z.B. Obey Box Logo Hoodie)",
   "confidence": 90
 }`;
 
@@ -121,12 +141,12 @@ Antworte NUR als JSON (kein Markdown):
     'api.openai.com', '/v1/chat/completions',
     { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
     {
-      model: 'gpt-4o', max_tokens: 300,
+      model: 'gpt-4o', max_tokens: 450,
       messages: [{
         role: 'user',
         content: [
           { type: 'text', text: prompt },
-          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}`, detail: 'auto' } }
+          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}`, detail: 'high' } }
         ]
       }]
     }
@@ -582,27 +602,49 @@ module.exports = async function handler(req, res) {
 
     let ebayData = null;
     let retailData = null;
-    // searchQuery declared here so it's accessible outside the inner try block
-    const searchQuery = objectInfo.ebaySearchQuery ||
+    // Query hierarchy: GPT-specific → GPT-broad → user fields → objectName
+    const specificQuery = objectInfo.ebaySearchQuery ||
       [userBrand, userModel, userYear].filter(Boolean).join(' ') ||
       objectInfo.objectName;
-    try {
-      // Retail price: Keepa (real Amazon.de price) → fallback GPT estimate
-      const retailPromise = (async () => {
-        const keepa = await getKeepaRetailPrice(searchQuery);
-        if (keepa) return keepa;
-        return estimateRetailPrice(objectInfo, searchQuery);
-      })();
+    const broadQuery = objectInfo.ebaySearchQueryBroad || null;
+    const searchQuery = specificQuery; // used by non-eBay sources
 
-      const [ebayResult, retailResult, vintedResult, pcResult, kleinResult, ricardoResult] = await Promise.allSettled([
-        getEbayPrices(searchQuery),
-        retailPromise,
-        withTimeout(getVintedListings(searchQuery), 2000, []),
-        withTimeout(getPriceChartingListings(searchQuery), 2000, []),
-        withTimeout(getKleinanzeigenListings(searchQuery), 3000, []),
-        withTimeout(getRicardoListings(searchQuery), 3000, [])
+    try {
+      // Retail price + secondary sources: start in parallel immediately
+      const retailPromise = (async () => {
+        const keepa = await getKeepaRetailPrice(specificQuery);
+        if (keepa) return keepa;
+        return estimateRetailPrice(objectInfo, specificQuery);
+      })();
+      const vintedPromise  = withTimeout(getVintedListings(specificQuery), 2000, []);
+      const pcPromise      = withTimeout(getPriceChartingListings(specificQuery), 2000, []);
+      const kleinPromise   = withTimeout(getKleinanzeigenListings(specificQuery), 3000, []);
+      const ricardoPromise = withTimeout(getRicardoListings(specificQuery), 3000, []);
+
+      // eBay: sequential fallback (specific → broad → objectName)
+      ebayData = await getEbayPrices(specificQuery);
+      if ((!ebayData || ebayData.listingCount < 5) && broadQuery && broadQuery !== specificQuery) {
+        console.log(`eBay fallback B: "${broadQuery}" (was: ${ebayData?.listingCount || 0} results)`);
+        const broadResult = await getEbayPrices(broadQuery);
+        if (broadResult && broadResult.listingCount > (ebayData?.listingCount || 0)) {
+          ebayData = broadResult;
+        }
+      }
+      if (!ebayData || ebayData.listingCount < 3) {
+        const nameQuery = objectInfo.objectName;
+        if (nameQuery && nameQuery !== specificQuery && nameQuery !== broadQuery) {
+          console.log(`eBay fallback C: "${nameQuery}"`);
+          const nameResult = await getEbayPrices(nameQuery);
+          if (nameResult && nameResult.listingCount > (ebayData?.listingCount || 0)) {
+            ebayData = nameResult;
+          }
+        }
+      }
+
+      // Collect parallel results (eBay already resolved above)
+      const [retailResult, vintedResult, pcResult, kleinResult, ricardoResult] = await Promise.allSettled([
+        retailPromise, vintedPromise, pcPromise, kleinPromise, ricardoPromise
       ]);
-      if (ebayResult.status === 'fulfilled') ebayData = ebayResult.value;
       if (retailResult.status === 'fulfilled') retailData = retailResult.value;
       // If UPC lookup returned retail price range, use as fallback
       if (!retailData && objectInfo.upcRetailPriceMin) {
