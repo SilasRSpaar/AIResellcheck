@@ -388,26 +388,56 @@ async function getPriceChartingListings(searchQuery) {
   } catch(e) { console.error('PriceCharting error:', e.message); return []; }
 }
 
+async function lookupBarcodeOpenFoodFacts(barcode) {
+  try {
+    const result = await httpsGet('world.openfoodfacts.org',
+      `/api/v0/product/${barcode}.json`,
+      { 'Accept': 'application/json', 'User-Agent': 'Comparadoo/1.0 (contact@comparadoo.com)' }
+    );
+    if (result.status !== 200 || result.body?.status !== 1) return null;
+    const p = result.body.product;
+    const rawTitle = p.product_name || p.product_name_de || p.product_name_en || 'Lebensmittel';
+    const brand = p.brands ? p.brands.split(',')[0].trim() : null;
+    const ebayQuery = ((brand ? brand + ' ' : '') + rawTitle).substring(0, 60);
+    return {
+      objectName: rawTitle,
+      category: 'Lebensmittel',
+      brand,
+      condition: 'Neu',
+      ebaySearchQuery: ebayQuery,
+      confidence: 95,
+      upcRetailPriceMin: null,
+      upcRetailPriceMax: null,
+    };
+  } catch(e) { console.error('OpenFoodFacts error:', e.message); return null; }
+}
+
 async function lookupBarcode(barcode) {
+  // 1. Try UPCItemDB (broad product DB)
   try {
     const result = await httpsGet('api.upcitemdb.com', `/prod/trial/lookup?upc=${barcode}`,
       { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
     );
-    if (result.status !== 200 || !result.body?.items?.length) return null;
-    const item = result.body.items[0];
-    const rawTitle = item.title || 'Artikel';
-    const ebayQuery = ((item.brand ? item.brand + ' ' : '') + rawTitle).substring(0, 60);
-    return {
-      objectName: rawTitle,
-      category: mapUPCCategory(item.category),
-      brand: item.brand || null,
-      condition: 'Sehr gut',
-      ebaySearchQuery: ebayQuery,
-      confidence: 99,
-      upcRetailPriceMin: item.lowest_recorded_price || null,
-      upcRetailPriceMax: item.highest_recorded_price || null,
-    };
-  } catch(e) { console.error('Barcode lookup error:', e.message); return null; }
+    if (result.status === 200 && result.body?.items?.length) {
+      const item = result.body.items[0];
+      const rawTitle = item.title || 'Artikel';
+      const ebayQuery = ((item.brand ? item.brand + ' ' : '') + rawTitle).substring(0, 60);
+      return {
+        objectName: rawTitle,
+        category: mapUPCCategory(item.category),
+        brand: item.brand || null,
+        condition: 'Sehr gut',
+        ebaySearchQuery: ebayQuery,
+        confidence: 99,
+        upcRetailPriceMin: item.lowest_recorded_price || null,
+        upcRetailPriceMax: item.highest_recorded_price || null,
+      };
+    }
+  } catch(e) { console.error('UPCItemDB error:', e.message); }
+
+  // 2. Fallback: Open Food Facts (free, no key, ideal for food/grocery barcodes)
+  console.log('UPCItemDB miss – trying Open Food Facts for barcode:', barcode);
+  return await lookupBarcodeOpenFoodFacts(barcode);
 }
 
 function mapUPCCategory(cat) {

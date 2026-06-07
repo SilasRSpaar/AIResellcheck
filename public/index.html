@@ -100,6 +100,15 @@
     }
     .camera-area:active { border-color: var(--accent); }
 
+    .quality-warning {
+      margin-top: 8px; padding: 8px 12px; border-radius: 8px;
+      font-size: 12px; text-align: center; line-height: 1.4;
+      background: #1a0808; border: 1px solid #BA7517; color: #BA7517;
+    }
+    .quality-corrected {
+      background: #061f14; border-color: #1D9E75; color: #1D9E75;
+    }
+
     /* BARCODE SCANNER */
     .scan-mode-row { display: flex; gap: 8px; margin-bottom: 4px; }
     .scan-mode-btn {
@@ -667,6 +676,43 @@
   }
   // ── End Barcode Scanner ───────────────────────────────────────────
 
+  // ── Image quality analysis + auto-correction ────────────────────────
+  function analyzeAndCorrectImage(ctx, w, h) {
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const data = imageData.data;
+
+    // Sample every 8th pixel for performance
+    let totalBrightness = 0, count = 0;
+    for (let i = 0; i < data.length; i += 32) {
+      totalBrightness += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      count++;
+    }
+    const avgBrightness = totalBrightness / count;
+
+    // Auto-brighten dark images before sending to GPT
+    let corrected = false;
+    if (avgBrightness < 80 && avgBrightness > 5) {
+      const factor = Math.min(2.8, 110 / avgBrightness);
+      for (let i = 0; i < data.length; i += 4) {
+        data[i]     = Math.min(255, data[i]     * factor);
+        data[i + 1] = Math.min(255, data[i + 1] * factor);
+        data[i + 2] = Math.min(255, data[i + 2] * factor);
+      }
+      ctx.putImageData(imageData, 0, 0);
+      corrected = true;
+    }
+
+    // Warning text for user
+    let warning = null, warnClass = 'quality-warning';
+    if (avgBrightness < 40) {
+      warning = '🌑 Bild sehr dunkel — bitte in hellerem Licht scannen für bessere Ergebnisse';
+    } else if (corrected) {
+      warning = '💡 Helligkeit automatisch korrigiert';
+      warnClass = 'quality-warning quality-corrected';
+    }
+    return { avgBrightness, corrected, warning, warnClass };
+  }
+
   function onImageSelected(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -674,9 +720,9 @@
     const reader = new FileReader();
     reader.onload = (e) => {
       const rawSrc = e.target.result;
-      // Compress image to max 1200px and 80% quality to stay under Vercel 4.5MB limit
       const imgEl = new Image();
       imgEl.onload = () => {
+        // 1. Resize to max 1200px
         const MAX = 1200;
         let w = imgEl.width, h = imgEl.height;
         if (w > MAX || h > MAX) {
@@ -685,14 +731,29 @@
         }
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(imgEl, 0, 0, w, h);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(imgEl, 0, 0, w, h);
+
+        // 2. Analyze quality + auto-correct brightness
+        const quality = analyzeAndCorrectImage(ctx, w, h);
+
+        // 3. Compress to JPEG (uses corrected image)
         const compressed = canvas.toDataURL('image/jpeg', 0.80);
         imageBase64 = compressed.split(',')[1];
+
+        // 4. Show preview + optional quality badge
         const preview = document.createElement('img');
         preview.src = compressed;
         const area = document.getElementById('cameraArea');
         area.innerHTML = '';
         area.appendChild(preview);
+        if (quality.warning) {
+          const badge = document.createElement('div');
+          badge.className = quality.warnClass;
+          badge.textContent = quality.warning;
+          area.appendChild(badge);
+        }
+
         updateAnalyzeBtn();
       };
       imgEl.src = rawSrc;
