@@ -249,29 +249,25 @@ async function getEbaySoldPrices(searchQuery, categoryId = null) {
       .sort((a, b) => a - b);
     if (prices.length === 0) return null;
 
-    // Same cluster-detection as active listings to filter out accessories
-    if (prices.length >= 6) {
-      let bestGapRatio = 1, bestGapIdx = 0;
-      for (let i = 1; i < prices.length; i++) {
-        const ratio = prices[i] / prices[i - 1];
-        if (ratio > bestGapRatio) { bestGapRatio = ratio; bestGapIdx = i; }
-      }
-      const upperCount = prices.length - bestGapIdx;
-      if (bestGapRatio >= 2.0 && upperCount >= 3 && upperCount >= prices.length * 0.20) {
-        const upper = prices.slice(bestGapIdx);
-        if (upper[upper.length - 1] / upper[0] < 5) prices = upper;
-      }
-    }
+    // For sold listings: use IQR-based outlier removal instead of cluster detection.
+    // Cluster detection (picking upper cluster) works for active listings to remove cheap
+    // accessories, but for sold listings it wrongly selects expensive bundles.
+    const q1 = prices[Math.floor(prices.length * 0.25)];
+    const q3 = prices[Math.floor(prices.length * 0.75)];
+    const iqr = q3 - q1;
+    const filtered = prices.filter(p => p >= q1 - 1.5 * iqr && p <= q3 + 1.5 * iqr);
+    const work = filtered.length >= 3 ? filtered : prices;
 
-    const avg  = prices.reduce((a, b) => a + b, 0) / prices.length;
-    const low  = prices[Math.floor(prices.length * 0.10)];
-    const high = prices[Math.floor(prices.length * 0.90)];
+    // Use median (not mean) — robust against remaining outliers
+    const median = work[Math.floor(work.length / 2)];
+    const low  = work[Math.floor(work.length * 0.10)];
+    const high = work[Math.floor(work.length * 0.90)];
 
     return {
-      soldAvg:   parseFloat(avg.toFixed(2)),
+      soldAvg:   parseFloat(median.toFixed(2)),
       soldMin:   parseFloat(low.toFixed(2)),
       soldMax:   parseFloat(high.toFixed(2)),
-      soldCount: prices.length,
+      soldCount: work.length,
     };
   } catch(e) {
     console.error('eBay Sold Prices error:', e.message);
