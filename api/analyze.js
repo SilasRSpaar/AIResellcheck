@@ -756,6 +756,7 @@ module.exports = async function handler(req, res) {
 
     let ebayData = null;
     let retailData = null;
+    let soldData = null;
     let usedFallbackQuery = false;
 
     // Resolve eBay category ID from GPT-detected category + subType
@@ -825,7 +826,7 @@ module.exports = async function handler(req, res) {
         retailPromise, soldPromise, vintedPromise, pcPromise, kleinPromise, ricardoPromise
       ]);
       if (retailResult.status === 'fulfilled') retailData = retailResult.value;
-      const soldData = soldResult.status === 'fulfilled' ? soldResult.value : null;
+      if (soldResult.status === 'fulfilled') soldData = soldResult.value;
       // If UPC lookup returned retail price range, use as fallback
       if (!retailData && objectInfo.upcRetailPriceMin) {
         const mid = ((objectInfo.upcRetailPriceMin + objectInfo.upcRetailPriceMax) / 2);
