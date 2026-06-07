@@ -485,17 +485,15 @@
           <label style="margin-bottom:8px;display:block;">Kategorie</label>
           <div class="cat-picker" id="catPicker">
             <button class="cat-btn" data-cat="Elektronik" onclick="setCategory(this)"><span class="cat-icon">📱</span>Elektronik</button>
-            <button class="cat-btn" data-cat="Kleidung" onclick="setCategory(this)"><span class="cat-icon">👕</span>Kleidung</button>
-            <button class="cat-btn" data-cat="Schuhe" onclick="setCategory(this)"><span class="cat-icon">👟</span>Schuhe</button>
             <button class="cat-btn" data-cat="Spielzeug" onclick="setCategory(this)"><span class="cat-icon">🧸</span>Spielzeug</button>
-            <button class="cat-btn" data-cat="Buecher" onclick="setCategory(this)"><span class="cat-icon">📚</span>Bücher</button>
-            <button class="cat-btn" data-cat="Haushalt" onclick="setCategory(this)"><span class="cat-icon">🏠</span>Haushalt</button>
-            <button class="cat-btn" data-cat="Moebel" onclick="setCategory(this)"><span class="cat-icon">🪑</span>Möbel</button>
-            <button class="cat-btn" data-cat="Schmuck" onclick="setCategory(this)"><span class="cat-icon">💍</span>Schmuck</button>
-            <button class="cat-btn" data-cat="Uhren" onclick="setCategory(this)"><span class="cat-icon">⌚</span>Uhren</button>
-            <button class="cat-btn" data-cat="Sport" onclick="setCategory(this)"><span class="cat-icon">⚽</span>Sport</button>
-            <button class="cat-btn" data-cat="Musik" onclick="setCategory(this)"><span class="cat-icon">🎵</span>Musik</button>
-            <button class="cat-btn" data-cat="Sonstiges" onclick="setCategory(this)"><span class="cat-icon">📦</span>Sonstiges</button>
+            <button class="cat-btn" data-cat="Uhren & Schmuck" onclick="setCategory(this)"><span class="cat-icon">⌚</span>Uhren & Schmuck</button>
+            <button class="cat-btn" data-cat="Kleidung & Accessoires" onclick="setCategory(this)"><span class="cat-icon">👕</span>Kleidung & Accessoires</button>
+            <button class="cat-btn" data-cat="Sport & Outdoor" onclick="setCategory(this)"><span class="cat-icon">🚴</span>Sport & Outdoor</button>
+            <button class="cat-btn" data-cat="Musik" onclick="setCategory(this)"><span class="cat-icon">🎸</span>Musik</button>
+            <button class="cat-btn" data-cat="Möbel & Wohnen" onclick="setCategory(this)"><span class="cat-icon">🪑</span>Möbel & Wohnen</button>
+            <button class="cat-btn" data-cat="Antiquitäten & Kunst" onclick="setCategory(this)"><span class="cat-icon">🏺</span>Antiquitäten & Kunst</button>
+            <button class="cat-btn" data-cat="Sammler" onclick="setCategory(this)"><span class="cat-icon">🪙</span>Sammler</button>
+            <button class="cat-btn" data-cat="Haushalt & Küche" onclick="setCategory(this)"><span class="cat-icon">🏠</span>Haushalt & Küche</button>
           </div>
         </div>
         <div class="input-group">
@@ -503,6 +501,7 @@
           <input class="detail-input" type="text" id="userModel" placeholder="Modell (z.B. Air Max 90)" />
           <input class="detail-input" type="text" id="userYear" placeholder="Jahr (z.B. 2021) – optional" />
           <input class="detail-input" type="text" id="userSize" placeholder="Grösse / Variante – optional" />
+          <input class="detail-input" type="text" id="userRef" placeholder="Referenznummer – optional" style="display:none;" />
         </div>
         <div class="wizard-nav">
           <button class="btn-back" onclick="goToStep(2)">←</button>
@@ -771,6 +770,32 @@
     document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     selectedCategory = btn.dataset.cat;
+
+    // Dynamic field adjustments based on category
+    const sizeInput = document.getElementById('userSize');
+    const refInput  = document.getElementById('userRef');
+
+    // userSize placeholder
+    const sizePlaceholders = {
+      'Elektronik':            'Speicher (z.B. 128GB, 16GB RAM) – optional',
+      'Kleidung & Accessoires':'Grösse EU (z.B. 42, XL) – optional',
+      'Sport & Outdoor':       'Rahmengrösse / Schuhgrösse – optional',
+      'Möbel & Wohnen':        'Masse (z.B. 120×80 cm) – optional',
+    };
+    sizeInput.placeholder = sizePlaceholders[selectedCategory] || 'Grösse / Variante – optional';
+
+    // userRef: only show for Uhren & Schmuck and Sammler
+    const showRef = ['Uhren & Schmuck', 'Sammler', 'Antiquitäten & Kunst'].includes(selectedCategory);
+    refInput.style.display = showRef ? 'block' : 'none';
+    if (!showRef) refInput.value = '';
+
+    // Ref placeholder per category
+    const refPlaceholders = {
+      'Uhren & Schmuck':       'Referenznummer (z.B. 116610) – optional',
+      'Sammler':               'Set-Nr. / Karten-Set / Edition – optional',
+      'Antiquitäten & Kunst':  'Stempel / Signatur / Marke – optional',
+    };
+    refInput.placeholder = refPlaceholders[selectedCategory] || 'Referenz – optional';
   }
 
   function setCondition(btn) {
@@ -822,6 +847,7 @@
           userYear: document.getElementById('userYear').value.trim() || null,
           userSize: document.getElementById('userSize').value.trim() || null,
           userCategory: selectedCategory || null,
+          userRef: document.getElementById('userRef').value.trim() || null,
         }),
       });
 
@@ -1108,6 +1134,9 @@
   function resetApp() {
     selectedImage = null; imageBase64 = null; detectedBarcode = null;
     selectedCondition = 'Sehr gut'; selectedCategory = null; currentStep = 1;
+    document.getElementById('userRef').style.display = 'none';
+    document.getElementById('userRef').value = '';
+    document.getElementById('userSize').placeholder = 'Grösse / Variante – optional';
     stopBarcodeScanner();
     setScanMode('photo');
     document.getElementById('fileInput').value  = '';

@@ -47,6 +47,54 @@ function withTimeout(promise, ms, fallback) {
   ]);
 }
 
+// ── Kategorie → eBay Category ID Mapping ────────────────────────────
+const CATEGORY_EBAY_MAP = {
+  'Elektronik': {
+    subTypes: {
+      'smartphone': '9355', 'handy': '9355', 'iphone': '9355', 'samsung': '9355',
+      'tablet': '171485', 'ipad': '171485',
+      'laptop': '58058', 'notebook': '58058', 'macbook': '58058',
+      'monitor': '80053',
+      'kamera': '625', 'camera': '625', 'objektiv': '625', 'drohne': '625', 'actionkamera': '625',
+      'gaming-konsole': '1249', 'konsole': '1249', 'playstation': '1249', 'xbox': '1249', 'nintendo': '1249',
+      'tv': '32852', 'fernseher': '32852', 'audio': '32852', 'kopfhörer': '32852', 'lautsprecher': '32852',
+      'smartwatch': '9355', 'e-reader': '171485', 'kindle': '171485',
+    },
+    default: '58058'
+  },
+  'Spielzeug':            { default: '220' },
+  'Uhren & Schmuck': {
+    subTypes: { 'uhr': '14324', 'watch': '14324', 'schmuck': '10968', 'ring': '10968', 'kette': '10968', 'armband': '10968' },
+    default: '14324'
+  },
+  'Kleidung & Accessoires': {
+    subTypes: {
+      'schuh': '63889', 'sneaker': '63889', 'boot': '63889',
+      'tasche': '169291', 'handtasche': '169291', 'rucksack': '169291',
+      'schmuck': '10968', 'sonnenbrille': '11450',
+    },
+    default: '11450'
+  },
+  'Sport & Outdoor':      { default: '888' },
+  'Musik':                { default: '619' },
+  'Möbel & Wohnen':       { default: '11700' },
+  'Antiquitäten & Kunst': { default: '20081' },
+  'Sammler':              { default: '1' },
+  'Haushalt & Küche':     { default: '20625' },
+};
+
+function getCategoryEbayId(category, subType) {
+  const map = CATEGORY_EBAY_MAP[category];
+  if (!map) return null;
+  if (subType && map.subTypes) {
+    const sub = subType.toLowerCase();
+    for (const [key, id] of Object.entries(map.subTypes)) {
+      if (sub.includes(key)) return id;
+    }
+  }
+  return map.default || null;
+}
+
 function appendEbayAffiliate(url) {
   if (!process.env.EBAY_AFFILIATE_CAMPAIGN_ID) return url;
   const sep = url.includes('?') ? '&' : '?';
@@ -78,7 +126,8 @@ Respond ONLY with valid JSON (no markdown):
   "brand": "Brand or null",
   "model": "Exact model/product line or null (e.g. Air Force 1, DualSense, iPhone 14 Pro, Levi 501)",
   "color": "Color or null",
-  "category": "Elektronik|Kleidung|Schuhe|Spielzeug|Moebel|Schmuck|Uhren|Sport|Buecher|Haushalt|Musik|Sonstiges",
+  "category": "Elektronik|Spielzeug|Uhren & Schmuck|Kleidung & Accessoires|Sport & Outdoor|Musik|Möbel & Wohnen|Antiquitäten & Kunst|Sammler|Haushalt & Küche",
+  "subType": "Specific sub-type within category (e.g. Smartphone, Laptop, Kamera, Gaming-Konsole, Uhr, Schmuck, Schuh, Tasche, Gitarre, Fahrrad) or null",
   "condition": "Neu|Sehr gut|Gut|Akzeptabel|Beschaedigt",
   "ebaySearchQuery": "Specific search: brand + model + color, 4-8 words, NO size (e.g. Sony DualSense PS5 Controller weiss)",
   "ebaySearchQueryBroad": "Broad fallback: brand + product type only, 2-4 words (e.g. Sony DualSense PS5)",
@@ -105,13 +154,14 @@ Respond ONLY with valid JSON (no markdown):
   return JSON.parse(clean);
 }
 
-async function identifyWithBrand(base64Image, userBrand, userModel, userSize, userCategory) {
+async function identifyWithBrand(base64Image, userBrand, userModel, userSize, userCategory, userRef) {
   // Build confirmed facts list — these are user-provided and treated as 100% correct
   const confirmedFacts = [
     `Brand: ${userBrand} [CONFIRMED]`,
-    userModel    ? `Model: ${userModel} [CONFIRMED]`       : null,
-    userSize     ? `Size: ${userSize} [CONFIRMED]`         : null,
-    userCategory ? `Category: ${userCategory} [CONFIRMED]` : null,
+    userModel    ? `Model: ${userModel} [CONFIRMED]`         : null,
+    userSize     ? `Size/Storage: ${userSize} [CONFIRMED]`   : null,
+    userCategory ? `Category: ${userCategory} [CONFIRMED]`   : null,
+    userRef      ? `Reference/Serial: ${userRef} [CONFIRMED]`: null,
   ].filter(Boolean).join('\n');
 
   // Only ask GPT to fill in what the user didn't provide
@@ -120,6 +170,7 @@ async function identifyWithBrand(base64Image, userBrand, userModel, userSize, us
     '- Exact color / colorway',
     '- Condition based on visual inspection of the photo',
     !userCategory ? '- Product category' : null,
+    !userRef      ? '- Reference number / serial number if visible (especially for watches)' : null,
   ].filter(Boolean).join('\n');
 
   const exampleQuery = `${userBrand}${userModel ? ' ' + userModel : ''} [color]`.substring(0, 40);
@@ -128,7 +179,7 @@ async function identifyWithBrand(base64Image, userBrand, userModel, userSize, us
 
 ${confirmedFacts}
 
-STEP 1 — Read ALL visible text in the photo: labels, model numbers, product codes, logos, serial numbers, tags.
+STEP 1 — Read ALL visible text in the photo: labels, model numbers, product codes, logos, serial numbers, hallmarks, tags.
 
 STEP 2 — Using the confirmed facts + visible text, identify ONLY what is missing:
 ${missingFields}
@@ -143,7 +194,8 @@ Reply ONLY with valid JSON (no markdown):
   "brand": "${userBrand}",
   "model": ${userModel ? `"${userModel}"` : '"identify from photo or null"'},
   "color": "detected color",
-  "category": "${userCategory || 'Kleidung|Schuhe|Elektronik|Schmuck|Uhren|Moebel|Haushalt|Spielzeug|Buecher|Sport|Musik|Sonstiges'}",
+  "category": "${userCategory || 'Elektronik|Spielzeug|Uhren & Schmuck|Kleidung & Accessoires|Sport & Outdoor|Musik|Möbel & Wohnen|Antiquitäten & Kunst|Sammler|Haushalt & Küche'}",
+  "subType": "specific sub-type within category (e.g. Smartphone, Laptop, Uhr, Schuh, Gitarre) or null",
   "condition": "Neu|Sehr gut|Gut|Akzeptabel|Beschaedigt",
   "ebaySearchQuery": "specific query — confirmed facts first",
   "ebaySearchQueryBroad": "broad fallback — brand + type only",
@@ -174,7 +226,7 @@ Reply ONLY with valid JSON (no markdown):
   return parsed;
 }
 
-async function getEbayPrices(searchQuery) {
+async function getEbayPrices(searchQuery, categoryId = null) {
   const credentials = Buffer.from(`${process.env.EBAY_CLIENT_ID}:${process.env.EBAY_CLIENT_SECRET}`).toString('base64');
   const tokenRes = await new Promise((resolve, reject) => {
     const body = 'grant_type=client_credentials&scope=https%3A%2F%2Fapi.ebay.com%2Foauth%2Fapi_scope';
@@ -192,8 +244,9 @@ async function getEbayPrices(searchQuery) {
 
   // sort=price removed: it returned 50 cheapest items (accessories/parts), not main product
   // Best Match (default) surfaces most relevant listings for the search query
+  const catParam = categoryId ? `&category_ids=${categoryId}` : '';
   const searchRes = await httpsGet('api.ebay.com',
-    `/buy/browse/v1/item_summary/search?q=${encoded}&limit=50`,
+    `/buy/browse/v1/item_summary/search?q=${encoded}&limit=50${catParam}`,
     headers);
 
   const items = searchRes.body?.itemSummaries || [];
@@ -614,7 +667,7 @@ function buildObjectInfoFromUser(userBrand, userModel, userSize, userCategory) {
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { image, barcode=null, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null, userBrand=null, userModel=null, userYear=null, userSize=null, userCategory=null } = req.body || {};
+  const { image, barcode=null, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null, userBrand=null, userModel=null, userYear=null, userSize=null, userCategory=null, userRef=null } = req.body || {};
   if (!image && !barcode) return res.status(400).json({ error: 'Kein Bild oder Barcode übermittelt' });
 
   try {
@@ -633,7 +686,7 @@ module.exports = async function handler(req, res) {
       }
     } else if (userBrand && image) {
       // Brand provided: combine brand knowledge + vision
-      objectInfo = await identifyWithBrand(image, userBrand, userModel, userSize, userCategory);
+      objectInfo = await identifyWithBrand(image, userBrand, userModel, userSize, userCategory, userRef);
     } else {
       // Standard vision identification
       objectInfo = await identifyObject(image);
@@ -646,6 +699,12 @@ module.exports = async function handler(req, res) {
     let ebayData = null;
     let retailData = null;
     let usedFallbackQuery = false;
+
+    // Resolve eBay category ID from GPT-detected category + subType
+    const categoryEbayId = getCategoryEbayId(
+      objectInfo.category || userCategory,
+      objectInfo.subType || null
+    );
 
     // Query hierarchy: GPT-specific → GPT-broad → user fields → objectName
     let specificQuery = objectInfo.ebaySearchQuery ||
@@ -680,11 +739,11 @@ module.exports = async function handler(req, res) {
       const kleinPromise   = withTimeout(getKleinanzeigenListings(specificQuery), 3000, []);
       const ricardoPromise = withTimeout(getRicardoListings(specificQuery), 3000, []);
 
-      // eBay: sequential fallback (specific → broad → objectName)
-      ebayData = await getEbayPrices(specificQuery);
+      // eBay: sequential fallback (specific → broad → objectName), all with category filter
+      ebayData = await getEbayPrices(specificQuery, categoryEbayId);
       if ((!ebayData || ebayData.listingCount < 5) && broadQuery && broadQuery !== specificQuery) {
         console.log(`eBay fallback B: "${broadQuery}" (was: ${ebayData?.listingCount || 0} results)`);
-        const broadResult = await getEbayPrices(broadQuery);
+        const broadResult = await getEbayPrices(broadQuery, categoryEbayId);
         if (broadResult && broadResult.listingCount > (ebayData?.listingCount || 0)) {
           ebayData = broadResult;
           usedFallbackQuery = true;
@@ -694,7 +753,7 @@ module.exports = async function handler(req, res) {
         const nameQuery = objectInfo.objectName;
         if (nameQuery && nameQuery !== specificQuery && nameQuery !== broadQuery) {
           console.log(`eBay fallback C: "${nameQuery}"`);
-          const nameResult = await getEbayPrices(nameQuery);
+          const nameResult = await getEbayPrices(nameQuery, categoryEbayId);
           if (nameResult && nameResult.listingCount > (ebayData?.listingCount || 0)) {
             ebayData = nameResult;
             usedFallbackQuery = true;
