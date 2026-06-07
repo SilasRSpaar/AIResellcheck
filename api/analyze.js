@@ -157,26 +157,46 @@ async function getEbayPrices(searchQuery) {
   const encoded = encodeURIComponent(searchQuery);
   const headers = { Authorization: `Bearer ${tokenRes.access_token}`, 'X-EBAY-C-MARKETPLACE-ID': 'EBAY_DE', 'Content-Type': 'application/json' };
 
-  // Note: eBay condition filter removed - curly braces in URL cause API rejection
+  // sort=price removed: it returned 50 cheapest items (accessories/parts), not main product
+  // Best Match (default) surfaces most relevant listings for the search query
   const searchRes = await httpsGet('api.ebay.com',
-    `/buy/browse/v1/item_summary/search?q=${encoded}&limit=50&sort=price`,
+    `/buy/browse/v1/item_summary/search?q=${encoded}&limit=50`,
     headers);
 
   const items = searchRes.body?.itemSummaries || [];
   if (items.length === 0) return null;
 
-  let prices = items.map(i=>parseFloat(i.price?.value||0)).filter(p=>p>0).sort((a,b)=>a-b);
-
-  // Two-pass outlier removal:
-  // Pass 1: use 90th percentile as anchor (robust against single expensive outlier)
-  //         remove anything below 12% of that anchor – catches accessories/parts
-  const p90 = prices[Math.floor(prices.length * 0.90)];
-  prices = prices.filter(p => p >= p90 * 0.12);
+  let prices = items.map(i => parseFloat(i.price?.value || 0)).filter(p => p > 0).sort((a, b) => a - b);
   if (prices.length === 0) return null;
-  // Pass 2: remove items below 40% of mean of cleaned set
+
+  // ── Cluster-detection: catches bimodal distribution (accessories vs. main item) ──
+  // Problem: eBay mixes cheap accessories (2-15 EUR) with main product (45-75 EUR)
+  // Solution: find the largest relative gap; if significant upper cluster exists, use it
+  if (prices.length >= 6) {
+    let bestGapRatio = 1;
+    let bestGapIdx = 0;
+    for (let i = 1; i < prices.length; i++) {
+      const ratio = prices[i] / prices[i - 1];
+      if (ratio > bestGapRatio) { bestGapRatio = ratio; bestGapIdx = i; }
+    }
+    const upperCount = prices.length - bestGapIdx;
+    // Trigger if: gap ≥ 2×, upper cluster has ≥ 3 items AND ≥ 20% of total results
+    if (bestGapRatio >= 2.0 && upperCount >= 3 && upperCount >= prices.length * 0.20) {
+      const upper = prices.slice(bestGapIdx);
+      // Only take upper cluster if it's internally coherent (max < 5× min)
+      if (upper[upper.length - 1] / upper[0] < 5) {
+        prices = upper;
+      }
+    }
+  }
+
+  // ── Fallback: p90-anchor + mean filter for remaining outliers ──
+  const p90 = prices[Math.floor(prices.length * 0.90)];
+  prices = prices.filter(p => p >= p90 * 0.15);
+  if (prices.length === 0) return null;
   if (prices.length > 3) {
-    const mean = prices.reduce((a,b) => a+b, 0) / prices.length;
-    const filtered = prices.filter(p => p >= mean * 0.40);
+    const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
+    const filtered = prices.filter(p => p >= mean * 0.38);
     if (filtered.length >= 3) prices = filtered;
   }
   if (prices.length === 0) return null;
