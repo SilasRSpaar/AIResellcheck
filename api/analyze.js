@@ -186,6 +186,7 @@ Respond ONLY with valid JSON (no markdown):
   "isAntique": true if estimated age > 80 years or clear antique style, false otherwise,
   "ebaySearchQuery": "Specific search query 4-8 words. For antiques include style+type+material (e.g. Biedermeier Kommode Nussbaum antik)",
   "ebaySearchQueryBroad": "Broad fallback 2-4 words (e.g. Biedermeier Kommode)",
+  "contextInfo": "2-3 sentences in German about what this object is, its history/origin, and why it's interesting for buyers/collectors. For electronics: notable features. For antiques: style period, typical origin, collector appeal. For cards: set/rarity context. Max 60 words.",
   "confidence": 85
 }
 confidence = integer 0-100. For antiques: 90+ only if style/period clearly identifiable. Lower if ambiguous.`;
@@ -266,6 +267,7 @@ Reply ONLY with valid JSON (no markdown):
   "isAntique": true if estimated age > 80 years, false otherwise,
   "ebaySearchQuery": "For antiques include style+type+material (e.g. Biedermeier Kommode Nussbaum). For others: brand+model.",
   "ebaySearchQueryBroad": "style + furniture type or brand + product type, 2-4 words",
+  "contextInfo": "2-3 sentences in German about what this object is, its history/origin, and why it's interesting for buyers/collectors. For electronics: notable features. For antiques: style period, typical origin, collector appeal. For cards: set/rarity context. Max 60 words.",
   "confidence": 90
 }
 confidence = integer 0-100 (NOT 0-1). 90 = confident. Use lower values if image is unclear or item ambiguous.`;
@@ -1122,6 +1124,12 @@ module.exports = async function handler(req, res) {
         ebaySearchUrl, amazonSearchUrl,
         confidence: objectInfo.confidence || null,
         usedFallbackQuery,
+        contextInfo:  objectInfo.contextInfo  || null,
+        stylePeriod:  objectInfo.stylePeriod  || null,
+        estimatedEra: objectInfo.estimatedEra || null,
+        material:     objectInfo.material     || null,
+        makerMark:    objectInfo.makerMark    || null,
+        isAntique:    objectInfo.isAntique    || false,
       });
     }
 
@@ -1144,6 +1152,12 @@ module.exports = async function handler(req, res) {
       ebaySearchUrl, amazonSearchUrl,
       confidence: objectInfo.confidence || null,
       usedFallbackQuery,
+      contextInfo:  objectInfo.contextInfo  || null,
+      stylePeriod:  objectInfo.stylePeriod  || null,
+      estimatedEra: objectInfo.estimatedEra || null,
+      material:     objectInfo.material     || null,
+      makerMark:    objectInfo.makerMark    || null,
+      isAntique:    objectInfo.isAntique    || false,
     });
 
   } catch(err) {

@@ -282,6 +282,42 @@
       color: var(--text-muted); border-left: 3px solid var(--accent);
     }
 
+    /* ── RESULT TABS ─────────────────────────────────────────────────── */
+    .result-tabs { display: flex; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+    .result-tab {
+      flex: 1; padding: 10px 4px; background: none; border: none;
+      color: var(--text-muted); font-size: 13px; font-weight: 600;
+      cursor: pointer; border-bottom: 2px solid transparent;
+      margin-bottom: -1px; transition: color 0.15s, border-color 0.15s;
+      font-family: inherit;
+    }
+    .result-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Info tab */
+    .info-section { background: var(--surface); border-radius: var(--radius); overflow: hidden; margin-bottom: 12px; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { font-size: 12px; color: var(--text-muted); }
+    .info-val { font-size: 13px; font-weight: 600; color: var(--text); text-align: right; max-width: 62%; }
+    .context-card { background: var(--surface); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; border-left: 3px solid var(--accent); }
+    .context-title { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .context-text { font-size: 13px; color: var(--text-muted); line-height: 1.65; margin: 0; }
+
+    /* Angebote tab links */
+    .angebote-links { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .angebote-link {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface); border-radius: var(--radius);
+      padding: 12px 14px; color: var(--text); text-decoration: none;
+      font-size: 13px; font-weight: 500; border: 1px solid var(--border);
+    }
+    .angebote-link:hover { background: var(--surface2); }
+    .angebote-link-icon { font-size: 16px; margin-right: 10px; }
+    .angebote-link-label { flex: 1; }
+    .angebote-link-arrow { color: var(--text-muted); }
+
     /* CONDITION PILLS */
     .condition-pills { display: flex; gap: 8px; flex-wrap: wrap; }
     .cond-btn {
@@ -951,10 +987,10 @@
     const profitColor = profit > 0 ? 'green' : profit < 0 ? 'red' : '';
 
     let verdict;
-    if (profit > 0 && data.demandScore >= 60)      verdict = { icon: '✅', title: 'Guter Deal',       sub: 'Hohe Nachfrage und positiver Gewinn.',              cls: 'go' };
-    else if (profit > 0 && data.demandScore >= 30) verdict = { icon: '⚠️', title: 'Mittelmässig',     sub: 'Gewinn möglich, aber Nachfrage verhalten.',         cls: 'caution' };
-    else if (profit <= 0)                          verdict = { icon: '🚫', title: 'Kein Gewinn',       sub: 'Kaufpreis ist zu hoch für diesen Zielpreis.',       cls: 'stop' };
-    else                                           verdict = { icon: '⚠️', title: 'Niedriges Interesse', sub: 'Schwierig zu verkaufen, Geduld nötig.',          cls: 'caution' };
+    if (profit > 0 && data.demandScore >= 60)      verdict = { icon: '✅', title: 'Guter Deal',          sub: 'Hohe Nachfrage und positiver Gewinn.',         cls: 'go' };
+    else if (profit > 0 && data.demandScore >= 30) verdict = { icon: '⚠️', title: 'Mittelmässig',        sub: 'Gewinn möglich, aber Nachfrage verhalten.',    cls: 'caution' };
+    else if (profit <= 0)                          verdict = { icon: '🚫', title: 'Kein Gewinn',          sub: 'Kaufpreis ist zu hoch für diesen Zielpreis.',  cls: 'stop' };
+    else                                           verdict = { icon: '⚠️', title: 'Niedriges Interesse',  sub: 'Schwierig zu verkaufen, Geduld nötig.',        cls: 'caution' };
 
     const demandColor = data.demandScore >= 70 ? '#22c55e' : data.demandScore >= 40 ? '#f59e0b' : '#ef4444';
     const channelsHtml = (data.channels || []).map((ch, i) => `
@@ -984,70 +1020,101 @@
         <div><div class="result-title">${data.objectName || 'Objekt'}</div><div class="result-category">${data.category || ''}</div></div>
       </div>
       ${confidenceWarningHtml}
-      <div class="verdict-card ${verdict.cls}">
-        <div class="verdict-icon">${verdict.icon}</div>
-        <div><div class="verdict-title">${verdict.title}</div><div class="verdict-sub">${verdict.sub}</div></div>
-      </div>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">Dein Gewinn</div>
-          <div class="stat-value ${profitColor}">CHF ${profit.toFixed(2)}</div>
-          <div class="stat-sub">ROI: ${roi}%</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Verkaufsdauer</div>
-          <div class="stat-value">${data.timeToSell || '–'}</div>
-          <div class="stat-sub">Schätzung</div>
-        </div>
-        <div class="price-card">
-          ${data.soldAvg && data.soldCount >= 5
-            ? `<div class="price-card-label">✅ Verkauft Ø <span style="font-size:10px;opacity:0.7;">(${data.soldCount} verkauft)</span></div>
-               <div class="price-card-value">CHF ${parseFloat(data.soldAvg).toFixed(0)}</div>
-               <div class="price-card-range">${data.soldMin && data.soldMax ? parseFloat(data.soldMin).toFixed(0) + '–' + parseFloat(data.soldMax).toFixed(0) + ' CHF' : ''}</div>`
-            : `<div class="price-card-label">📦 Gebrauchtmarkt-Ø</div>
-               <div class="price-card-value">CHF ${data.marketAvg ? parseFloat(data.marketAvg).toFixed(0) : '–'}</div>
-               <div class="price-card-range">${data.priceMin && data.priceMax ? parseFloat(data.priceMin).toFixed(0) + '–' + parseFloat(data.priceMax).toFixed(0) + ' CHF' : ''}</div>`
-          }
-          <a class="price-card-link" href="${data.ebaySearchUrl || 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">eBay.de ansehen ↗</a>
-        </div>
-        <div class="price-card">
-          <div class="price-card-label">🏷️ Neupreis (Referenz)</div>
-          <div class="price-card-value">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
-          <div class="price-card-range">${(() => {
-            if (!data.retailPrice || !data.marketAvg) return data.retailPrice ? (data.retailSource || (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung')) : 'Nicht verfügbar';
-            const pct = Math.round((1 - parseFloat(data.marketAvg) / parseFloat(data.retailPrice)) * 100);
-            if (pct > 0) return `Gebraucht ${pct}% günstiger`;
-            if (pct < 0) return `Gebraucht ${Math.abs(pct)}% teurer`;
-            return 'Gleich wie neu';
-          })()}</div>
-          ${data.retailPrice ? '<a class="price-card-link" href="' + (data.amazonSearchUrl || 'https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'')) + '" target="_blank" rel="noopener">Amazon.de ansehen ↗</a>' : ''}
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Nachfrage</div>
-          <div class="stat-value" style="color:${demandColor}">${data.demandScore || 0}/100</div>
-          <div class="stat-sub">${data.demandLabel || ''}</div>
-        </div>
-      </div>
-      <div class="price-range">
-        <div class="price-range-title">Marktpreis-Spanne</div>
-        <div class="price-range-row">
-          <div class="price-min"><div class="price-val">CHF ${data.priceMin || '–'}</div><div class="price-lbl">Minimum</div></div>
-          <div class="price-mid">↔</div>
-          <div class="price-max"><div class="price-val">CHF ${data.priceMax || '–'}</div><div class="price-lbl">Maximum</div></div>
-        </div>
-      </div>
-      <div>
-        <div class="section-title" style="margin-bottom:8px;">Empfohlene Verkaufskanäle</div>
-        <div class="channels-list">${channelsHtml}</div>
-      </div>
-      ${sellPrice > 0 ? renderFees(sellPrice, data.channels) : ''}
 
-      ${renderListings(data.topListings)}
-      ${data.aiNote ? `<div class="ai-note">💡 ${data.aiNote}</div>` : ''}
+      <div class="result-tabs">
+        <button class="result-tab active" onclick="switchResultTab('preis', this)">💰 Preis</button>
+        <button class="result-tab" onclick="switchResultTab('info', this)">ℹ️ Info</button>
+        <button class="result-tab" onclick="switchResultTab('angebote', this)">🛒 Angebote</button>
+      </div>
+
+      <div class="tab-panel active" id="result-tab-preis">
+        <div class="verdict-card ${verdict.cls}">
+          <div class="verdict-icon">${verdict.icon}</div>
+          <div><div class="verdict-title">${verdict.title}</div><div class="verdict-sub">${verdict.sub}</div></div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Dein Gewinn</div>
+            <div class="stat-value ${profitColor}">CHF ${profit.toFixed(2)}</div>
+            <div class="stat-sub">ROI: ${roi}%</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Verkaufsdauer</div>
+            <div class="stat-value">${data.timeToSell || '–'}</div>
+            <div class="stat-sub">Schätzung</div>
+          </div>
+          <div class="price-card">
+            ${data.soldAvg && data.soldCount >= 5
+              ? `<div class="price-card-label">✅ Verkauft Ø <span style="font-size:10px;opacity:0.7;">(${data.soldCount} verkauft)</span></div>
+                 <div class="price-card-value">CHF ${parseFloat(data.soldAvg).toFixed(0)}</div>
+                 <div class="price-card-range">${data.soldMin && data.soldMax ? parseFloat(data.soldMin).toFixed(0) + '–' + parseFloat(data.soldMax).toFixed(0) + ' CHF' : ''}</div>`
+              : `<div class="price-card-label">📦 Gebrauchtmarkt-Ø</div>
+                 <div class="price-card-value">CHF ${data.marketAvg ? parseFloat(data.marketAvg).toFixed(0) : '–'}</div>
+                 <div class="price-card-range">${data.priceMin && data.priceMax ? parseFloat(data.priceMin).toFixed(0) + '–' + parseFloat(data.priceMax).toFixed(0) + ' CHF' : ''}</div>`
+            }
+            <a class="price-card-link" href="${data.ebaySearchUrl || 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">eBay.de ansehen ↗</a>
+          </div>
+          <div class="price-card">
+            <div class="price-card-label">🏷️ Neupreis (Referenz)</div>
+            <div class="price-card-value">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
+            <div class="price-card-range">${(() => {
+              if (!data.retailPrice || !data.marketAvg) return data.retailPrice ? (data.retailSource || (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung')) : 'Nicht verfügbar';
+              const pct = Math.round((1 - parseFloat(data.marketAvg) / parseFloat(data.retailPrice)) * 100);
+              if (pct > 0) return `Gebraucht ${pct}% günstiger`;
+              if (pct < 0) return `Gebraucht ${Math.abs(pct)}% teurer`;
+              return 'Gleich wie neu';
+            })()}</div>
+            ${data.retailPrice ? '<a class="price-card-link" href="' + (data.amazonSearchUrl || 'https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'')) + '" target="_blank" rel="noopener">Amazon.de ansehen ↗</a>' : ''}
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Nachfrage</div>
+            <div class="stat-value" style="color:${demandColor}">${data.demandScore || 0}/100</div>
+            <div class="stat-sub">${data.demandLabel || ''}</div>
+          </div>
+        </div>
+        <div class="price-range">
+          <div class="price-range-title">Marktpreis-Spanne</div>
+          <div class="price-range-row">
+            <div class="price-min"><div class="price-val">CHF ${data.priceMin || '–'}</div><div class="price-lbl">Minimum</div></div>
+            <div class="price-mid">↔</div>
+            <div class="price-max"><div class="price-val">CHF ${data.priceMax || '–'}</div><div class="price-lbl">Maximum</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title" style="margin-bottom:8px;">Empfohlene Verkaufskanäle</div>
+          <div class="channels-list">${channelsHtml}</div>
+        </div>
+        ${sellPrice > 0 ? renderFees(sellPrice, data.channels) : ''}
+        ${data.aiNote ? `<div class="ai-note" style="margin-top:12px;">💡 ${data.aiNote}</div>` : ''}
+      </div>
+
+      <div class="tab-panel" id="result-tab-info">
+        ${renderInfoTab(data)}
+      </div>
+
+      <div class="tab-panel" id="result-tab-angebote">
+        ${renderListings(data.topListings)}
+        <div class="angebote-links">
+          <a class="angebote-link" href="${data.ebaySearchUrl || 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
+            <span class="angebote-link-icon">🏪</span>
+            <span class="angebote-link-label">eBay.de durchsuchen</span>
+            <span class="angebote-link-arrow">↗</span>
+          </a>
+          <a class="angebote-link" href="${data.amazonSearchUrl || 'https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
+            <span class="angebote-link-icon">📦</span>
+            <span class="angebote-link-label">Amazon.de ansehen</span>
+            <span class="angebote-link-arrow">↗</span>
+          </a>
+          <a class="angebote-link" href="https://www.ricardo.ch/de/s/${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
+            <span class="angebote-link-icon">🇨🇭</span>
+            <span class="angebote-link-label">Ricardo.ch suchen</span>
+            <span class="angebote-link-arrow">↗</span>
+          </a>
+        </div>
+      </div>
     `;
     showView('resultView');
   }
-
   function renderFees(sellPrice, channels) {
     const fees = [
       { name: 'Ricardo.ch', rate: 0.08 },
@@ -1070,13 +1137,11 @@
 
   // ── FAIRNESS RESULT ────────────────────────────────────────────────────────
   function renderFairnessResult(data, askedPrice) {
-    // Prefer sold prices (more accurate) over active listing prices
     const useSold = data.soldAvg && data.soldCount >= 5;
     const avg = useSold ? parseFloat(data.soldAvg) : (parseFloat(data.marketAvg) || 0);
     const min = useSold ? parseFloat(data.soldMin)  : (parseFloat(data.priceMin)  || 0);
     const max = useSold ? parseFloat(data.soldMax)  : (parseFloat(data.priceMax)  || 0);
 
-    // Fairness score: 0 = Schnäppchen, 100 = viel zu teuer
     let fairnessScore = 50;
     let verdict;
     const hasMarketData = avg > 0;
@@ -1095,10 +1160,7 @@
     const diff = avg > 0 ? (askedPrice - avg).toFixed(2) : null;
     const diffColor = diff < 0 ? 'green' : diff > 0 ? 'red' : '';
     const diffLabel = diff < 0 ? `CHF ${Math.abs(diff)} unter Markt` : diff > 0 ? `CHF ${diff} über Markt` : 'Marktkonform';
-
     const thumb = imageBase64 ? `<img class="result-thumb" src="data:image/jpeg;base64,${imageBase64}" />` : '';
-
-    // Marker position: fairnessScore 0-100 → left 5%-95%
     const markerLeft = Math.round(5 + (fairnessScore / 100) * 90);
 
     const showWarningF = (data.confidence != null && data.confidence < 70) || data.usedFallbackQuery;
@@ -1120,67 +1182,131 @@
         <div><div class="result-title">${data.objectName || 'Objekt'}</div><div class="result-category">${data.category || ''}</div></div>
       </div>
       ${confidenceWarningFHtml}
-      <div class="verdict-card ${verdict.cls}">
-        <div class="verdict-icon">${verdict.icon}</div>
-        <div><div class="verdict-title">${verdict.title}</div><div class="verdict-sub">${verdict.sub}</div></div>
+
+      <div class="result-tabs">
+        <button class="result-tab active" onclick="switchResultTab('preis', this)">⚖️ Bewertung</button>
+        <button class="result-tab" onclick="switchResultTab('info', this)">ℹ️ Info</button>
+        <button class="result-tab" onclick="switchResultTab('angebote', this)">🛒 Angebote</button>
       </div>
 
-      ${hasMarketData ? `
-      <div class="fairness-bar-wrap">
-        <div class="fairness-title">Preisposition im Markt</div>
-        <div class="fairness-track">
-          <div class="fairness-marker" style="left: ${markerLeft}%"></div>
+      <div class="tab-panel active" id="result-tab-preis">
+        <div class="verdict-card ${verdict.cls}">
+          <div class="verdict-icon">${verdict.icon}</div>
+          <div><div class="verdict-title">${verdict.title}</div><div class="verdict-sub">${verdict.sub}</div></div>
         </div>
-        <div class="fairness-labels">
-          <span>🤑 Schnäppchen</span>
-          <span>Fair</span>
-          <span>🚫 Zu teuer</span>
-        </div>
-      </div>` : ''}
 
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">Verlangter Preis</div>
-          <div class="stat-value">CHF ${askedPrice.toFixed(2)}</div>
-          <div class="stat-sub">${avg > 0 ? diffLabel : '–'}</div>
+        ${hasMarketData ? `
+        <div class="fairness-bar-wrap">
+          <div class="fairness-title">Preisposition im Markt</div>
+          <div class="fairness-track">
+            <div class="fairness-marker" style="left: ${markerLeft}%"></div>
+          </div>
+          <div class="fairness-labels">
+            <span>🤑 Schnäppchen</span>
+            <span>Fair</span>
+            <span>🚫 Zu teuer</span>
+          </div>
+        </div>` : ''}
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Verlangter Preis</div>
+            <div class="stat-value">CHF ${askedPrice.toFixed(2)}</div>
+            <div class="stat-sub">${avg > 0 ? diffLabel : '–'}</div>
+          </div>
+          <div class="price-card">
+            <div class="price-card-label">📦 Gebrauchtmarkt-Ø</div>
+            <div class="price-card-value">CHF ${avg > 0 ? avg.toFixed(0) : '–'}</div>
+            <div class="price-card-range">${data.priceMin && data.priceMax ? parseFloat(data.priceMin).toFixed(0) + '–' + parseFloat(data.priceMax).toFixed(0) + ' CHF' : ''}</div>
+            <a class="price-card-link" href="${data.ebaySearchUrl || 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">eBay.de ansehen ↗</a>
+          </div>
+          <div class="price-card">
+            <div class="price-card-label">🏷️ Neupreis (Referenz)</div>
+            <div class="price-card-value">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
+            <div class="price-card-range">${(() => {
+              if (!data.retailPrice || !askedPrice) return data.retailPrice ? (data.retailSource || (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung')) : 'Nicht verfügbar';
+              const pct = Math.round((1 - askedPrice / parseFloat(data.retailPrice)) * 100);
+              if (pct > 0) return `${pct}% unter Neupreis`;
+              if (pct < 0) return `${Math.abs(pct)}% über Neupreis`;
+              return 'Zum Neupreis';
+            })()}</div>
+            ${data.retailPrice ? '<a class="price-card-link" href="' + (data.amazonSearchUrl || 'https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'')) + '" target="_blank" rel="noopener">Amazon.de ansehen ↗</a>' : ''}
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Du sparst / zahlst mehr</div>
+            <div class="stat-value ${diffColor}">${avg > 0 ? (diff < 0 ? '−' : '+') + 'CHF ' + Math.abs(diff) : '–'}</div>
+            <div class="stat-sub">vs. Gebrauchtmarkt</div>
+          </div>
         </div>
-        <div class="price-card">
-          <div class="price-card-label">📦 Gebrauchtmarkt-Ø</div>
-          <div class="price-card-value">CHF ${avg > 0 ? avg.toFixed(0) : '–'}</div>
-          <div class="price-card-range">${data.priceMin && data.priceMax ? parseFloat(data.priceMin).toFixed(0) + '–' + parseFloat(data.priceMax).toFixed(0) + ' CHF' : ''}</div>
-          <a class="price-card-link" href="${data.ebaySearchUrl || 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">eBay.de ansehen ↗</a>
+
+        <div class="price-range">
+          <div class="price-range-title">Marktpreis-Spanne</div>
+          <div class="price-range-row">
+            <div class="price-min"><div class="price-val">CHF ${data.priceMin || '–'}</div><div class="price-lbl">Minimum</div></div>
+            <div class="price-mid">↔</div>
+            <div class="price-max"><div class="price-val">CHF ${data.priceMax || '–'}</div><div class="price-lbl">Maximum</div></div>
+          </div>
         </div>
-        <div class="price-card">
-          <div class="price-card-label">🏷️ Neupreis (Referenz)</div>
-          <div class="price-card-value">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
-          <div class="price-card-range">${(() => {
-            if (!data.retailPrice || !askedPrice) return data.retailPrice ? (data.retailSource || (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung')) : 'Nicht verfügbar';
-            const pct = Math.round((1 - askedPrice / parseFloat(data.retailPrice)) * 100);
-            if (pct > 0) return `${pct}% unter Neupreis`;
-            if (pct < 0) return `${Math.abs(pct)}% über Neupreis`;
-            return 'Zum Neupreis';
-          })()}</div>
-          ${data.retailPrice ? '<a class="price-card-link" href="' + (data.amazonSearchUrl || 'https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'')) + '" target="_blank" rel="noopener">Amazon.de ansehen ↗</a>' : ''}
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Du sparst / zahlst mehr</div>
-          <div class="stat-value ${diffColor}">${avg > 0 ? (diff < 0 ? '−' : '+') + 'CHF ' + Math.abs(diff) : '–'}</div>
-          <div class="stat-sub">vs. Gebrauchtmarkt</div>
-        </div>
+
+        ${data.aiNote ? `<div class="ai-note">💡 ${data.aiNote}</div>` : ''}
       </div>
 
-      <div class="price-range">
-        <div class="price-range-title">Marktpreis-Spanne</div>
-        <div class="price-range-row">
-          <div class="price-min"><div class="price-val">CHF ${data.priceMin || '–'}</div><div class="price-lbl">Minimum</div></div>
-          <div class="price-mid">↔</div>
-          <div class="price-max"><div class="price-val">CHF ${data.priceMax || '–'}</div><div class="price-lbl">Maximum</div></div>
-        </div>
+      <div class="tab-panel" id="result-tab-info">
+        ${renderInfoTab(data)}
       </div>
 
-      ${data.aiNote ? `<div class="ai-note">💡 ${data.aiNote}</div>` : ''}
+      <div class="tab-panel" id="result-tab-angebote">
+        ${renderListings(data.topListings)}
+        <div class="angebote-links">
+          <a class="angebote-link" href="${data.ebaySearchUrl || 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
+            <span class="angebote-link-icon">🏪</span>
+            <span class="angebote-link-label">eBay.de durchsuchen</span>
+            <span class="angebote-link-arrow">↗</span>
+          </a>
+          <a class="angebote-link" href="${data.amazonSearchUrl || 'https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
+            <span class="angebote-link-icon">📦</span>
+            <span class="angebote-link-label">Amazon.de ansehen</span>
+            <span class="angebote-link-arrow">↗</span>
+          </a>
+          <a class="angebote-link" href="https://www.ricardo.ch/de/s/${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
+            <span class="angebote-link-icon">🇨🇭</span>
+            <span class="angebote-link-label">Ricardo.ch suchen</span>
+            <span class="angebote-link-arrow">↗</span>
+          </a>
+        </div>
+      </div>
     `;
     showView('resultView');
+  }
+  function switchResultTab(tabId, btn) {
+    document.querySelectorAll('.result-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const panel = document.getElementById('result-tab-' + tabId);
+    if (panel) panel.classList.add('active');
+  }
+
+  function renderInfoTab(data) {
+    const rows = [];
+    if (data.brand)      rows.push(['Marke',             data.brand]);
+    if (data.category)   rows.push(['Kategorie',         data.category]);
+    if (data.condition)  rows.push(['Zustand',           data.condition]);
+    if (data.stylePeriod && data.stylePeriod !== 'null')  rows.push(['Stilepoche',        data.stylePeriod]);
+    if (data.estimatedEra && data.estimatedEra !== 'null') rows.push(['Periode',          data.estimatedEra]);
+    if (data.material && data.material !== 'null')         rows.push(['Material',         data.material]);
+    if (data.makerMark && data.makerMark !== 'null')       rows.push(['Signatur / Stempel', data.makerMark]);
+
+    const metaHtml = rows.length ? rows.map(([label, val]) =>
+      `<div class="info-row"><span class="info-label">${label}</span><span class="info-val">${val}</span></div>`
+    ).join('') : '<div class="info-row"><span class="info-label">Keine weiteren Details</span></div>';
+
+    const contextHtml = (data.contextInfo && data.contextInfo !== 'null') ? `
+      <div class="context-card">
+        <div class="context-title">Über dieses Objekt</div>
+        <p class="context-text">${data.contextInfo}</p>
+      </div>` : '';
+
+    return `<div class="info-section">${metaHtml}</div>${contextHtml}`;
   }
 
   function renderListings(listings) {
