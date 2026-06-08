@@ -85,8 +85,36 @@ const CATEGORY_EBAY_MAP = {
   },
   'Sport & Outdoor':      { default: '888' },
   'Musik':                { default: '619' },
-  'Möbel & Wohnen':       { default: '11700' },
-  'Antiquitäten & Kunst': { default: '20081' },
+  'Möbel & Wohnen': {
+    subTypes: {
+      // Antique routing → Antiquitäten & Kunst category
+      'antik': '20081', 'antiquität': '20081', 'biedermeier': '20081',
+      'jugendstil': '20081', 'art deco': '20081', 'jugendstil': '20081',
+      'gründerzeit': '20081', 'historismus': '20081', 'klassizismus': '20081',
+      'barock': '20081', 'empire': '20081', 'victorian': '20081',
+      // Modern furniture subcategories
+      'sofa': '175757', 'sessel': '175757', 'stuhl': '175757',
+      'schrank': '175753', 'kommode': '175753', 'sideboard': '175753',
+      'tisch': '175754', 'schreibtisch': '175754',
+      'bett': '175758', 'bettgestell': '175758',
+      'regal': '11700', 'vitrine': '175753',
+    },
+    default: '11700'
+  },
+  'Antiquitäten & Kunst': {
+    subTypes: {
+      'möbel': '20097', 'schrank': '20097', 'kommode': '20097',
+      'stuhl': '20097', 'tisch': '20097', 'sekretär': '20097',
+      'gemälde': '11231', 'ölgemälde': '11231', 'aquarell': '11231',
+      'skulptur': '737', 'figur': '737', 'plastik': '737',
+      'keramik': '870', 'porzellan': '870', 'fayence': '870',
+      'silber': '550', 'gold': '550', 'besteck': '550',
+      'glas': '870', 'kristall': '870',
+      'uhr': '14324', 'pendeluhr': '14324',
+      'teppich': '37911', 'orientteppich': '37911',
+    },
+    default: '20081'
+  },
   'Sammler': {
     subTypes: {
       'pokemon': '183454', 'magic': '19107', 'mtg': '19107',
@@ -99,13 +127,17 @@ const CATEGORY_EBAY_MAP = {
   'Haushalt & Küche':     { default: '20625' },
 };
 
-function getCategoryEbayId(category, subType) {
+function getCategoryEbayId(category, subType, stylePeriod, isAntique) {
   const map = CATEGORY_EBAY_MAP[category];
   if (!map) return null;
-  if (subType && map.subTypes) {
-    const sub = subType.toLowerCase();
+  if (map.subTypes) {
+    // For Möbel: antique style period overrides to Antiquitäten category
+    if (isAntique && (category === 'Möbel & Wohnen') && CATEGORY_EBAY_MAP['Möbel & Wohnen'].subTypes['antik']) {
+      return CATEGORY_EBAY_MAP['Möbel & Wohnen'].subTypes['antik'];
+    }
+    const searchText = ((subType || '') + ' ' + (stylePeriod || '')).toLowerCase();
     for (const [key, id] of Object.entries(map.subTypes)) {
-      if (sub.includes(key)) return id;
+      if (searchText.includes(key)) return id;
     }
   }
   return map.default || null;
@@ -132,24 +164,31 @@ function buildAmazonSearchUrl(query) {
 async function identifyObject(base64Image) {
   const prompt = `You are identifying a secondhand item for a resell price check app.
 
-STEP 1 — Read ALL visible text in the image: brand logos, model names, product codes, serial numbers, labels, tags, engravings. This is critical for accuracy.
+STEP 1 — Read ALL visible text in the image: brand logos, model names, product codes, serial numbers, labels, tags, engravings, maker stamps/marks. This is critical for accuracy.
 
 STEP 2 — Identify the item as precisely as possible using both visual analysis and the text you read.
 
+STEP 3 — For furniture and antiques: carefully examine construction style, joinery, hardware, patina, decorative elements, and any visible stamps or labels to determine style period and approximate age.
+
 Respond ONLY with valid JSON (no markdown):
 {
-  "objectName": "Full product name in German (e.g. Sony DualSense PS5 Controller Weiss)",
-  "brand": "Brand or null",
-  "model": "Exact model/product line or null (e.g. Air Force 1, DualSense, iPhone 14 Pro, Levi 501)",
+  "objectName": "Full product name in German (e.g. Sony DualSense PS5 Controller Weiss / Biedermeier Nussbaum Kommode)",
+  "brand": "Manufacturer/maker brand or null",
+  "model": "Exact model/product line or null",
   "color": "Color or null",
   "category": "Elektronik|Spielzeug|Uhren & Schmuck|Kleidung & Accessoires|Sport & Outdoor|Musik|Möbel & Wohnen|Antiquitäten & Kunst|Sammler|Haushalt & Küche",
-  "subType": "Specific sub-type within category (e.g. Smartphone, Laptop, Kamera, Gaming-Konsole, Uhr, Schmuck, Schuh, Tasche, Gitarre, Fahrrad) or null",
+  "subType": "Specific sub-type (e.g. Smartphone, Laptop, Schrank, Kommode, Sekretär, Stuhl, Tisch, Vitrine, Gemälde, Skulptur) or null",
   "condition": "Neu|Sehr gut|Gut|Akzeptabel|Beschaedigt",
-  "ebaySearchQuery": "Specific search: brand + model + color, 4-8 words, NO size (e.g. Sony DualSense PS5 Controller weiss)",
-  "ebaySearchQueryBroad": "Broad fallback: brand + product type only, 2-4 words (e.g. Sony DualSense PS5)",
+  "stylePeriod": "For furniture/art only: Biedermeier|Gründerzeit|Jugendstil|Art Deco|Barock|Rokoko|Empire|Historismus|Klassizismus|Victorian|Mid-Century Modern|Bauhaus|Contemporary — or null",
+  "estimatedEra": "For furniture/art only: estimated decade like ~1850-1870 or ~1920er — or null",
+  "material": "For furniture/art only: primary material like Nussbaum|Eiche|Mahagoni|Kirsche|Buche|Palisander|Messing|Marmor — or null",
+  "makerMark": "Any visible signature, stamp, label, or maker mark — exact text if readable, 'vorhanden' if visible but unreadable, or null",
+  "isAntique": true if estimated age > 80 years or clear antique style, false otherwise,
+  "ebaySearchQuery": "Specific search query 4-8 words. For antiques include style+type+material (e.g. Biedermeier Kommode Nussbaum antik)",
+  "ebaySearchQueryBroad": "Broad fallback 2-4 words (e.g. Biedermeier Kommode)",
   "confidence": 85
 }
-confidence = integer 0-100 (NOT 0-1). 100 = completely certain. 85 = confident but not 100%. Use lower values only if the image is unclear or the item is ambiguous.`;
+confidence = integer 0-100. For antiques: 90+ only if style/period clearly identifiable. Lower if ambiguous.`;
 
   const result = await httpsPost(
     'api.openai.com', '/v1/chat/completions',
@@ -183,12 +222,13 @@ async function identifyWithBrand(base64Image, userBrand, userModel, userSize, us
 
   // Only ask GPT to fill in what the user didn't provide
   const missingFields = [
-    !userBrand    ? '- Brand (read from photo, labels, logos)' : null,
+    !userBrand    ? '- Brand (read from photo, labels, logos, maker stamps)' : null,
     !userModel    ? '- Exact model/product line (read from labels, text visible in image)' : null,
     '- Exact color / colorway',
     '- Condition based on visual inspection of the photo',
     '- Product category (IMPORTANT: sport/smart watches like Garmin, Suunto, Polar, Fitbit → Elektronik, NOT Uhren & Schmuck)',
-    !userRef      ? '- Reference number / serial number if visible (especially for watches)' : null,
+    !userRef      ? '- Reference number / serial number if visible' : null,
+    '- For furniture/art: stylePeriod (Biedermeier/Jugendstil/Art Deco/etc.), estimatedEra (~decade), material, makerMark, isAntique',
   ].filter(Boolean).join('\n');
 
   const knownBrand = userBrand || '[brand from photo]';
@@ -217,10 +257,15 @@ Reply ONLY with valid JSON (no markdown):
   "model": ${userModel ? `"${userModel}"` : '"detected model from photo"'},
   "color": "detected color",
   "category": "Elektronik|Spielzeug|Uhren & Schmuck|Kleidung & Accessoires|Sport & Outdoor|Musik|Möbel & Wohnen|Antiquitäten & Kunst|Sammler|Haushalt & Küche",
-  "subType": "specific sub-type (e.g. Smartphone, Smartwatch, Laptop, Uhr, Schuh) or null",
+  "subType": "specific sub-type (e.g. Smartphone, Smartwatch, Laptop, Uhr, Schuh, Kommode, Sekretär, Stuhl) or null",
   "condition": "Neu|Sehr gut|Gut|Akzeptabel|Beschaedigt",
-  "ebaySearchQuery": "query with confirmed facts — must match exact item on eBay",
-  "ebaySearchQueryBroad": "brand + product type only",
+  "stylePeriod": "For furniture/art: Biedermeier|Gründerzeit|Jugendstil|Art Deco|Barock|Empire|Historismus|Klassizismus|Victorian|Mid-Century Modern — or null",
+  "estimatedEra": "For furniture/art: ~1850-1870 or null",
+  "material": "For furniture/art: Nussbaum|Eiche|Mahagoni|Kirsche|Buche|Palisander|Marmor etc. — or null",
+  "makerMark": "Visible signature, stamp or maker mark — exact text or 'vorhanden' or null",
+  "isAntique": true if estimated age > 80 years, false otherwise,
+  "ebaySearchQuery": "For antiques include style+type+material (e.g. Biedermeier Kommode Nussbaum). For others: brand+model.",
+  "ebaySearchQueryBroad": "style + furniture type or brand + product type, 2-4 words",
   "confidence": 90
 }
 confidence = integer 0-100 (NOT 0-1). 90 = confident. Use lower values if image is unclear or item ambiguous.`;
@@ -425,7 +470,13 @@ function analyzeDemandAndChannels(objectInfo, ebayData) {
 async function generateNote(objectInfo, ebayData, buyPrice, sellPrice, demandScore) {
   const profit = (sellPrice - buyPrice).toFixed(2);
   const roi = buyPrice > 0 ? (((sellPrice-buyPrice)/buyPrice)*100).toFixed(0) : 0;
-  const prompt = `Du bist ein Reselling-Experte. Analysiere diesen Deal in 1-2 Saetzen auf Deutsch.\nObjekt: ${objectInfo.objectName} (${objectInfo.category}), Zustand: ${objectInfo.condition}\nKaufpreis: CHF ${buyPrice}, Zielpreis: CHF ${sellPrice}, Gewinn: CHF ${profit} (ROI: ${roi}%)\nMarkt-O: CHF ${ebayData?.marketAvg||'unbekannt'}, Nachfrage: ${demandScore}/100\nSei direkt und ehrlich. Keine Floskeln.`;
+  const antiqueCtx = [
+    objectInfo.stylePeriod  ? `Stilepoche: ${objectInfo.stylePeriod}` : null,
+    objectInfo.estimatedEra ? `Periode: ${objectInfo.estimatedEra}` : null,
+    objectInfo.material     ? `Material: ${objectInfo.material}` : null,
+    objectInfo.makerMark && objectInfo.makerMark !== 'null' ? `Signatur: ${objectInfo.makerMark}` : null,
+  ].filter(Boolean).join(', ');
+  const prompt = `Du bist ein Reselling-Experte${antiqueCtx ? ' mit Schwerpunkt Antiquitäten' : ''}. Analysiere diesen Deal in 1-2 Saetzen auf Deutsch.\nObjekt: ${objectInfo.objectName} (${objectInfo.category}), Zustand: ${objectInfo.condition}${antiqueCtx ? '\n' + antiqueCtx : ''}\nKaufpreis: CHF ${buyPrice}, Zielpreis: CHF ${sellPrice}, Gewinn: CHF ${profit} (ROI: ${roi}%)\nMarkt-O: CHF ${ebayData?.marketAvg||'unbekannt'}, Nachfrage: ${demandScore}/100\nSei direkt und ehrlich. Keine Floskeln.`;
   const result = await httpsPost('api.openai.com','/v1/chat/completions',
     {'Content-Type':'application/json',Authorization:`Bearer ${process.env.OPENAI_API_KEY}`},
     {model:'gpt-4o-mini',max_tokens:120,messages:[{role:'user',content:prompt}]}
@@ -794,6 +845,59 @@ async function getTCGApiListings(searchQuery, objectName) {
 }
 
 
+
+// ── Specialized antique price estimation ────────────────────────────────────
+// Uses style period, material, era, and maker mark for much higher accuracy
+// than generic product price estimation
+async function estimateAntiquePriceWithAI(objectInfo) {
+  const lines = [
+    "Du bist ein Experte für Antiquitäten und alte Möbel mit tiefem Wissen des deutschen und Schweizer Marktes.",
+    "Schätze den realistischen SECONDHAND-Marktpreis (Verkaufspreis zwischen Privaten) für dieses Objekt.",
+    "",
+    `Objekt: ${objectInfo.objectName}`,
+    objectInfo.stylePeriod  ? `Stilepoche: ${objectInfo.stylePeriod}` : null,
+    objectInfo.estimatedEra ? `Geschätzte Periode: ${objectInfo.estimatedEra}` : null,
+    objectInfo.material     ? `Material: ${objectInfo.material}` : null,
+    objectInfo.subType      ? `Möbeltyp: ${objectInfo.subType}` : null,
+    objectInfo.brand        ? `Hersteller/Maker: ${objectInfo.brand}` : null,
+    objectInfo.makerMark && objectInfo.makerMark !== 'null'
+      ? `Maker-Markierung: ${objectInfo.makerMark}` : null,
+    `Zustand: ${objectInfo.condition || 'Gut'}`,
+    "",
+    "Wichtige Marktfaktoren:",
+    "- Biedermeier (1820-1848): Kommode CHF 800-3000, Sekretär CHF 1500-5000, Stuhl CHF 200-800",
+    "- Jugendstil/Art Nouveau (1890-1910): CHF 500-8000 je nach Stück und Hersteller",
+    "- Art Deco (1920-1940): CHF 400-6000",
+    "- Gründerzeit (1870-1890): CHF 300-2000",
+    "- Unbekannte Hersteller: 30-50% Abschlag vs. bekannte Manufakturen",
+    "- Maker-Markierung vorhanden: +20-40% Aufschlag",
+    "- Schlechter Zustand: -40-60%",
+    "",
+    "Antworte NUR mit gültigem JSON: {"priceMin": Zahl, "priceMax": Zahl, "marketAvg": Zahl, "priceNote": "kurze Begründung max 15 Wörter"}"
+  ].filter(l => l !== null).join("\n");
+
+  const result = await httpsPost("api.openai.com", "/v1/chat/completions",
+    {"Content-Type": "application/json", "Authorization": "Bearer " + process.env.OPENAI_API_KEY},
+    {model: "gpt-4o-mini", max_tokens: 150, messages: [{role: "user", content: lines}]}
+  );
+  const raw = result.body.choices?.[0]?.message?.content || "{}";
+  const clean = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  try {
+    const p = JSON.parse(clean);
+    if (p.priceMin && p.priceMax) {
+      return {
+        priceMin:     String(p.priceMin),
+        priceMax:     String(p.priceMax),
+        marketAvg:    String(p.marketAvg || ((p.priceMin + p.priceMax) / 2).toFixed(0)),
+        listingCount: 0,
+        aiEstimate:   true,
+        antiqueNote:  p.priceNote || null
+      };
+    }
+    return null;
+  } catch(e) { return null; }
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { image, barcode=null, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null, userBrand=null, userModel=null, userYear=null, userSize=null, userCategory=null, userRef=null } = req.body || {};
@@ -865,7 +969,9 @@ module.exports = async function handler(req, res) {
     // This ensures sport watches (Garmin → Elektronik) aren't filtered into luxury watch category
     const categoryEbayId = getCategoryEbayId(
       objectInfo.category,
-      objectInfo.subType || null
+      objectInfo.subType || null,
+      objectInfo.stylePeriod || null,
+      objectInfo.isAntique || false
     );
 
     // Query hierarchy: confirmed-facts query → GPT-broad → user fields → objectName
@@ -873,6 +979,25 @@ module.exports = async function handler(req, res) {
       [userBrand, userModel, userYear].filter(Boolean).join(' ') ||
       objectInfo.objectName;
     let broadQuery = objectInfo.ebaySearchQueryBroad || null;
+
+    // For antiques: build richer query from stylePeriod + subType + material if GPT identified them
+    const isAntiqueItem = objectInfo.isAntique ||
+      objectInfo.category === 'Antiquitäten & Kunst' ||
+      (objectInfo.stylePeriod && objectInfo.stylePeriod !== 'null' && objectInfo.stylePeriod !== null);
+
+    if (isAntiqueItem && !userModel && !userBrand) {
+      // Build antique-specific query: style + furniture type + material
+      const antiqueParts = [
+        objectInfo.stylePeriod,
+        objectInfo.subType,
+        objectInfo.material,
+      ].filter(p => p && p !== 'null');
+      if (antiqueParts.length >= 2) {
+        specificQuery = antiqueParts.slice(0, 4).join(' ');
+        broadQuery = antiqueParts.slice(0, 2).join(' ');
+        console.log('Antique query built:', specificQuery);
+      }
+    }
 
     // Force year into queries when user-provided (iPhone 13 ≠ iPhone 14)
     if (userYear) {
@@ -965,7 +1090,17 @@ module.exports = async function handler(req, res) {
       }
     } catch(e) { console.error('Data fetch error:', e.message); }
     if (!ebayData) {
-      try { ebayData = await estimatePriceWithAI(objectInfo); } catch(e2) { console.error('AI price fallback:', e2.message); }
+      try {
+        const isAntiqueCategory = objectInfo.isAntique ||
+          objectInfo.category === 'Antiquitäten & Kunst' ||
+          (objectInfo.stylePeriod && objectInfo.stylePeriod !== 'null') ||
+          (objectInfo.category === 'Möbel & Wohnen' && objectInfo.estimatedEra);
+        if (isAntiqueCategory) {
+          console.log('Antique fallback pricing for:', objectInfo.objectName, objectInfo.stylePeriod);
+          ebayData = await estimateAntiquePriceWithAI(objectInfo);
+        }
+        if (!ebayData) ebayData = await estimatePriceWithAI(objectInfo);
+      } catch(e2) { console.error('AI price fallback:', e2.message); }
     }
 
     let aiNote = '';
