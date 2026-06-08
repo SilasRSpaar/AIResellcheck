@@ -753,8 +753,12 @@ module.exports = async function handler(req, res) {
     // CONFIRMED FACTS override: force model into objectName + ebaySearchQuery
     if (userModel) {
       const confirmedBrand = userBrand || objectInfo.brand || '';
-      objectInfo.objectName = [confirmedBrand, userModel, userYear].filter(Boolean).join(' ');
-      // Force model into query — GPT must not use a different model name
+      // Only override objectName if GPT's name doesn't already contain the confirmed model
+      // (preserves full product names like "Garmin Descent MK2i" when user inputs "MK2i")
+      if (!objectInfo.objectName || !objectInfo.objectName.toLowerCase().includes(userModel.toLowerCase())) {
+        objectInfo.objectName = [confirmedBrand, userModel, userYear].filter(Boolean).join(' ');
+      }
+      // Force model into eBay query if not already present
       const q = objectInfo.ebaySearchQuery || '';
       if (!q.toLowerCase().includes(userModel.toLowerCase())) {
         objectInfo.ebaySearchQuery = [confirmedBrand, userModel, userYear].filter(Boolean).join(' ');
@@ -770,6 +774,11 @@ module.exports = async function handler(req, res) {
     // Normalize confidence: GPT sometimes returns 0-1 scale instead of 0-100
     if (objectInfo.confidence != null && objectInfo.confidence <= 1) {
       objectInfo.confidence = Math.round(objectInfo.confidence * 100);
+    }
+
+    // Boost confidence when user provided confirmed inputs — suppresses misleading warning
+    if (userModel || userBrand) {
+      objectInfo.confidence = Math.max(objectInfo.confidence || 0, 80);
     }
 
     let ebayData = null;
