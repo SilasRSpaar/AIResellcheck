@@ -1203,12 +1203,15 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Guard: detect non-tradeable natural/food items (no resale market exists)
-    const nonTradeablePatterns = /tannenzapfen|zapfen|pilz|blume|blatt|stein|kiesel|sand|erde|gras|baum|ast|rinde|moos|farn|schnee|eis|wasser|lebensmittel|obst|gemüse|frucht|tier|hund|katze|vogel|fisch|insekt|käfer|wurm/i;
+    // Guard: detect raw/living natural items with no resale market.
+    // Only applies to UNPROCESSED natural items — crafted/carved/painted items ARE tradeable.
+    // Exclusion: if name contains craft/material indicators, skip this guard entirely.
+    const craftIndicators = /holz|geschnitzt|bemalt|handbemalt|keramik|porzellan|ton|deko|dekoration|skulptur|figur|kunst|handarbeit|handgemacht|handgefertigt|vintage|antik|folk|tracht|geschenk|souvenir/i;
+    const rawNaturePatterns = /^(frische?|getrocknete?|echte?|wilde?|lebende?)?\s*(blume|blatt|gras|erde|sand|kiesel|schnee|rohstein)\b/i;
     const nameToCheck = (objectInfo.objectName || '').toLowerCase();
-    const contextToCheck = (objectInfo.contextInfo || '').toLowerCase();
-    const isNonTradeable = nonTradeablePatterns.test(nameToCheck) || nonTradeablePatterns.test(contextToCheck);
-    if (isNonTradeable && !userBrand && !userModel) {
+    const isCrafted = craftIndicators.test(objectInfo.objectName || '') || craftIndicators.test(objectInfo.contextInfo || '');
+    const isRawNature = rawNaturePatterns.test(nameToCheck);
+    if (isRawNature && !isCrafted && !userBrand && !userModel) {
       const ebayUrl = buildEbaySearchUrl(objectInfo.objectName || 'Natur');
       return res.status(200).json({
         objectName: objectInfo.objectName || 'Naturobjekt',
