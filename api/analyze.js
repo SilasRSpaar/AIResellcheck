@@ -673,43 +673,121 @@ async function getKleinanzeigenListings(searchQuery) {
 }
 
 async function getRicardoListings(searchQuery) {
+  const encoded = encodeURIComponent(searchQuery);
+
+  // ── Attempt 1: Ricardo internal search API (faster, JSON native) ──────────
   try {
-    const encoded = encodeURIComponent(searchQuery);
-    // Ricardo search page – extract embedded JSON (next.js __NEXT_DATA__)
+    const apiResult = await withTimeout(
+      httpsGet('www.ricardo.ch',
+        `/api/search/v1/articles?query=${encoded}&limit=5&offset=0`,
+        {
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
+          'Accept': 'application/json',
+          'Accept-Language': 'de-CH,de;q=0.9',
+          'Referer': 'https://www.ricardo.ch/de/s/' + encoded + '/',
+        }
+      ), 3000, null
+    );
+    if (apiResult && apiResult.status === 200 && apiResult.body?.results?.length) {
+      console.log(`Ricardo API: ${apiResult.body.results.length} results`);
+      return apiResult.body.results.slice(0, 3).map(item => {
+        const price = item.buyNowPrice || item.startPrice || item.currentBidPrice || item.price;
+        return {
+          title: (item.title || item.name || '').substring(0, 60),
+          price: price ? parseFloat(price).toFixed(2) : null,
+          currency: 'CHF',
+          url: item.slug ? 'https://www.ricardo.ch/de/a/' + item.slug : 'https://www.ricardo.ch/de/s/' + encoded,
+          source: 'Ricardo.ch'
+        };
+      }).filter(l => l.price && parseFloat(l.price) > 0);
+    }
+  } catch(e) { /* Fall through to HTML scraping */ }
+
+  // ── Attempt 2: HTML __NEXT_DATA__ scraping with deep-search ──────────────
+  try {
     const result = await withTimeout(
       httpsGet('www.ricardo.ch',
         `/de/s/${encoded}/`,
         {
-          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
-          'Accept': 'text/html,application/xhtml+xml',
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'de-CH,de;q=0.9',
         }
-      ), 3000, null
+      ), 4000, null
     );
     if (!result || result.status !== 200) return [];
     const html = typeof result.body === 'string' ? result.body : JSON.stringify(result.body);
 
-    // Extract __NEXT_DATA__ JSON embedded in page
-    const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-    if (!nextDataMatch) return [];
-    const nextData = JSON.parse(nextDataMatch[1]);
+    // Extract __NEXT_DATA__
+    const m = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    if (!m) { console.log('Ricardo: no NEXT_DATA found'); return []; }
 
-    // Navigate to listings in Ricardo's Next.js data structure
-    const results = nextData?.props?.pageProps?.searchResult?.results ||
-                    nextData?.props?.pageProps?.listings ||
-                    nextData?.props?.pageProps?.data?.listings || [];
+    let nextData;
+    try { nextData = JSON.parse(m[1]); } catch(e) { return []; }
 
-    return results.slice(0, 3).map(item => {
-      const price = item.buyNowPrice || item.startPrice || item.currentBidPrice;
+    // ── Deep-search: recursively find arrays containing items with price+title
+    function deepFindListings(obj, depth = 0) {
+      if (depth > 8 || !obj || typeof obj !== 'object') return null;
+      if (Array.isArray(obj) && obj.length > 0) {
+        const first = obj[0];
+        if (first && typeof first === 'object') {
+          const keys = Object.keys(first);
+          // Item candidate: has a title-like and price-like field
+          const hasTitle = keys.some(k => /title|name|bezeichnung/i.test(k));
+          const hasPrice = keys.some(k => /price|preis|betrag|buyNow|startPrice/i.test(k));
+          if (hasTitle && hasPrice) return obj;
+        }
+      }
+      for (const key of Object.keys(obj)) {
+        const found = deepFindListings(obj[key], depth + 1);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    // Try known paths first (faster), then deep-search as fallback
+    const pageProps = nextData?.props?.pageProps || {};
+    const knownPaths = [
+      pageProps?.searchResult?.results,
+      pageProps?.searchResult?.hits,
+      pageProps?.listings,
+      pageProps?.data?.listings,
+      pageProps?.data?.results,
+      pageProps?.initialData?.results,
+      pageProps?.dehydratedState?.queries?.[0]?.state?.data?.results,
+      pageProps?.dehydratedState?.queries?.[0]?.state?.data?.data?.results,
+    ];
+
+    let items = knownPaths.find(p => Array.isArray(p) && p.length > 0);
+    if (!items) {
+      console.log('Ricardo: known paths failed, trying deep-search...');
+      items = deepFindListings(pageProps);
+    }
+    if (!items || items.length === 0) {
+      console.log('Ricardo: no listings found in NEXT_DATA');
+      return [];
+    }
+
+    console.log(`Ricardo NEXT_DATA: ${items.length} results found`);
+    return items.slice(0, 3).map(item => {
+      const price = item.buyNowPrice || item.startPrice || item.currentBidPrice ||
+                    item.price?.amount || item.price?.value || item.price ||
+                    item.preis || item.betrag;
+      const title = item.title || item.name || item.bezeichnung || '';
+      const slug  = item.slug || item.id || item.articleId;
       return {
-        title: (item.title || '').substring(0, 60),
+        title: String(title).substring(0, 60),
         price: price ? parseFloat(price).toFixed(2) : null,
         currency: 'CHF',
-        url: item.slug ? 'https://www.ricardo.ch/de/a/' + item.slug : 'https://www.ricardo.ch/de/s/' + encoded,
+        url: slug ? 'https://www.ricardo.ch/de/a/' + slug : 'https://www.ricardo.ch/de/s/' + encoded,
         source: 'Ricardo.ch'
       };
     }).filter(l => l.price && parseFloat(l.price) > 0);
-  } catch(e) { console.error('Ricardo error:', e.message); return []; }
+
+  } catch(e) {
+    console.error('Ricardo scrape error:', e.message);
+    return [];
+  }
 }
 
 async function getKeepaRetailPrice(searchQuery) {
