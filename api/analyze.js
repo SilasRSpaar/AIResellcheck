@@ -79,7 +79,15 @@ const CATEGORY_EBAY_MAP = {
   'Musik':                { default: '619' },
   'Möbel & Wohnen':       { default: '11700' },
   'Antiquitäten & Kunst': { default: '20081' },
-  'Sammler':              { default: '1' },
+  'Sammler': {
+    subTypes: {
+      'pokemon': '183454', 'magic': '19107', 'mtg': '19107',
+      'yu-gi-oh': '183452', 'yugioh': '183452',
+      'sammelkarte': '183454', 'karte': '183454', 'trading card': '183454',
+      'münze': '253', 'coin': '253', 'briefmarke': '260',
+    },
+    default: '183454'  // Sammelkarten (trading cards) as default for Sammler
+  },
   'Haushalt & Küche':     { default: '20625' },
 };
 
@@ -719,6 +727,64 @@ function buildObjectInfoFromUser(userBrand, userModel, userSize, userCategory) {
   };
 }
 
+
+// ── TCGapi.dev – Trading Card Game Prices ───────────────────────────────────
+// Covers Pokémon, Magic, Yu-Gi-Oh!, One Piece, Lorcana, Digimon, 89+ games
+// Free: 100 req/day (non-commercial). Pro: $49.99/mo (commercial use required)
+// Response prices are in USD → approx. CHF conversion applied
+
+function detectTCGGame(query, objectName) {
+  const text = ((query || '') + ' ' + (objectName || '')).toLowerCase();
+  if (text.match(/pok[eé]mon|pikachu|charizard|mewtwo|eevee|gengar/)) return 'pokemon';
+  if (text.match(/magic|mtg|planeswalker|mana|wizard.*coast/)) return 'magic-the-gathering';
+  if (text.match(/yu.?gi.?oh|yugioh|duel monster/)) return 'yu-gi-oh';
+  if (text.match(/one.?piece/)) return 'one-piece-card-game';
+  if (text.match(/lorcana/)) return 'lorcana-tcg';
+  if (text.match(/digimon/)) return 'digimon-card-game';
+  if (text.match(/dragon.?ball/)) return 'dragon-ball-super-card-game';
+  if (text.match(/flesh.?and.?blood|fab/)) return 'flesh-and-blood-tcg';
+  // Generic trading card hint: if category is Sammler and text mentions card terms
+  if (text.match(/karte|card|booster|sealed|holo|foil|rare/)) return 'pokemon'; // default to pokemon as largest DB
+  return null;
+}
+
+async function getTCGApiListings(searchQuery, objectName) {
+  if (!process.env.TCGAPI_KEY) return [];
+  const game = detectTCGGame(searchQuery, objectName);
+  if (!game) return [];
+  try {
+    const encoded = encodeURIComponent(searchQuery);
+    const result = await withTimeout(
+      httpsGet('api.tcgapi.dev',
+        `/v1/search?q=${encoded}&game=${game}&per_page=5`,
+        { 'X-API-Key': process.env.TCGAPI_KEY, 'Accept': 'application/json', 'User-Agent': 'Comparadoo/1.0' }
+      ), 4000, null
+    );
+    if (!result || result.status !== 200 || !result.body?.data?.length) return [];
+
+    // USD → CHF approx (1 USD ≈ 0.88 CHF, conservative)
+    const USD_TO_CHF = 0.88;
+
+    return result.body.data.slice(0, 3).map(card => {
+      const priceUsd = card.market_price || card.low_price || card.median_price;
+      if (!priceUsd || priceUsd <= 0) return null;
+      const priceCHF = (parseFloat(priceUsd) * USD_TO_CHF).toFixed(2);
+      const label = card.printing === 'Foil' ? ' (Foil)' : '';
+      return {
+        title: `${card.name}${card.set_name ? ' · ' + card.set_name : ''}${label}`.substring(0, 70),
+        price: priceCHF,
+        currency: 'CHF',
+        url: null,
+        condition: card.rarity || null,
+        source: 'TCGapi'
+      };
+    }).filter(Boolean);
+  } catch(e) {
+    console.error('TCGapi error:', e.message);
+    return [];
+  }
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { image, barcode=null, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null, userBrand=null, userModel=null, userYear=null, userSize=null, userCategory=null, userRef=null } = req.body || {};
@@ -826,6 +892,11 @@ module.exports = async function handler(req, res) {
       const pcPromise      = withTimeout(getPriceChartingListings(specificQuery), 2000, []);
       const kleinPromise   = withTimeout(getKleinanzeigenListings(specificQuery), 3000, []);
       const ricardoPromise = withTimeout(getRicardoListings(specificQuery), 3000, []);
+      // TCGapi: only for trading cards (Sammler category + recognizable game)
+      const isTCGCategory = (objectInfo.category === 'Sammler') && detectTCGGame(specificQuery, objectInfo.objectName);
+      const tcgPromise     = isTCGCategory
+        ? withTimeout(getTCGApiListings(specificQuery, objectInfo.objectName), 4000, [])
+        : Promise.resolve([]);
 
       // eBay: sequential fallback (specific → broad → objectName), all with category filter
       ebayData = await getEbayPrices(specificQuery, categoryEbayId);
@@ -850,8 +921,8 @@ module.exports = async function handler(req, res) {
       }
 
       // Collect parallel results (eBay already resolved above)
-      const [retailResult, soldResult, vintedResult, pcResult, kleinResult, ricardoResult] = await Promise.allSettled([
-        retailPromise, soldPromise, vintedPromise, pcPromise, kleinPromise, ricardoPromise
+      const [retailResult, soldResult, vintedResult, pcResult, kleinResult, ricardoResult, tcgResult] = await Promise.allSettled([
+        retailPromise, soldPromise, vintedPromise, pcPromise, kleinPromise, ricardoPromise, tcgPromise
       ]);
       if (retailResult.status === 'fulfilled') retailData = retailResult.value;
       if (soldResult.status === 'fulfilled') soldData = soldResult.value;
@@ -864,14 +935,16 @@ module.exports = async function handler(req, res) {
       const pcListings       = pcResult.status       === 'fulfilled' ? pcResult.value       : [];
       const kleinListings    = kleinResult.status    === 'fulfilled' ? kleinResult.value    : [];
       const ricardoListings  = ricardoResult.status  === 'fulfilled' ? ricardoResult.value  : [];
+      const tcgListings      = tcgResult.status      === 'fulfilled' ? tcgResult.value      : [];
+      if (tcgListings.length) console.log(`TCGapi: ${tcgListings.length} results for "${specificQuery}"`);
 
       // Merge all sources into topListings
       if (ebayData) {
-        const extra = [...vintedListings, ...pcListings, ...kleinListings, ...ricardoListings];
+        const extra = [...vintedListings, ...pcListings, ...kleinListings, ...ricardoListings, ...tcgListings];
         ebayData.topListings = [...(ebayData.topListings || []).map(l => ({...l, source:'eBay'})), ...extra];
       } else if (kleinListings.length || ricardoListings.length || vintedListings.length) {
         // No eBay data: build synthetic ebayData from other sources for display
-        const allExtra = [...vintedListings, ...kleinListings, ...ricardoListings, ...pcListings];
+        const allExtra = [...vintedListings, ...kleinListings, ...ricardoListings, ...pcListings, ...tcgListings];
         const prices = allExtra.map(l => parseFloat(l.price)).filter(p => p > 0);
         if (prices.length) {
           const avg = (prices.reduce((a,b)=>a+b,0)/prices.length).toFixed(2);
