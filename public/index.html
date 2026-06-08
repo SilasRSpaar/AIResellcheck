@@ -1498,23 +1498,23 @@
   }
 
   // ── SUPABASE AUTH + PROFILE ───────────────────────────────────────
-  let supabase = null;
+  let sbClient = null;
   let currentUser = null;
   let authMode = 'login';
 
   async function initSupabase() {
-    if (supabase) return supabase;
+    if (sbClient) return sbClient;
     try {
       const res = await fetch('/api/config');
       if (!res.ok) throw new Error('config not available');
       const { supabaseUrl, supabaseAnonKey } = await res.json();
-      supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { session } } = await supabase.auth.getSession();
+      sbClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+      const { data: { session } } = await sbClient.auth.getSession();
       if (session?.user) setUser(session.user);
     } catch (e) {
       console.warn('Supabase not configured:', e.message);
     }
-    return supabase;
+    return sbClient;
   }
 
   function setUser(user) {
@@ -1560,7 +1560,7 @@
   }
 
   async function submitAuth() {
-    if (!supabase) return;
+    if (!sbClient) return;
     const email = document.getElementById('authEmail').value.trim();
     const password = document.getElementById('authPassword').value;
     const msg = document.getElementById('authMsg');
@@ -1574,9 +1574,9 @@
     try {
       let result;
       if (authMode === 'login') {
-        result = await supabase.auth.signInWithPassword({ email, password });
+        result = await sbClient.auth.signInWithPassword({ email, password });
       } else {
-        result = await supabase.auth.signUp({ email, password });
+        result = await sbClient.auth.signUp({ email, password });
       }
       if (result.error) throw result.error;
       const user = result.data?.user || result.data?.session?.user;
@@ -1595,15 +1595,15 @@
   }
 
   async function doLogout() {
-    if (supabase) await supabase.auth.signOut();
+    if (sbClient) await sbClient.auth.signOut();
     setUser(null);
     showView('wizardView');
   }
 
   async function saveScan(data, mode) {
-    if (!currentUser || !supabase) return;
+    if (!currentUser || !sbClient) return;
     try {
-      await supabase.from('scans').insert({
+      await sbClient.from('scans').insert({
         user_id: currentUser.id,
         object_name: data.objectName || 'Unbekannt',
         category: data.category || null,
@@ -1622,11 +1622,11 @@
   }
 
   async function loadScanHistory() {
-    if (!supabase || !currentUser) return;
+    if (!sbClient || !currentUser) return;
     const list = document.getElementById('scanList');
     list.innerHTML = '<div class="scan-empty">Laden…</div>';
     try {
-      const { data, error } = await supabase
+      const { data, error } = await sbClient
         .from('scans').select('*')
         .eq('user_id', currentUser.id)
         .order('scanned_at', { ascending: false })
