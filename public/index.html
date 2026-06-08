@@ -10,6 +10,7 @@
   <title>Comparadoo</title>
   <link rel="manifest" href="/manifest.json" />
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -478,6 +479,70 @@
     /* hide header + progress when on step 1 */
     body.on-step1 #appHeader,
     body.on-step1 .wizard-top { display: none !important; }
+
+    /* ── USER BUTTON ─────────────────────────────────────────────── */
+    .user-btn {
+      margin-left: auto; background: transparent; border: 1px solid var(--border);
+      color: var(--text-muted); border-radius: 20px; padding: 5px 11px;
+      font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .user-btn:hover { border-color: var(--accent-light); color: var(--text); }
+    .user-btn.logged-in { color: var(--green); border-color: var(--green); }
+
+    /* ── AUTH MODAL ──────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 28px 24px; width: 100%; max-width: 380px;
+    }
+    .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .modal-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+    .modal-tabs { display: flex; gap: 0; margin-bottom: 20px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .modal-tab-btn { flex: 1; padding: 9px; background: transparent; border: none; color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer; }
+    .modal-tab-btn.active { background: var(--accent); color: #fff; }
+    .auth-input {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 11px 14px; color: var(--text); font-size: 14px;
+      margin-bottom: 10px; outline: none;
+    }
+    .auth-input:focus { border-color: var(--accent-light); }
+    .auth-btn {
+      width: 100%; padding: 12px; background: var(--accent); color: #fff;
+      border: none; border-radius: 10px; font-size: 14px; font-weight: 700;
+      cursor: pointer; margin-top: 4px;
+    }
+    .auth-btn:hover { background: var(--accent-light); }
+    .auth-msg { font-size: 12px; text-align: center; margin-top: 10px; min-height: 18px; }
+    .auth-msg.error { color: var(--red); }
+    .auth-msg.ok { color: var(--green); }
+    .modal-close { float: right; background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; line-height: 1; }
+
+    /* ── PROFILE VIEW ────────────────────────────────────────────── */
+    #profileView { padding: 0; }
+    .profile-header {
+      padding: 16px 20px 12px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .profile-title { font-size: 16px; font-weight: 700; }
+    .profile-email { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .profile-logout { background: none; border: 1px solid var(--border); color: var(--text-muted); border-radius: 8px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
+    .profile-logout:hover { border-color: var(--red); color: var(--red); }
+    .scan-list { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; }
+    .scan-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;
+    }
+    .scan-card-name { font-size: 14px; font-weight: 700; }
+    .scan-card-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 10px; flex-wrap: wrap; }
+    .scan-card-price { font-size: 14px; font-weight: 700; color: var(--green); }
+    .scan-empty { text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 14px; }
+    .profile-back-btn { background: none; border: none; color: var(--accent-light); font-size: 13px; cursor: pointer; padding: 5px 0; }
   </style>
 </head>
 <body class="on-step1">
@@ -489,8 +554,25 @@
       <path d="M 20.83 20.83 A 4 4 0 1 0 20.83 15.17" stroke="#BA7517" stroke-width="3.5" stroke-linecap="round"/>
     </svg>
     <div class="logo">Compara<span>doo</span></div>
-    <div class="badge">AI</div>
+    <button class="user-btn" id="userBtn" onclick="handleUserBtn()">👤 Anmelden</button>
   </header>
+
+  <!-- AUTH MODAL -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeAuthModal()">✕</button>
+      <div class="modal-title">Konto</div>
+      <div class="modal-sub">Speichere deine Scans und greife überall darauf zu.</div>
+      <div class="modal-tabs">
+        <button class="modal-tab-btn active" id="tabLogin" onclick="switchAuthTab('login')">Anmelden</button>
+        <button class="modal-tab-btn" id="tabRegister" onclick="switchAuthTab('register')">Registrieren</button>
+      </div>
+      <input class="auth-input" type="email" id="authEmail" placeholder="E-Mail-Adresse" />
+      <input class="auth-input" type="password" id="authPassword" placeholder="Passwort" />
+      <button class="auth-btn" id="authSubmitBtn" onclick="submitAuth()">Anmelden</button>
+      <div class="auth-msg" id="authMsg"></div>
+    </div>
+  </div>
 
   <!-- WIZARD VIEW -->
   <div id="wizardView" class="view active">
@@ -673,7 +755,25 @@
     <button class="btn btn-secondary" onclick="resetApp()">← Neues Objekt scannen</button>
     <div class="bottom-safe"></div>
   </div>
-</div>
+
+  <!-- PROFILE VIEW -->
+  <div id="profileView" class="view">
+    <div class="profile-header">
+      <div>
+        <div class="profile-title">📋 Meine Scans</div>
+        <div class="profile-email" id="profileEmail"></div>
+      </div>
+      <button class="profile-logout" onclick="doLogout()">Abmelden</button>
+    </div>
+    <div class="scan-list" id="scanList">
+      <div class="scan-empty">Laden…</div>
+    </div>
+    <div style="padding:12px 20px;">
+      <button class="btn btn-secondary" onclick="showView('wizardView')">← Zurück</button>
+    </div>
+    <div class="bottom-safe"></div>
+  </div>
+</div><!-- end #app -->
 
 <script>
   let selectedImage = null;
@@ -969,6 +1069,7 @@
 
       const data = await response.json();
       currentMode === 'resell' ? renderResellResult(data, buyPrice, sellPrice) : renderFairnessResult(data, askedPrice);
+      saveScan(data, currentMode); // store to Supabase if logged in
 
     } catch (err) {
       clearInterval(stepInterval);
@@ -1309,6 +1410,7 @@
     `;
     showView('resultView');
   }
+
   function switchResultTab(tabId, btn) {
     document.querySelectorAll('.result-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -1352,17 +1454,13 @@
       const badge = l.source ? '<span class="listing-source ' + cls + '">' + l.source + '</span>' : '';
       if (l.url) {
         return '<a class="listing-item" href="' + l.url + '" target="_blank" rel="noopener">' +
-          badge +
-          '<span class="listing-title">' + l.title + '</span>' +
+          badge + '<span class="listing-title">' + l.title + '</span>' +
           '<span class="listing-price">' + priceStr + '</span>' +
-          '<span class="listing-arrow">↗</span>' +
-          '</a>';
+          '<span class="listing-arrow">↗</span></a>';
       }
-      return '<div class="listing-item">' +
-        badge +
+      return '<div class="listing-item">' + badge +
         '<span class="listing-title">' + l.title + '</span>' +
-        '<span class="listing-price">' + priceStr + '</span>' +
-        '</div>';
+        '<span class="listing-price">' + priceStr + '</span></div>';
     }).join('');
     return '<div class="listings-section"><div class="listings-title">Ähnliche Angebote</div>' + items + '</div>';
   }
@@ -1388,7 +1486,6 @@
     const area = document.getElementById('cameraArea');
     area.innerHTML = `<div class="camera-icon">📷</div><div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>`;
     document.getElementById('btnStep2Next').disabled = true;
-    // Reset wizard steps
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
     document.getElementById('step1').classList.add('active');
     for (let i = 1; i <= 4; i++) {
@@ -1399,6 +1496,161 @@
     document.getElementById('dot1').classList.add('active');
     showView('wizardView');
   }
+
+  // ── SUPABASE AUTH + PROFILE ───────────────────────────────────────
+  let supabase = null;
+  let currentUser = null;
+  let authMode = 'login';
+
+  async function initSupabase() {
+    if (supabase) return supabase;
+    try {
+      const res = await fetch('/api/config');
+      if (!res.ok) throw new Error('config not available');
+      const { supabaseUrl, supabaseAnonKey } = await res.json();
+      supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) setUser(session.user);
+    } catch (e) {
+      console.warn('Supabase not configured:', e.message);
+    }
+    return supabase;
+  }
+
+  function setUser(user) {
+    currentUser = user;
+    const btn = document.getElementById('userBtn');
+    if (user) {
+      btn.textContent = String.fromCodePoint(0x1F464) + ' ' + (user.email?.split('@')[0] || 'Profil');
+      btn.classList.add('logged-in');
+      document.getElementById('profileEmail').textContent = user.email;
+    } else {
+      btn.textContent = String.fromCodePoint(0x1F464) + ' Anmelden';
+      btn.classList.remove('logged-in');
+    }
+  }
+
+  async function handleUserBtn() {
+    await initSupabase();
+    if (currentUser) {
+      await loadScanHistory();
+      showView('profileView');
+    } else {
+      openAuthModal();
+    }
+  }
+
+  function openAuthModal() {
+    document.getElementById('authModal').classList.add('open');
+    document.getElementById('authEmail').focus();
+  }
+
+  function closeAuthModal() {
+    document.getElementById('authModal').classList.remove('open');
+    document.getElementById('authMsg').textContent = '';
+    document.getElementById('authMsg').className = 'auth-msg';
+  }
+
+  function switchAuthTab(mode) {
+    authMode = mode;
+    document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
+    document.getElementById('tabRegister').classList.toggle('active', mode === 'register');
+    document.getElementById('authSubmitBtn').textContent = mode === 'login' ? 'Anmelden' : 'Registrieren';
+    document.getElementById('authMsg').textContent = '';
+  }
+
+  async function submitAuth() {
+    if (!supabase) return;
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const msg = document.getElementById('authMsg');
+    if (!email || !password) {
+      msg.textContent = 'Bitte E-Mail und Passwort eingeben.';
+      msg.className = 'auth-msg error';
+      return;
+    }
+    const btn = document.getElementById('authSubmitBtn');
+    btn.disabled = true; btn.textContent = '…';
+    try {
+      let result;
+      if (authMode === 'login') {
+        result = await supabase.auth.signInWithPassword({ email, password });
+      } else {
+        result = await supabase.auth.signUp({ email, password });
+      }
+      if (result.error) throw result.error;
+      const user = result.data?.user || result.data?.session?.user;
+      if (user) {
+        setUser(user);
+        msg.textContent = authMode === 'login' ? 'Willkommen!' : 'Registrierung erfolgreich – bitte E-Mail bestätigen.';
+        msg.className = 'auth-msg ok';
+        setTimeout(() => closeAuthModal(), 1200);
+      }
+    } catch (e) {
+      msg.textContent = e.message || 'Fehler beim Anmelden.';
+      msg.className = 'auth-msg error';
+    }
+    btn.disabled = false;
+    btn.textContent = authMode === 'login' ? 'Anmelden' : 'Registrieren';
+  }
+
+  async function doLogout() {
+    if (supabase) await supabase.auth.signOut();
+    setUser(null);
+    showView('wizardView');
+  }
+
+  async function saveScan(data, mode) {
+    if (!currentUser || !supabase) return;
+    try {
+      await supabase.from('scans').insert({
+        user_id: currentUser.id,
+        object_name: data.objectName || 'Unbekannt',
+        category: data.category || null,
+        brand: data.brand || null,
+        condition: data.condition || null,
+        price_min: data.priceMin || null,
+        price_max: data.priceMax || null,
+        market_avg: data.marketAvg || null,
+        confidence: data.confidence || null,
+        context_info: data.contextInfo || null,
+        mode: mode || 'resell',
+      });
+    } catch (e) {
+      console.warn('Scan save failed:', e.message);
+    }
+  }
+
+  async function loadScanHistory() {
+    if (!supabase || !currentUser) return;
+    const list = document.getElementById('scanList');
+    list.innerHTML = '<div class="scan-empty">Laden…</div>';
+    try {
+      const { data, error } = await supabase
+        .from('scans').select('*')
+        .eq('user_id', currentUser.id)
+        .order('scanned_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        list.innerHTML = '<div class="scan-empty">Noch keine Scans gespeichert.<br>Scanne ein Objekt – es wird automatisch gespeichert.</div>';
+        return;
+      }
+      list.innerHTML = data.map(s => {
+        const date = new Date(s.scanned_at).toLocaleDateString('de-CH', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+        const avg = s.market_avg ? parseFloat(s.market_avg).toFixed(0) : null;
+        const priceStr = avg ? 'CHF ' + avg : (s.price_min && s.price_max ? 'CHF ' + s.price_min + '–' + s.price_max : '—');
+        return '<div class="scan-card"><div class="scan-card-name">' + s.object_name + '</div>' +
+          '<div class="scan-card-meta"><span>' + (s.category||'') + '</span><span>' + (s.condition||'') + '</span>' +
+          '<span>' + date + '</span><span style="text-transform:capitalize;">' + (s.mode||'') + '</span></div>' +
+          '<div class="scan-card-price">' + priceStr + '</div></div>';
+      }).join('');
+    } catch (e) {
+      list.innerHTML = '<div class="scan-empty">Fehler: ' + e.message + '</div>';
+    }
+  }
+
+  initSupabase();
 </script>
 </body>
 </html>
