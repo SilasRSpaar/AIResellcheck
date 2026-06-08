@@ -1,5 +1,6 @@
 // Comparadoo – Serverless API Function (Vercel)
 const https = require('https');
+const crypto = require('crypto');
 
 function httpsPost(hostname, path, headers, body) {
   return new Promise((resolve, reject) => {
@@ -62,7 +63,14 @@ const CATEGORY_EBAY_MAP = {
     },
     default: '58058'
   },
-  'Spielzeug':            { default: '220' },
+  'Spielzeug': {
+    subTypes: {
+      'lego': '19006',      // LEGO Sets on eBay.de
+      'playmobil': '220',
+      'barbie': '220',
+    },
+    default: '220'
+  },
   'Uhren & Schmuck': {
     subTypes: { 'uhr': '14324', 'watch': '14324', 'schmuck': '10968', 'ring': '10968', 'kette': '10968', 'armband': '10968' },
     default: '14324'
@@ -785,6 +793,7 @@ async function getTCGApiListings(searchQuery, objectName) {
   }
 }
 
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { image, barcode=null, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null, userBrand=null, userModel=null, userYear=null, userSize=null, userCategory=null, userRef=null } = req.body || {};
@@ -898,6 +907,7 @@ module.exports = async function handler(req, res) {
         ? withTimeout(getTCGApiListings(specificQuery, objectInfo.objectName), 4000, [])
         : Promise.resolve([]);
 
+
       // eBay: sequential fallback (specific → broad → objectName), all with category filter
       ebayData = await getEbayPrices(specificQuery, categoryEbayId);
       if ((!ebayData || ebayData.listingCount < 5) && broadQuery && broadQuery !== specificQuery) {
@@ -937,6 +947,7 @@ module.exports = async function handler(req, res) {
       const ricardoListings  = ricardoResult.status  === 'fulfilled' ? ricardoResult.value  : [];
       const tcgListings      = tcgResult.status      === 'fulfilled' ? tcgResult.value      : [];
       if (tcgListings.length) console.log(`TCGapi: ${tcgListings.length} results for "${specificQuery}"`);
+
 
       // Merge all sources into topListings
       if (ebayData) {
