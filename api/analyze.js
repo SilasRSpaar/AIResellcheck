@@ -350,7 +350,7 @@ async function getEbayPrices(searchQuery, categoryId = null) {
     const req = https.request(
       { hostname: 'api.ebay.com', path: '/identity/v1/oauth2/token', method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded', Authorization: `Basic ${credentials}`, 'Content-Length': Buffer.byteLength(body) } },
-      (res) => { let raw=''; res.on('data',(c)=>raw+=c); res.on('end',()=>resolve(JSON.parse(raw))); }
+      (res) => { let raw=''; res.on('data',(c)=>raw+=c); res.on('end',()=>{ try { resolve(JSON.parse(raw)); } catch(e) { reject(new Error('eBay token parse: ' + raw.substring(0,80))); } }); }
     );
     req.on('error', reject); req.write(body); req.end();
   });
@@ -953,7 +953,7 @@ async function estimateAntiquePriceWithAI(objectInfo) {
     "- Maker-Markierung vorhanden: +20-40% Aufschlag",
     "- Schlechter Zustand: -40-60%",
     "",
-    "Antworte NUR mit gültigem JSON: {"priceMin": Zahl, "priceMax": Zahl, "marketAvg": Zahl, "priceNote": "kurze Begründung max 15 Wörter"}"
+    'Antworte NUR mit gültigem JSON: {"priceMin": Zahl, "priceMax": Zahl, "marketAvg": Zahl, "priceNote": "kurze Begründung max 15 Wörter"}'
   ].filter(l => l !== null).join("\n");
 
   const result = await httpsPost("api.openai.com", "/v1/chat/completions",
@@ -1163,9 +1163,11 @@ module.exports = async function handler(req, res) {
   const { image, barcode=null, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null, userBrand=null, userModel=null, userYear=null, userSize=null, userCategory=null, userRef=null } = req.body || {};
   if (!image && !barcode) return res.status(400).json({ error: 'Kein Bild oder Barcode übermittelt' });
 
+  let _step = 'init';
   try {
     // Priority: barcode > brand+vision > vision-only
     let objectInfo;
+    _step = 'identify';
     if (barcode) {
       const barcodeInfo = await lookupBarcode(barcode);
       if (barcodeInfo) {
@@ -1184,10 +1186,41 @@ module.exports = async function handler(req, res) {
       // Standard vision identification
       objectInfo = await identifyObject(image);
     }
+    _step = 'post-identify';
     if (condition) objectInfo.condition = condition;
     if (userBrand) objectInfo.brand = userBrand;
     if (userModel) objectInfo.model = userModel;
     if (userYear)  objectInfo.year  = userYear;
+
+    // Guard: objectInfo must be a valid object
+    if (!objectInfo || typeof objectInfo !== 'object') {
+      return res.status(200).json({
+        objectName: 'Unbekanntes Objekt', category: 'Sonstiges', brand: null, condition: 'Gut',
+        priceMin: null, priceMax: null, marketAvg: null, confidence: 0,
+        aiNote: 'Das Objekt konnte nicht identifiziert werden. Bitte versuche es mit einem klareren Foto.',
+        topListings: [], ebaySearchUrl: null, amazonSearchUrl: null,
+        usedFallbackQuery: false, contextInfo: null,
+      });
+    }
+
+    // Guard: detect non-tradeable natural/food items (no resale market exists)
+    const nonTradeablePatterns = /tannenzapfen|zapfen|pilz|blume|blatt|stein|kiesel|sand|erde|gras|baum|ast|rinde|moos|farn|schnee|eis|wasser|lebensmittel|obst|gemüse|frucht|tier|hund|katze|vogel|fisch|insekt|käfer|wurm/i;
+    const nameToCheck = (objectInfo.objectName || '').toLowerCase();
+    const contextToCheck = (objectInfo.contextInfo || '').toLowerCase();
+    const isNonTradeable = nonTradeablePatterns.test(nameToCheck) || nonTradeablePatterns.test(contextToCheck);
+    if (isNonTradeable && !userBrand && !userModel) {
+      const ebayUrl = buildEbaySearchUrl(objectInfo.objectName || 'Natur');
+      return res.status(200).json({
+        objectName: objectInfo.objectName || 'Naturobjekt',
+        category: objectInfo.category || 'Sonstiges',
+        brand: null, condition: objectInfo.condition || 'Gut',
+        priceMin: null, priceMax: null, marketAvg: null,
+        confidence: objectInfo.confidence || 50,
+        aiNote: `${objectInfo.objectName || 'Dieses Objekt'} hat keinen typischen Wiederverkaufswert auf dem Secondhand-Markt. Comparadoo ist für gebrauchte Konsumgüter wie Elektronik, Kleidung, Möbel und Sammlerstücke optimiert.`,
+        topListings: [], ebaySearchUrl: ebayUrl, amazonSearchUrl: null,
+        usedFallbackQuery: false, contextInfo: objectInfo.contextInfo || null,
+      });
+    }
 
     // CONFIRMED FACTS override: force model into objectName + ebaySearchQuery
     if (userModel) {
@@ -1300,6 +1333,7 @@ module.exports = async function handler(req, res) {
 
 
       // eBay: sequential fallback (specific → broad → objectName), all with category filter
+      _step = 'ebay-browse';
       ebayData = await getEbayPrices(specificQuery, categoryEbayId);
       if ((!ebayData || ebayData.listingCount < 5) && broadQuery && broadQuery !== specificQuery) {
         console.log(`eBay fallback B: "${broadQuery}" (was: ${ebayData?.listingCount || 0} results)`);
@@ -1427,7 +1461,7 @@ module.exports = async function handler(req, res) {
     });
 
   } catch(err) {
-    console.error('Analysis error:', err);
+    console.error(`Analysis error [step=${_step}]:`, err.message, err.stack?.split('\n').slice(0,3).join(' | '));
     return res.status(500).json({ error: err.message || 'Analyse fehlgeschlagen' });
   }
 };
