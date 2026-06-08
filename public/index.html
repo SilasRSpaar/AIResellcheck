@@ -403,6 +403,7 @@
     .listing-source.src-vinted { background: #0a2e24; color: #1D9E75; }
     .listing-source.src-kleinanzeigen { background: #2d2006; color: #fbbf24; }
     .listing-source.src-ricardo { background: #3b0f0f; color: #f87171; }
+    .listing-source.src-tutti   { background: #1a2a0a; color: #86efac; }
     .listing-source.src-default { background: var(--border); color: var(--text-muted); }
 
     /* PRICE SPLIT CARDS */
@@ -1110,6 +1111,11 @@
             <span class="angebote-link-label">Ricardo.ch suchen</span>
             <span class="angebote-link-arrow">↗</span>
           </a>
+          <a class="angebote-link" href="https://www.tutti.ch/de/q/suche?query=${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
+            <span class="angebote-link-icon">🇨🇭</span>
+            <span class="angebote-link-label">Tutti.ch Kleinanzeigen</span>
+            <span class="angebote-link-arrow">↗</span>
+          </a>
           <a class="angebote-link" href="https://www.galaxus.ch/de/search?q=${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
             <span class="angebote-link-icon">🛍️</span>
             <span class="angebote-link-label">Galaxus.ch Neupreis</span>
@@ -1283,6 +1289,11 @@
             <span class="angebote-link-label">Ricardo.ch suchen</span>
             <span class="angebote-link-arrow">↗</span>
           </a>
+          <a class="angebote-link" href="https://www.tutti.ch/de/q/suche?query=${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
+            <span class="angebote-link-icon">🇨🇭</span>
+            <span class="angebote-link-label">Tutti.ch Kleinanzeigen</span>
+            <span class="angebote-link-arrow">↗</span>
+          </a>
           <a class="angebote-link" href="https://www.galaxus.ch/de/search?q=${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
             <span class="angebote-link-icon">🛍️</span>
             <span class="angebote-link-label">Galaxus.ch Neupreis</span>
@@ -1333,7 +1344,7 @@
     if (!listings || listings.length === 0) return '';
     const srcClass = {
       'eBay': 'src-ebay', 'Vinted': 'src-vinted',
-      'Kleinanzeigen': 'src-kleinanzeigen', 'Ricardo.ch': 'src-ricardo'
+      'Kleinanzeigen': 'src-kleinanzeigen', 'Ricardo.ch': 'src-ricardo', 'Tutti.ch': 'src-tutti', 'Toppreise.ch': 'src-tutti'
     };
     const items = listings.map(l => {
       const priceStr = l.price ? 'CHF ' + parseFloat(l.price).toFixed(0) : '–';

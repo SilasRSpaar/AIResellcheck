@@ -978,6 +978,186 @@ async function estimateAntiquePriceWithAI(objectInfo) {
   } catch(e) { return null; }
 }
 
+
+// ── Tutti.ch – Swiss Classifieds (CHF prices, broad categories) ──────────────
+// Switzerland's leading classifieds platform alongside Ricardo.
+// No official API — tries internal REST endpoint first, falls back to NEXT_DATA scraping.
+
+async function getTuttiListings(searchQuery) {
+  const encoded = encodeURIComponent(searchQuery);
+  const HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    'Accept': 'application/json',
+    'Accept-Language': 'de-CH,de;q=0.9',
+    'Referer': 'https://www.tutti.ch/',
+  };
+
+  // Attempt 1: Internal REST API (JSON, no scraping needed)
+  try {
+    const api = await withTimeout(
+      httpsGet('www.tutti.ch', `/api/v3/ads?query=${encoded}&rows=5&fl=id,subject,price,url`, HEADERS),
+      3000, null
+    );
+    if (api && api.status === 200 && api.body?.data?.ads?.length) {
+      console.log(`Tutti API: ${api.body.data.ads.length} results`);
+      return api.body.data.ads.slice(0, 3).map(ad => ({
+        title:  (ad.subject || ad.title || '').substring(0, 60),
+        price:  ad.price ? parseFloat(String(ad.price).replace(/[^0-9.]/g, '')).toFixed(2) : null,
+        currency: 'CHF',
+        url:    ad.url ? ('https://www.tutti.ch' + ad.url) : 'https://www.tutti.ch/de/q/suche?query=' + encoded,
+        source: 'Tutti.ch'
+      })).filter(l => l.price && parseFloat(l.price) > 0);
+    }
+  } catch(e) { /* fall through */ }
+
+  // Attempt 2: NEXT_DATA HTML scraping
+  try {
+    const HEADERS_HTML = { ...HEADERS, Accept: 'text/html,application/xhtml+xml,*/*;q=0.8' };
+    const page = await withTimeout(
+      httpsGet('www.tutti.ch', `/de/q/suche?query=${encoded}`, HEADERS_HTML),
+      4000, null
+    );
+    if (!page || page.status !== 200) return [];
+    const html = typeof page.body === 'string' ? page.body : JSON.stringify(page.body);
+
+    // Try NEXT_DATA first
+    const m = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    if (m) {
+      try {
+        const nd = JSON.parse(m[1]);
+        const pp = nd?.props?.pageProps || {};
+        // Deep search for arrays with price+title (same pattern as Ricardo)
+        function deepFind(obj, depth = 0) {
+          if (depth > 8 || !obj || typeof obj !== 'object') return null;
+          if (Array.isArray(obj) && obj.length > 0) {
+            const f = obj[0];
+            if (f && typeof f === 'object') {
+              const keys = Object.keys(f);
+              if (keys.some(k => /title|subject|name/i.test(k)) && keys.some(k => /price|preis/i.test(k))) return obj;
+            }
+          }
+          for (const k of Object.keys(obj)) { const r = deepFind(obj[k], depth+1); if (r) return r; }
+          return null;
+        }
+        const known = [pp?.ads, pp?.listings, pp?.results, pp?.data?.ads, pp?.searchResult?.ads];
+        let items = known.find(p => Array.isArray(p) && p.length > 0) || deepFind(pp);
+        if (items && items.length > 0) {
+          console.log(`Tutti NEXT_DATA: ${items.length} items`);
+          return items.slice(0, 3).map(ad => {
+            const priceRaw = ad.price?.amount || ad.price?.value || ad.price || ad.preis;
+            const price = priceRaw ? parseFloat(String(priceRaw).replace(/[^0-9.]/g, '')) : null;
+            const slug  = ad.id || ad.slug || ad.adId;
+            return {
+              title:  (ad.subject || ad.title || ad.name || '').substring(0, 60),
+              price:  price ? price.toFixed(2) : null,
+              currency: 'CHF',
+              url:    slug ? `https://www.tutti.ch/de/vi/${slug}` : `https://www.tutti.ch/de/q/suche?query=${encoded}`,
+              source: 'Tutti.ch'
+            };
+          }).filter(l => l.price && parseFloat(l.price) > 0);
+        }
+      } catch(e) { /* ignore parse error */ }
+    }
+
+    // Try extracting JSON from embedded <script type="application/json">
+    const jsonScripts = [...html.matchAll(/<script type="application\/json"[^>]*>([\s\S]*?)<\/script>/g)];
+    for (const match of jsonScripts) {
+      try {
+        const data = JSON.parse(match[1]);
+        const ads = data?.ads || data?.results || data?.listings;
+        if (Array.isArray(ads) && ads.length > 0) {
+          return ads.slice(0, 3).map(ad => {
+            const priceRaw = ad.price?.amount || ad.price || 0;
+            return {
+              title: (ad.subject || ad.title || '').substring(0, 60),
+              price: priceRaw ? parseFloat(priceRaw).toFixed(2) : null,
+              currency: 'CHF',
+              url: ad.id ? `https://www.tutti.ch/de/vi/${ad.id}` : `https://www.tutti.ch/de/q/suche?query=${encoded}`,
+              source: 'Tutti.ch'
+            };
+          }).filter(l => l.price && parseFloat(l.price) > 0);
+        }
+      } catch(e) { /* ignore */ }
+    }
+    console.log('Tutti: no structured data found in HTML');
+    return [];
+  } catch(e) {
+    console.error('Tutti scrape error:', e.message);
+    return [];
+  }
+}
+
+// ── Toppreise.ch – Swiss Retail Price Comparison (CHF, real market prices) ───
+// Switzerland's leading price comparison portal. Provides real CHF retail prices
+// from Swiss/EU retailers — replaces GPT estimation for hard goods categories.
+// Only used for categories where retail price comparison makes sense.
+
+const TOPPREISE_CATEGORIES = new Set([
+  'Elektronik', 'Haushalt & Küche', 'Musik', 'Sport & Outdoor', 'Spielzeug'
+]);
+
+async function getToppreiseRetailPrice(searchQuery, category) {
+  if (!TOPPREISE_CATEGORIES.has(category)) return null;
+  try {
+    const encoded = encodeURIComponent(searchQuery);
+    // Toppreise search results page
+    const result = await withTimeout(
+      httpsGet('www.toppreise.ch',
+        `/priceengine/searchResults.php?lang=de&cat=&q=${encoded}`,
+        {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8',
+          'Accept-Language': 'de-CH,de;q=0.9',
+        }
+      ), 4000, null
+    );
+    if (!result || result.status !== 200) return null;
+    const html = typeof result.body === 'string' ? result.body : '';
+
+    // Try JSON-LD first (most reliable)
+    const jsonldMatches = [...html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)];
+    for (const m of jsonldMatches) {
+      try {
+        const ld = JSON.parse(m[1]);
+        const items = Array.isArray(ld) ? ld : [ld];
+        for (const item of items) {
+          if (item['@type'] === 'Product' || item['@type'] === 'ItemList') {
+            const offers = item.offers || item.itemListElement?.[0]?.item?.offers;
+            const price = offers?.price || offers?.lowPrice;
+            if (price && parseFloat(price) > 0) {
+              return {
+                retailPrice:      parseFloat(price).toFixed(2),
+                retailConfidence: 'high',
+                retailSource:     'Toppreise.ch'
+              };
+            }
+          }
+        }
+      } catch(e) { /* try next */ }
+    }
+
+    // Fallback: extract lowest price from HTML price patterns (CHF XX.– or CHF XX.XX)
+    const priceMatches = html.match(/CHF\s*([0-9]{2,6}[.,][0-9]{0,2})/g) || [];
+    const prices = priceMatches
+      .map(p => parseFloat(p.replace('CHF', '').replace(/[^0-9.]/g, '').trim()))
+      .filter(p => p > 0 && p < 100000);
+    if (prices.length > 0) {
+      prices.sort((a, b) => a - b);
+      const lowestPrice = prices[0];
+      console.log(`Toppreise HTML: found ${prices.length} prices, lowest=${lowestPrice}`);
+      return {
+        retailPrice:      lowestPrice.toFixed(2),
+        retailConfidence: 'medium',
+        retailSource:     'Toppreise.ch'
+      };
+    }
+    return null;
+  } catch(e) {
+    console.error('Toppreise error:', e.message);
+    return null;
+  }
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { image, barcode=null, mode='resell', buyPrice=0, sellPrice=0, askedPrice=0, condition=null, userBrand=null, userModel=null, userYear=null, userSize=null, userCategory=null, userRef=null } = req.body || {};
@@ -1099,6 +1279,11 @@ module.exports = async function handler(req, res) {
       const retailPromise = (async () => {
         const keepa = await getKeepaRetailPrice(specificQuery);
         if (keepa) return keepa;
+        // Try Toppreise.ch for real CHF retail prices (Electronics, Household, etc.)
+        const toppreise = await withTimeout(
+          getToppreiseRetailPrice(specificQuery, objectInfo.category), 4000, null
+        );
+        if (toppreise) return toppreise;
         return estimateRetailPrice(objectInfo, specificQuery);
       })();
       const soldPromise    = withTimeout(getEbaySoldPrices(specificQuery, categoryEbayId), 4000, null);
@@ -1106,6 +1291,7 @@ module.exports = async function handler(req, res) {
       const pcPromise      = withTimeout(getPriceChartingListings(specificQuery), 2000, []);
       const kleinPromise   = withTimeout(getKleinanzeigenListings(specificQuery), 3000, []);
       const ricardoPromise = withTimeout(getRicardoListings(specificQuery), 3000, []);
+      const tuttiPromise   = withTimeout(getTuttiListings(specificQuery), 3500, []);
       // TCGapi: only for trading cards (Sammler category + recognizable game)
       const isTCGCategory = (objectInfo.category === 'Sammler') && detectTCGGame(specificQuery, objectInfo.objectName);
       const tcgPromise     = isTCGCategory
@@ -1136,8 +1322,8 @@ module.exports = async function handler(req, res) {
       }
 
       // Collect parallel results (eBay already resolved above)
-      const [retailResult, soldResult, vintedResult, pcResult, kleinResult, ricardoResult, tcgResult] = await Promise.allSettled([
-        retailPromise, soldPromise, vintedPromise, pcPromise, kleinPromise, ricardoPromise, tcgPromise
+      const [retailResult, soldResult, vintedResult, pcResult, kleinResult, ricardoResult, tcgResult, tuttiResult] = await Promise.allSettled([
+        retailPromise, soldPromise, vintedPromise, pcPromise, kleinPromise, ricardoPromise, tcgPromise, tuttiPromise
       ]);
       if (retailResult.status === 'fulfilled') retailData = retailResult.value;
       if (soldResult.status === 'fulfilled') soldData = soldResult.value;
@@ -1152,15 +1338,17 @@ module.exports = async function handler(req, res) {
       const ricardoListings  = ricardoResult.status  === 'fulfilled' ? ricardoResult.value  : [];
       const tcgListings      = tcgResult.status      === 'fulfilled' ? tcgResult.value      : [];
       if (tcgListings.length) console.log(`TCGapi: ${tcgListings.length} results for "${specificQuery}"`);
+      const tuttiListings    = tuttiResult.status    === 'fulfilled' ? tuttiResult.value    : [];
+      if (tuttiListings.length) console.log(`Tutti.ch: ${tuttiListings.length} results for "${specificQuery}"`);
 
 
       // Merge all sources into topListings
       if (ebayData) {
-        const extra = [...vintedListings, ...pcListings, ...kleinListings, ...ricardoListings, ...tcgListings];
+        const extra = [...vintedListings, ...pcListings, ...kleinListings, ...ricardoListings, ...tcgListings, ...tuttiListings];
         ebayData.topListings = [...(ebayData.topListings || []).map(l => ({...l, source:'eBay'})), ...extra];
       } else if (kleinListings.length || ricardoListings.length || vintedListings.length) {
         // No eBay data: build synthetic ebayData from other sources for display
-        const allExtra = [...vintedListings, ...kleinListings, ...ricardoListings, ...pcListings, ...tcgListings];
+        const allExtra = [...vintedListings, ...kleinListings, ...ricardoListings, ...pcListings, ...tcgListings, ...tuttiListings];
         const prices = allExtra.map(l => parseFloat(l.price)).filter(p => p > 0);
         if (prices.length) {
           const avg = (prices.reduce((a,b)=>a+b,0)/prices.length).toFixed(2);
