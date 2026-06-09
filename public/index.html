@@ -1230,15 +1230,14 @@
       ${confidenceWarningHtml}
       <div class="result-hero">
         <div class="result-hero-label">Resellwert</div>
-        <div class="result-hero-price">\${data.priceMin && data.priceMax ? 'CHF ' + parseFloat(data.priceMin).toFixed(0) + '\u2013' + parseFloat(data.priceMax).toFixed(0) : data.marketAvg ? 'CHF ' + parseFloat(data.marketAvg).toFixed(0) : '\u2013'}</div>
-        <div class="result-hero-sub">\${data.marketAvg ? 'Markt-\u00d8 CHF ' + parseFloat(data.marketAvg).toFixed(0) : ''}\${data.retailPrice ? ' \u00b7 Neupreis ~CHF ' + parseFloat(data.retailPrice).toFixed(0) : ''}</div>
-        <div class="result-hero-chip \${verdict.cls}">
-          <span>\${verdict.icon}</span>
-          <span>\${verdict.title}</span>
-          \${profit > 0 ? '<span class=\"result-hero-chip-muted\">\u00b7 Marge ca. CHF ' + profit.toFixed(0) + '</span>' : ''}
+        <div class="result-hero-price">${data.priceMin && data.priceMax ? 'CHF ' + parseFloat(data.priceMin).toFixed(0) + '–' + parseFloat(data.priceMax).toFixed(0) : data.marketAvg ? 'CHF ' + parseFloat(data.marketAvg).toFixed(0) : '–'}</div>
+        <div class="result-hero-sub">${data.marketAvg ? 'Markt-Ø CHF ' + parseFloat(data.marketAvg).toFixed(0) : ''}${data.retailPrice ? ' · Neupreis ~CHF ' + parseFloat(data.retailPrice).toFixed(0) : ''}</div>
+        <div class="result-hero-chip ${verdict.cls}">
+          <span>${verdict.icon}</span>
+          <span>${verdict.title}</span>
+          ${profit > 0 ? '<span class="result-hero-chip-muted">· Marge ca. CHF ' + profit.toFixed(0) + '</span>' : ''}
         </div>
       </div>
-
       <div class="result-detail-divider">Details</div>
       <div class="result-tabs">
         <button class="result-tab active" onclick="switchResultTab('preis', this)"><i class="ti ti-tag"></i> Preis</button>
@@ -1424,13 +1423,11 @@
         <div><div class="result-title">${data.objectName || 'Objekt'}</div><div class="result-category">${data.category || ''}</div></div>
       </div>
       ${confidenceWarningFHtml}
-      <div class="result-hero \${verdict.cls}">
+      <div class="result-hero ${verdict.cls}">
         <div class="result-hero-label">Fairness-Bewertung</div>
-        <div class="result-hero-verdict-big">\${verdict.icon} \${verdict.title}</div>
-        <div class="result-hero-sub">\${avg > 0 ? (diff < 0 ? 'CHF ' + Math.abs(diff) + ' unter Marktpreis \u00b7 \u00d8 CHF ' + avg.toFixed(0) : diff > 0 ? 'CHF ' + Math.abs(diff) + ' \u00fcber Marktpreis \u00b7 \u00d8 CHF ' + avg.toFixed(0) : 'Zum Marktpreis \u00b7 \u00d8 CHF ' + avg.toFixed(0)) : 'Kein direkter Marktvergleich m\u00f6glich'}</div>
-        \${hasMarketData ? '<div class=\"result-hero-bar\"><div class=\"result-hero-marker\" style=\"left:' + markerLeft + '%\"></div></div>' : ''}
+        <div class="result-hero-verdict-big">${verdict.icon} ${verdict.title}</div>
+        <div class="result-hero-sub">${avg > 0 ? (diff < 0 ? 'CHF ' + Math.abs(diff).toFixed(0) + ' unter Marktpreis · Ø CHF ' + avg.toFixed(0) : diff > 0 ? 'CHF ' + Math.abs(diff).toFixed(0) + ' über Marktpreis · Ø CHF ' + avg.toFixed(0) : 'Marktkonform · Ø CHF ' + avg.toFixed(0)) : 'Kein direkter Marktvergleich möglich'}</div>
       </div>
-
       <div class="result-detail-divider">Details</div>
       <div class="result-tabs">
         <button class="result-tab active" onclick="switchResultTab('preis', this)"><i class="ti ti-scale"></i> Bewertung</button>
