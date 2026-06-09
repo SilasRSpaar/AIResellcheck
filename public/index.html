@@ -1310,8 +1310,12 @@
       </div>
       <div class="reanalyse-form" id="reanalyseForm" style="display:none">
         <div class="edit-field-row">
-          <label class="edit-field-label">Bezeichnung</label>
-          <input class="edit-field-input" type="text" id="editObjectName" placeholder="z.B. iPhone 14 Pro" value="${data.objectName || ''}" />
+          <label class="edit-field-label">Modell</label>
+          <input class="edit-field-input" type="text" id="editModell" placeholder="z.B. iPhone 14 Pro" value="${data.model || data.objectName || ''}" />
+        </div>
+        <div class="edit-field-row">
+          <label class="edit-field-label">Details <span style="font-weight:400;text-transform:none;font-size:10px;">(Farbe, Grösse, Kapazität, Variante…)</span></label>
+          <input class="edit-field-input" type="text" id="editDetails" placeholder="z.B. 128GB Space Black" value="" />
         </div>
         <div class="edit-field-row">
           <label class="edit-field-label">Marke</label>
@@ -1527,8 +1531,12 @@
       </div>
       <div class="reanalyse-form" id="reanalyseForm" style="display:none">
         <div class="edit-field-row">
-          <label class="edit-field-label">Bezeichnung</label>
-          <input class="edit-field-input" type="text" id="editObjectName" placeholder="z.B. Kette mit Anhänger" value="${data.objectName || ''}" />
+          <label class="edit-field-label">Modell</label>
+          <input class="edit-field-input" type="text" id="editModell" placeholder="z.B. Kette mit Anhänger" value="${data.model || data.objectName || ''}" />
+        </div>
+        <div class="edit-field-row">
+          <label class="edit-field-label">Details <span style="font-weight:400;text-transform:none;font-size:10px;">(Farbe, Grösse, Material, Variante…)</span></label>
+          <input class="edit-field-input" type="text" id="editDetails" placeholder="z.B. Silber, 45cm, mit Originaletui" value="" />
         </div>
         <div class="edit-field-row">
           <label class="edit-field-label">Marke</label>
@@ -1692,7 +1700,9 @@
   }
 
   async function doReanalyse() {
-    const name     = (document.getElementById('editObjectName') || {}).value || '';
+    const modell   = (document.getElementById('editModell')  || {}).value || '';
+    const details  = (document.getElementById('editDetails') || {}).value || '';
+    const userModel = [modell.trim(), details.trim()].filter(Boolean).join(' ') || null;
     const brand    = (document.getElementById('editBrand')      || {}).value || '';
     const catEl    = document.getElementById('editCategory');
     const category = catEl ? catEl.value : '';
@@ -1719,7 +1729,7 @@
           askedPrice: lastAskedPrice,
           condition:  condition  || null,
           userBrand:  brand.trim()    || null,
-          userModel:  name.trim()     || null,
+          userModel:  userModel,
           userCategory: category      || null,
         })
       });
