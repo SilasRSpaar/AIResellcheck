@@ -207,6 +207,15 @@
       padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;
     }
     .btn-rescan:active { opacity: 0.8; }
+    .btn-rescan-primary {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 14px; margin: 16px 0 4px;
+      background: transparent; color: var(--text-muted);
+      border: 1.5px solid var(--border); border-radius: var(--radius);
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-rescan-primary:active { background: var(--surface2); }
 
     .verdict-card {
       border-radius: var(--radius); padding: 18px;
@@ -661,7 +670,7 @@
           </div>
         </div>
         <div class="wizard-nav">
-          <button class="btn-next" onclick="goToStep(2)">Weiter →</button>
+          <button class="btn-next" onclick="goToStep(2)"><i class="ti ti-camera"></i> Foto aufnehmen →</button>
         </div>
       </div>
 
@@ -687,7 +696,7 @@
         <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="onImageSelected(event)" />
         <div class="wizard-nav">
           <button class="btn-back" onclick="goToStep(1)">←</button>
-          <button class="btn-next" id="btnStep2Next" onclick="goToStep(3)" disabled>Weiter →</button>
+          <button class="btn-next" id="btnStep2Next" onclick="goToStep(3)" disabled>Details eingeben →</button>
         </div>
       </div>
 
@@ -730,7 +739,7 @@
         </div>
         <div class="wizard-nav">
           <button class="btn-back" onclick="goToStep(2)">←</button>
-          <button class="btn-next" onclick="goToStep(4)">Weiter →</button>
+          <button class="btn-next" onclick="goToStep(4)">Zur Analyse →</button>
         </div>
       </div>
 
@@ -779,8 +788,8 @@
   <div id="loadingView" class="view">
     <div class="spinner"></div>
     <div>
-      <div style="font-size:18px;font-weight:700;margin-bottom:6px;">Analysiere Objekt…</div>
-      <div class="loading-text" id="loadingStep">KI erkennt Objekt</div>
+      <div class="loading-text" id="loadingStep" style="font-size:17px;font-weight:600;color:var(--text-primary);min-height:28px;">KI erkennt Objekt…</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:4px;">Das dauert 5–10 Sekunden</div>
     </div>
     <div class="bottom-safe"></div>
   </div>
@@ -1269,6 +1278,7 @@
           </a>
         </div>
       </div>
+      <button class="btn-rescan-primary" onclick="resetApp()"><i class="ti ti-refresh"></i> Neu scannen</button>
       <div class="feedback-bar" id="feedbackBar">
         <span class="feedback-label">War das Ergebnis korrekt?</span>
         <button class="feedback-btn" id="fbThumbUp" onclick="handleThumbsUp()" title="Ja">&#128077;</button>
@@ -1454,6 +1464,7 @@
           </a>
         </div>
       </div>
+      <button class="btn-rescan-primary" onclick="resetApp()"><i class="ti ti-refresh"></i> Neu scannen</button>
       <div class="feedback-bar" id="feedbackBarF">
         <span class="feedback-label">War das Ergebnis korrekt?</span>
         <button class="feedback-btn" id="fbThumbUpF" onclick="handleThumbsUp()" title="Ja">&#128077;</button>
