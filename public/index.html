@@ -224,6 +224,63 @@
     .verdict-card.go      { background: #061f14; border: 1px solid #1D9E75; }
     .verdict-card.caution { background: #1e1206; border: 1px solid #BA7517; }
     .verdict-card.stop    { background: #1a0808; border: 1px solid #E24B4A; }
+    /* ── RESULT HERO ZONE ─────────────────────────────────────────── */
+    .result-hero {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px;
+    }
+    .result-hero.go      { background: #061f14; border-color: #1D9E75; }
+    .result-hero.caution { background: #1e1206; border-color: #BA7517; }
+    .result-hero.stop    { background: #1a0808; border-color: #E24B4A; }
+
+    .result-hero-label {
+      font-size: 10px; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;
+    }
+    .result-hero.go .result-hero-label      { color: #1D9E75; }
+    .result-hero.caution .result-hero-label { color: #BA7517; }
+    .result-hero.stop .result-hero-label    { color: #E24B4A; }
+
+    .result-hero-price {
+      font-size: 26px; font-weight: 700; color: var(--accent-light);
+      line-height: 1.1; margin-bottom: 3px;
+    }
+    .result-hero-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+
+    .result-hero-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 600; color: var(--text);
+      padding: 6px 10px; border-radius: 8px;
+      background: rgba(255,255,255,0.06);
+    }
+    .result-hero.go .result-hero-chip      { color: #1D9E75; }
+    .result-hero.caution .result-hero-chip { color: #BA7517; }
+    .result-hero.stop .result-hero-chip    { color: #E24B4A; }
+    .result-hero-chip-muted { font-weight: 400; color: var(--text-muted); font-size: 12px; }
+
+    .result-hero-verdict-big {
+      font-size: 20px; font-weight: 700; margin: 2px 0 4px; color: var(--text);
+    }
+    .result-hero.go .result-hero-verdict-big      { color: #1D9E75; }
+    .result-hero.caution .result-hero-verdict-big { color: #BA7517; }
+    .result-hero.stop .result-hero-verdict-big    { color: #E24B4A; }
+
+    .result-hero-bar {
+      height: 5px; border-radius: 3px; margin-top: 10px;
+      background: linear-gradient(to right, #1D9E75, #BA7517, #E24B4A);
+      position: relative;
+    }
+    .result-hero-marker {
+      position: absolute; top: -5px; width: 14px; height: 14px;
+      border-radius: 50%; background: #fff; border: 2.5px solid var(--bg);
+      transform: translateX(-50%);
+    }
+    .result-detail-divider {
+      display: flex; align-items: center; gap: 8px; margin: 0 0 12px;
+      font-size: 10px; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+    .result-detail-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
     .verdict-icon { font-size: 36px; flex-shrink: 0; }
     .verdict-title { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
     .verdict-sub { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
@@ -1171,7 +1228,18 @@
         <div><div class="result-title">${data.objectName || 'Objekt'}</div><div class="result-category">${data.category || ''}</div></div>
       </div>
       ${confidenceWarningHtml}
+      <div class="result-hero">
+        <div class="result-hero-label">Resellwert</div>
+        <div class="result-hero-price">\${data.priceMin && data.priceMax ? 'CHF ' + parseFloat(data.priceMin).toFixed(0) + '\u2013' + parseFloat(data.priceMax).toFixed(0) : data.marketAvg ? 'CHF ' + parseFloat(data.marketAvg).toFixed(0) : '\u2013'}</div>
+        <div class="result-hero-sub">\${data.marketAvg ? 'Markt-\u00d8 CHF ' + parseFloat(data.marketAvg).toFixed(0) : ''}\${data.retailPrice ? ' \u00b7 Neupreis ~CHF ' + parseFloat(data.retailPrice).toFixed(0) : ''}</div>
+        <div class="result-hero-chip \${verdict.cls}">
+          <span>\${verdict.icon}</span>
+          <span>\${verdict.title}</span>
+          \${profit > 0 ? '<span class=\"result-hero-chip-muted\">\u00b7 Marge ca. CHF ' + profit.toFixed(0) + '</span>' : ''}
+        </div>
+      </div>
 
+      <div class="result-detail-divider">Details</div>
       <div class="result-tabs">
         <button class="result-tab active" onclick="switchResultTab('preis', this)"><i class="ti ti-tag"></i> Preis</button>
         <button class="result-tab" onclick="switchResultTab('info', this)"><i class="ti ti-info-circle"></i> Info</button>
@@ -1356,7 +1424,14 @@
         <div><div class="result-title">${data.objectName || 'Objekt'}</div><div class="result-category">${data.category || ''}</div></div>
       </div>
       ${confidenceWarningFHtml}
+      <div class="result-hero \${verdict.cls}">
+        <div class="result-hero-label">Fairness-Bewertung</div>
+        <div class="result-hero-verdict-big">\${verdict.icon} \${verdict.title}</div>
+        <div class="result-hero-sub">\${avg > 0 ? (diff < 0 ? 'CHF ' + Math.abs(diff) + ' unter Marktpreis \u00b7 \u00d8 CHF ' + avg.toFixed(0) : diff > 0 ? 'CHF ' + Math.abs(diff) + ' \u00fcber Marktpreis \u00b7 \u00d8 CHF ' + avg.toFixed(0) : 'Zum Marktpreis \u00b7 \u00d8 CHF ' + avg.toFixed(0)) : 'Kein direkter Marktvergleich m\u00f6glich'}</div>
+        \${hasMarketData ? '<div class=\"result-hero-bar\"><div class=\"result-hero-marker\" style=\"left:' + markerLeft + '%\"></div></div>' : ''}
+      </div>
 
+      <div class="result-detail-divider">Details</div>
       <div class="result-tabs">
         <button class="result-tab active" onclick="switchResultTab('preis', this)"><i class="ti ti-scale"></i> Bewertung</button>
         <button class="result-tab" onclick="switchResultTab('info', this)"><i class="ti ti-info-circle"></i> Info</button>
