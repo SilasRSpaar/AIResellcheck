@@ -477,8 +477,10 @@
     }
 
     /* hide header + progress when on step 1 */
-    body.on-step1 #appHeader,
+    body.on-step1 #appHeader .logo,
+    body.on-step1 #appHeader svg,
     body.on-step1 .wizard-top { display: none !important; }
+    body.on-step1 #appHeader { background: transparent; border-bottom: none; box-shadow: none; justify-content: flex-end; }
 
     /* ── USER BUTTON ─────────────────────────────────────────────── */
     .user-btn {
