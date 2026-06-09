@@ -19,7 +19,7 @@
     window.sentryOnLoad = function() {
       Sentry.init({
         environment: 'production',
-        release: 'comparadoo@v46',
+        release: 'comparadoo@v47',
         ignoreErrors: ['ResizeObserver loop','Non-Error promise rejection']
       });
     };
@@ -1487,6 +1487,22 @@
       stepEl.textContent = loadingSteps[stepIdx];
     }, 1800);
 
+    // Capture all user inputs for Sentry context
+    const _sentryCtx = {
+      mode: currentMode,
+      condition: selectedCondition,
+      category: selectedCategory || null,
+      userBrand: document.getElementById('userBrand').value.trim() || null,
+      userModel: document.getElementById('userModel').value.trim() || null,
+      userYear:  document.getElementById('userYear').value.trim()  || null,
+      userSize:  document.getElementById('userSize').value.trim()  || null,
+      userRef:   document.getElementById('userRef').value.trim()   || null,
+      hasPhoto:  !!imageBase64,
+      hasBarcode: !!detectedBarcode,
+      buyPrice, sellPrice, askedPrice,
+    };
+    if (window.Sentry) Sentry.setContext('analysis', _sentryCtx);
+
     try {
       const response = await fetch('/api/analyze', {
         method: 'POST',
@@ -1496,29 +1512,32 @@
           barcode: detectedBarcode || null,
           mode: currentMode, buyPrice, sellPrice, askedPrice,
           condition: selectedCondition,
-          userBrand: document.getElementById('userBrand').value.trim() || null,
-          userModel: document.getElementById('userModel').value.trim() || null,
-          userYear: document.getElementById('userYear').value.trim() || null,
-          userSize: document.getElementById('userSize').value.trim() || null,
+          userBrand: _sentryCtx.userBrand,
+          userModel: _sentryCtx.userModel,
+          userYear:  _sentryCtx.userYear,
+          userSize:  _sentryCtx.userSize,
           userCategory: selectedCategory || null,
-          userRef: document.getElementById('userRef').value.trim() || null,
+          userRef:   _sentryCtx.userRef,
         }),
       });
 
       clearInterval(stepInterval);
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Server-Fehler');
+        const errBody = await response.json().catch(() => ({}));
+        const err = new Error(errBody.error || 'Server-Fehler ' + response.status);
+        err.httpStatus = response.status;
+        throw err;
       }
 
       const data = await response.json();
+      if (window.Sentry) Sentry.setContext('result', { objectName: data.objectName, category: data.category, confidence: data.confidence });
       currentMode === 'resell' ? renderResellResult(data, buyPrice, sellPrice) : renderFairnessResult(data, askedPrice);
       saveScan(data, currentMode); // store to Supabase if logged in
 
     } catch (err) {
       clearInterval(stepInterval);
-      sentryCatch(err, { context: 'analyzeObject', mode: currentMode, step: 'main-catch' });
+      sentryCatch(err, Object.assign({ context: 'startAnalysis', httpStatus: err.httpStatus || null }, _sentryCtx));
       showView('resultView');
       document.getElementById('resultContent').innerHTML = `
         <div class="error-box">
