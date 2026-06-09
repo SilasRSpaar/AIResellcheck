@@ -11,6 +11,30 @@
   <link rel="manifest" href="/manifest.json" />
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script
+    src="https://js-de.sentry-cdn.com/3937f217c815663986ceca3d28d5b9ee.min.js"
+    crossorigin="anonymous"
+  ></script>
+  <script>
+    window.sentryOnLoad = function() {
+      Sentry.init({
+        environment: 'production',
+        release: 'comparadoo@v46',
+        ignoreErrors: ['ResizeObserver loop','Non-Error promise rejection']
+      });
+    };
+    function sentryCatch(err, ctx) {
+      try {
+        if (window.Sentry) {
+          Sentry.withScope(function(scope) {
+            if (ctx) scope.setExtras(ctx);
+            scope.setTag('app', 'comparadoo');
+            Sentry.captureException(err);
+          });
+        }
+      } catch(e) {}
+    }
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1494,6 +1518,7 @@
 
     } catch (err) {
       clearInterval(stepInterval);
+      sentryCatch(err, { context: 'analyzeObject', mode: currentMode, step: 'main-catch' });
       showView('resultView');
       document.getElementById('resultContent').innerHTML = `
         <div class="error-box">
@@ -1995,6 +2020,7 @@
       saveScan(data, currentMode);
     } catch(err) {
       clearInterval(stepInterval);
+      sentryCatch(err, { context: 'reAnalyze', mode: currentMode });
       showView('resultView');
       document.getElementById('resultContent').innerHTML =
         `<div class="error-box"><strong>Fehler</strong><br>${err.message}</div>`;
