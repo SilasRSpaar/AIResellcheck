@@ -19,7 +19,7 @@
     window.sentryOnLoad = function() {
       Sentry.init({
         environment: 'production',
-        release: 'comparadoo@v48',
+        release: 'comparadoo@v49',
         ignoreErrors: ['ResizeObserver loop','Non-Error promise rejection']
       });
     };
@@ -1501,7 +1501,6 @@
       hasBarcode: !!detectedBarcode,
       buyPrice, sellPrice, askedPrice,
     };
-    if (window.Sentry) Sentry.setContext('analysis', _sentryCtx);
 
     try {
       const response = await fetch('/api/analyze', {
@@ -1531,7 +1530,6 @@
       }
 
       const data = await response.json();
-      if (window.Sentry) Sentry.setContext('result', { objectName: data.objectName, category: data.category, confidence: data.confidence });
       currentMode === 'resell' ? renderResellResult(data, buyPrice, sellPrice) : renderFairnessResult(data, askedPrice);
       saveScan(data, currentMode); // store to Supabase if logged in
 
