@@ -1303,6 +1303,37 @@
         </div>
       </div>
       <div class="result-detail-divider">Details</div>
+      <div class="reanalyse-toggle-row">
+        <button class="reanalyse-toggle-btn" onclick="toggleReanalyseForm()">
+          <i class="ti ti-adjustments-horizontal"></i> Korrigieren &amp; nochmals analysieren
+        </button>
+      </div>
+      <div class="reanalyse-form" id="reanalyseForm" style="display:none">
+        <div class="edit-field-row">
+          <label class="edit-field-label">Bezeichnung</label>
+          <input class="edit-field-input" type="text" id="editObjectName" placeholder="z.B. iPhone 14 Pro" value="${data.objectName || ''}" />
+        </div>
+        <div class="edit-field-row">
+          <label class="edit-field-label">Marke</label>
+          <input class="edit-field-input" type="text" id="editBrand" placeholder="z.B. Apple" value="${data.brand || ''}" />
+        </div>
+        <div class="edit-field-row">
+          <label class="edit-field-label">Kategorie</label>
+          <select class="edit-field-select" id="editCategory">
+            ${['Elektronik','Spielzeug','Uhren & Schmuck','Kleidung & Accessoires','Sport & Outdoor','Musik','Möbel & Wohnen','Antiquitäten & Kunst','Sammler','Haushalt & Küche'].map(cat => `<option value="${cat}" ${data.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+          </select>
+        </div>
+        <div class="edit-field-row">
+          <label class="edit-field-label">Zustand</label>
+          <div class="edit-cond-row">
+            ${['Sehr gut','Gut','Akzeptabel','Beschädigt'].map(v => `<button class="edit-cond-btn ${data.condition === v ? 'active' : ''}" data-val="${v}" onclick="setEditCond(this)">${v}</button>`).join('')}
+          </div>
+        </div>
+        <div class="edit-actions">
+          <button class="edit-cancel-btn" onclick="toggleReanalyseForm()">Abbrechen</button>
+          <button class="edit-submit-btn" onclick="doReanalyse()"><i class="ti ti-refresh"></i> Nochmals analysieren</button>
+        </div>
+      </div>
       <div class="result-tabs">
         <button class="result-tab active" onclick="switchResultTab('preis', this)"><i class="ti ti-tag"></i> Preis</button>
         <button class="result-tab" onclick="switchResultTab('info', this)"><i class="ti ti-info-circle"></i> Info</button>
@@ -1310,10 +1341,6 @@
       </div>
 
       <div class="tab-panel active" id="result-tab-preis">
-        <div class="verdict-card ${verdict.cls}">
-          <div class="verdict-icon">${verdict.icon}</div>
-          <div><div class="verdict-title">${verdict.title}</div><div class="verdict-sub">${verdict.sub}</div></div>
-        </div>
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-label">Dein Gewinn</div>
@@ -1493,6 +1520,37 @@
         <div class="result-hero-sub">${avg > 0 ? (diff < 0 ? 'CHF ' + Math.abs(diff).toFixed(0) + ' unter Marktpreis · Ø CHF ' + avg.toFixed(0) : diff > 0 ? 'CHF ' + Math.abs(diff).toFixed(0) + ' über Marktpreis · Ø CHF ' + avg.toFixed(0) : 'Marktkonform · Ø CHF ' + avg.toFixed(0)) : 'Kein direkter Marktvergleich möglich'}</div>
       </div>
       <div class="result-detail-divider">Details</div>
+      <div class="reanalyse-toggle-row">
+        <button class="reanalyse-toggle-btn" onclick="toggleReanalyseForm()">
+          <i class="ti ti-adjustments-horizontal"></i> Korrigieren &amp; nochmals analysieren
+        </button>
+      </div>
+      <div class="reanalyse-form" id="reanalyseForm" style="display:none">
+        <div class="edit-field-row">
+          <label class="edit-field-label">Bezeichnung</label>
+          <input class="edit-field-input" type="text" id="editObjectName" placeholder="z.B. Kette mit Anhänger" value="${data.objectName || ''}" />
+        </div>
+        <div class="edit-field-row">
+          <label class="edit-field-label">Marke</label>
+          <input class="edit-field-input" type="text" id="editBrand" placeholder="z.B. Swarovski" value="${data.brand || ''}" />
+        </div>
+        <div class="edit-field-row">
+          <label class="edit-field-label">Kategorie</label>
+          <select class="edit-field-select" id="editCategory">
+            ${['Elektronik','Spielzeug','Uhren & Schmuck','Kleidung & Accessoires','Sport & Outdoor','Musik','Möbel & Wohnen','Antiquitäten & Kunst','Sammler','Haushalt & Küche'].map(cat => `<option value="${cat}" ${data.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+          </select>
+        </div>
+        <div class="edit-field-row">
+          <label class="edit-field-label">Zustand</label>
+          <div class="edit-cond-row">
+            ${['Sehr gut','Gut','Akzeptabel','Beschädigt'].map(v => `<button class="edit-cond-btn ${data.condition === v ? 'active' : ''}" data-val="${v}" onclick="setEditCond(this)">${v}</button>`).join('')}
+          </div>
+        </div>
+        <div class="edit-actions">
+          <button class="edit-cancel-btn" onclick="toggleReanalyseForm()">Abbrechen</button>
+          <button class="edit-submit-btn" onclick="doReanalyse()"><i class="ti ti-refresh"></i> Nochmals analysieren</button>
+        </div>
+      </div>
       <div class="result-tabs">
         <button class="result-tab active" onclick="switchResultTab('preis', this)"><i class="ti ti-scale"></i> Bewertung</button>
         <button class="result-tab" onclick="switchResultTab('info', this)"><i class="ti ti-info-circle"></i> Info</button>
@@ -1500,11 +1558,6 @@
       </div>
 
       <div class="tab-panel active" id="result-tab-preis">
-        <div class="verdict-card ${verdict.cls}">
-          <div class="verdict-icon">${verdict.icon}</div>
-          <div><div class="verdict-title">${verdict.title}</div><div class="verdict-sub">${verdict.sub}</div></div>
-        </div>
-
         ${hasMarketData ? `
         <div class="fairness-bar-wrap">
           <div class="fairness-title">Preisposition im Markt</div>
@@ -1619,67 +1672,14 @@
   }
 
   function renderInfoTab(data) {
-    const allCats = ['Elektronik','Spielzeug','Uhren & Schmuck','Kleidung & Accessoires','Sport & Outdoor','Musik','M\u00f6bel & Wohnen','Antiqit\u00e4ten & Kunst','Sammler','Haushalt & K\u00fcche'];
-    const rows = [];
-    if (data.objectName) rows.push(['Objekt',            data.objectName]);
-    if (data.brand)      rows.push(['Marke',             data.brand]);
-    if (data.category)   rows.push(['Kategorie',         data.category]);
-    if (data.condition)  rows.push(['Zustand',           data.condition]);
-    if (data.stylePeriod && data.stylePeriod !== 'null')   rows.push(['Stilepoche', data.stylePeriod]);
-    if (data.estimatedEra && data.estimatedEra !== 'null') rows.push(['Periode',   data.estimatedEra]);
-    if (data.material && data.material !== 'null')         rows.push(['Material',  data.material]);
-    if (data.makerMark && data.makerMark !== 'null')       rows.push(['Signatur',  data.makerMark]);
-
-    const metaHtml = rows.length ? rows.map(([label, val]) =>
-      `<div class="info-row"><span class="info-label">${label}</span><span class="info-val">${val}</span></div>`
-    ).join('') : '<div class="info-row"><span class="info-label">Keine weiteren Details</span></div>';
-
-    const contextHtml = (data.contextInfo && data.contextInfo !== 'null') ? `
-      <div class="context-card">
-        <div class="context-title">\u00dcber dieses Objekt</div>
-        <p class="context-text">${data.contextInfo}</p>
-      </div>` : '';
-
-    const catOptions = allCats.map(cat =>
-      `<option value="${cat}" ${data.category === cat ? 'selected' : ''}>${cat}</option>`
-    ).join('');
-
-    const condVals = ['Sehr gut','Gut','Akzeptabel','Besch\u00e4digt'];
-    const condBtns = condVals.map(v =>
-      `<button class="edit-cond-btn ${data.condition === v ? 'active' : ''}" data-val="${v}" onclick="setEditCond(this)">${v}</button>`
-    ).join('');
-
-    return `<div class="info-section">${metaHtml}</div>${contextHtml}
-    <div class="reanalyse-toggle-row">
-      <button class="reanalyse-toggle-btn" onclick="toggleReanalyseForm()">
-        <i class="ti ti-adjustments-horizontal"></i> Korrigieren &amp; nochmals analysieren
-      </button>
-    </div>
-    <div class="reanalyse-form" id="reanalyseForm" style="display:none">
-      <div class="edit-field-row">
-        <label class="edit-field-label">Bezeichnung</label>
-        <input class="edit-field-input" type="text" id="editObjectName" placeholder="z.B. iPhone 14 Pro" value="${data.objectName || ''}" />
-      </div>
-      <div class="edit-field-row">
-        <label class="edit-field-label">Marke</label>
-        <input class="edit-field-input" type="text" id="editBrand" placeholder="z.B. Apple" value="${data.brand || ''}" />
-      </div>
-      <div class="edit-field-row">
-        <label class="edit-field-label">Kategorie</label>
-        <select class="edit-field-select" id="editCategory">${catOptions}</select>
-      </div>
-      <div class="edit-field-row">
-        <label class="edit-field-label">Zustand</label>
-        <div class="edit-cond-row">${condBtns}</div>
-      </div>
-      <div class="edit-actions">
-        <button class="edit-cancel-btn" onclick="toggleReanalyseForm()">Abbrechen</button>
-        <button class="edit-submit-btn" onclick="doReanalyse()"><i class="ti ti-refresh"></i> Nochmals analysieren</button>
-      </div>
+    if (!data.contextInfo || data.contextInfo === 'null') {
+      return '<div style="padding:16px;color:var(--text-muted);font-size:13px;text-align:center;">Keine weiteren Informationen verfügbar.</div>';
+    }
+    return `<div class="context-card">
+      <div class="context-title">\u00dcber dieses Objekt</div>
+      <p class="context-text">${data.contextInfo}</p>
     </div>`;
   }
-
-
   function toggleReanalyseForm() {
     const form = document.getElementById('reanalyseForm');
     if (!form) return;
