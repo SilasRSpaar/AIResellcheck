@@ -11,7 +11,7 @@
   <link rel="manifest" href="/manifest.json" />
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/tabler-icons.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/tabler-icons.min.css" />
   <style>i.ti { vertical-align: -0.125em; line-height: 1; }</style>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -402,6 +402,12 @@
     .cond-dot-b { background: #5BC4A4; }
     .cond-dot-c { background: #BA7517; }
     .cond-dot-d { background: #E24B4A; }
+    .cond-icon { font-size: 14px; margin-right: 4px; vertical-align: -0.1em; }
+    .cond-btn[data-val="Sehr gut"] .cond-icon  { color: #1D9E75; }
+    .cond-btn[data-val="Gut"] .cond-icon       { color: #5BC4A4; }
+    .cond-btn[data-val="Akzeptabel"] .cond-icon { color: #BA7517; }
+    .cond-btn[data-val="Beschädigt"] .cond-icon { color: #E24B4A; }
+    .cond-btn.active .cond-icon { color: #fff !important; }
     .cond-btn.active {
       border-color: var(--accent); color: white;
       background: rgba(24,95,165,0.25);
@@ -632,6 +638,56 @@
     .feedback-textarea { width:100%; box-sizing:border-box; background:var(--surface); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:13px; padding:10px 12px; resize:none; font-family:inherit; margin-top:4px; }
     .feedback-textarea:focus { outline:none; border-color:var(--accent-light); }
     .feedback-status { text-align:center; font-size:13px; margin-top:10px; min-height:18px; }
+
+    /* ── RE-ANALYSE FORM ─────────────────────────────────────────────── */
+    .reanalyse-toggle-row { margin: 4px 0 12px; }
+    .reanalyse-toggle-btn {
+      width: 100%; padding: 11px 14px; background: var(--surface);
+      border: 1px dashed var(--border); border-radius: var(--radius);
+      color: var(--text-muted); font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .reanalyse-toggle-btn:active { background: var(--surface2); color: var(--text); }
+    .reanalyse-form {
+      background: var(--surface); border: 1px solid var(--accent);
+      border-radius: var(--radius); padding: 14px 14px 10px; margin-bottom: 12px;
+    }
+    .edit-field-row { margin-bottom: 10px; }
+    .edit-field-label {
+      display: block; font-size: 11px; font-weight: 600;
+      color: var(--text-muted); letter-spacing: .05em;
+      text-transform: uppercase; margin-bottom: 4px;
+    }
+    .edit-field-input, .edit-field-select {
+      width: 100%; padding: 9px 12px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-size: 14px; box-sizing: border-box;
+      -webkit-appearance: none;
+    }
+    .edit-field-input:focus, .edit-field-select:focus {
+      outline: none; border-color: var(--accent);
+    }
+    .edit-cond-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .edit-cond-btn {
+      flex: 1 0 auto; padding: 7px 10px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text-muted); font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .edit-cond-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .edit-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .edit-cancel-btn {
+      flex: 1; padding: 10px; background: transparent;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .edit-submit-btn {
+      flex: 2; padding: 10px; background: var(--accent); border: none;
+      border-radius: var(--radius); color: #fff; font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+    }
+    .edit-submit-btn:active { opacity: 0.85; }
   </style>
 </head>
 <body class="on-step1">
@@ -772,25 +828,25 @@
         <div class="input-group">
           <label>Zustand</label>
           <div class="condition-pills" style="margin-top:8px;">
-            <button class="cond-btn active" data-val="Sehr gut" onclick="setCondition(this)"><span class="cond-dot cond-dot-a"></span>Sehr gut</button>
-            <button class="cond-btn" data-val="Gut" onclick="setCondition(this)"><span class="cond-dot cond-dot-b"></span>Gut</button>
-            <button class="cond-btn" data-val="Akzeptabel" onclick="setCondition(this)"><span class="cond-dot cond-dot-c"></span>Akzeptabel</button>
-            <button class="cond-btn" data-val="Beschädigt" onclick="setCondition(this)"><span class="cond-dot cond-dot-d"></span>Beschädigt</button>
+            <button class="cond-btn active" data-val="Sehr gut" onclick="setCondition(this)"><i class="ti ti-circle-check cond-icon"></i>Sehr gut</button>
+            <button class="cond-btn" data-val="Gut" onclick="setCondition(this)"><i class="ti ti-check cond-icon"></i>Gut</button>
+            <button class="cond-btn" data-val="Akzeptabel" onclick="setCondition(this)"><i class="ti ti-circle-minus cond-icon"></i>Akzeptabel</button>
+            <button class="cond-btn" data-val="Beschädigt" onclick="setCondition(this)"><i class="ti ti-alert-triangle cond-icon"></i>Beschädigt</button>
           </div>
         </div>
         <div class="input-group">
           <label style="margin-bottom:8px;display:block;">Kategorie</label>
           <div class="cat-picker" id="catPicker">
-            <button class="cat-btn" data-cat="Elektronik" onclick="setCategory(this)">Elektronik</button>
-            <button class="cat-btn" data-cat="Spielzeug" onclick="setCategory(this)">Spielzeug</button>
-            <button class="cat-btn" data-cat="Uhren & Schmuck" onclick="setCategory(this)">Uhren & Schmuck</button>
-            <button class="cat-btn" data-cat="Kleidung & Accessoires" onclick="setCategory(this)">Kleidung & Accessoires</button>
-            <button class="cat-btn" data-cat="Sport & Outdoor" onclick="setCategory(this)">Sport & Outdoor</button>
-            <button class="cat-btn" data-cat="Musik" onclick="setCategory(this)">Musik</button>
-            <button class="cat-btn" data-cat="Möbel & Wohnen" onclick="setCategory(this)">Möbel & Wohnen</button>
-            <button class="cat-btn" data-cat="Antiquitäten & Kunst" onclick="setCategory(this)">Antiquitäten & Kunst</button>
-            <button class="cat-btn" data-cat="Sammler" onclick="setCategory(this)">Sammler</button>
-            <button class="cat-btn" data-cat="Haushalt & Küche" onclick="setCategory(this)">Haushalt & Küche</button>
+            <button class="cat-btn" data-cat="Elektronik" onclick="setCategory(this)"><i class="ti ti-device-mobile cat-icon"></i>Elektronik</button>
+            <button class="cat-btn" data-cat="Spielzeug" onclick="setCategory(this)"><i class="ti ti-puzzle cat-icon"></i>Spielzeug</button>
+            <button class="cat-btn" data-cat="Uhren & Schmuck" onclick="setCategory(this)"><i class="ti ti-clock cat-icon"></i>Uhren & Schmuck</button>
+            <button class="cat-btn" data-cat="Kleidung & Accessoires" onclick="setCategory(this)"><i class="ti ti-shirt cat-icon"></i>Kleidung & Accessoires</button>
+            <button class="cat-btn" data-cat="Sport & Outdoor" onclick="setCategory(this)"><i class="ti ti-bike cat-icon"></i>Sport & Outdoor</button>
+            <button class="cat-btn" data-cat="Musik" onclick="setCategory(this)"><i class="ti ti-music cat-icon"></i>Musik</button>
+            <button class="cat-btn" data-cat="Möbel & Wohnen" onclick="setCategory(this)"><i class="ti ti-lamp cat-icon"></i>Möbel & Wohnen</button>
+            <button class="cat-btn" data-cat="Antiquitäten & Kunst" onclick="setCategory(this)"><i class="ti ti-diamond cat-icon"></i>Antiquitäten & Kunst</button>
+            <button class="cat-btn" data-cat="Sammler" onclick="setCategory(this)"><i class="ti ti-coin cat-icon"></i>Sammler</button>
+            <button class="cat-btn" data-cat="Haushalt & Küche" onclick="setCategory(this)"><i class="ti ti-tools cat-icon"></i>Haushalt & Küche</button>
           </div>
         </div>
         <div class="input-group">
@@ -890,6 +946,7 @@
   let html5QrCode = null;
   let currentMode = 'resell'; // 'resell' | 'fairness'
   let selectedCondition = 'Sehr gut';
+  let lastBuyPrice = 0, lastSellPrice = 0, lastAskedPrice = 0;
   let selectedCategory = null;
   let currentStep = 1;
   let lastAnalysisData = null;
@@ -1143,6 +1200,7 @@
     const buyPrice   = parseFloat(document.getElementById('buyPrice').value)   || 0;
     const sellPrice  = parseFloat(document.getElementById('sellPrice').value)  || 0;
     const askedPrice = parseFloat(document.getElementById('askedPrice').value) || 0;
+    lastBuyPrice = buyPrice; lastSellPrice = sellPrice; lastAskedPrice = askedPrice;
 
     showView('loadingView');
     let stepIdx = 0;
@@ -1561,14 +1619,16 @@
   }
 
   function renderInfoTab(data) {
+    const allCats = ['Elektronik','Spielzeug','Uhren & Schmuck','Kleidung & Accessoires','Sport & Outdoor','Musik','M\u00f6bel & Wohnen','Antiqit\u00e4ten & Kunst','Sammler','Haushalt & K\u00fcche'];
     const rows = [];
+    if (data.objectName) rows.push(['Objekt',            data.objectName]);
     if (data.brand)      rows.push(['Marke',             data.brand]);
     if (data.category)   rows.push(['Kategorie',         data.category]);
     if (data.condition)  rows.push(['Zustand',           data.condition]);
-    if (data.stylePeriod && data.stylePeriod !== 'null')  rows.push(['Stilepoche',        data.stylePeriod]);
-    if (data.estimatedEra && data.estimatedEra !== 'null') rows.push(['Periode',          data.estimatedEra]);
-    if (data.material && data.material !== 'null')         rows.push(['Material',         data.material]);
-    if (data.makerMark && data.makerMark !== 'null')       rows.push(['Signatur / Stempel', data.makerMark]);
+    if (data.stylePeriod && data.stylePeriod !== 'null')   rows.push(['Stilepoche', data.stylePeriod]);
+    if (data.estimatedEra && data.estimatedEra !== 'null') rows.push(['Periode',   data.estimatedEra]);
+    if (data.material && data.material !== 'null')         rows.push(['Material',  data.material]);
+    if (data.makerMark && data.makerMark !== 'null')       rows.push(['Signatur',  data.makerMark]);
 
     const metaHtml = rows.length ? rows.map(([label, val]) =>
       `<div class="info-row"><span class="info-label">${label}</span><span class="info-val">${val}</span></div>`
@@ -1576,11 +1636,106 @@
 
     const contextHtml = (data.contextInfo && data.contextInfo !== 'null') ? `
       <div class="context-card">
-        <div class="context-title">Über dieses Objekt</div>
+        <div class="context-title">\u00dcber dieses Objekt</div>
         <p class="context-text">${data.contextInfo}</p>
       </div>` : '';
 
-    return `<div class="info-section">${metaHtml}</div>${contextHtml}`;
+    const catOptions = allCats.map(cat =>
+      `<option value="${cat}" ${data.category === cat ? 'selected' : ''}>${cat}</option>`
+    ).join('');
+
+    const condVals = ['Sehr gut','Gut','Akzeptabel','Besch\u00e4digt'];
+    const condBtns = condVals.map(v =>
+      `<button class="edit-cond-btn ${data.condition === v ? 'active' : ''}" data-val="${v}" onclick="setEditCond(this)">${v}</button>`
+    ).join('');
+
+    return `<div class="info-section">${metaHtml}</div>${contextHtml}
+    <div class="reanalyse-toggle-row">
+      <button class="reanalyse-toggle-btn" onclick="toggleReanalyseForm()">
+        <i class="ti ti-adjustments-horizontal"></i> Korrigieren &amp; nochmals analysieren
+      </button>
+    </div>
+    <div class="reanalyse-form" id="reanalyseForm" style="display:none">
+      <div class="edit-field-row">
+        <label class="edit-field-label">Bezeichnung</label>
+        <input class="edit-field-input" type="text" id="editObjectName" placeholder="z.B. iPhone 14 Pro" value="${data.objectName || ''}" />
+      </div>
+      <div class="edit-field-row">
+        <label class="edit-field-label">Marke</label>
+        <input class="edit-field-input" type="text" id="editBrand" placeholder="z.B. Apple" value="${data.brand || ''}" />
+      </div>
+      <div class="edit-field-row">
+        <label class="edit-field-label">Kategorie</label>
+        <select class="edit-field-select" id="editCategory">${catOptions}</select>
+      </div>
+      <div class="edit-field-row">
+        <label class="edit-field-label">Zustand</label>
+        <div class="edit-cond-row">${condBtns}</div>
+      </div>
+      <div class="edit-actions">
+        <button class="edit-cancel-btn" onclick="toggleReanalyseForm()">Abbrechen</button>
+        <button class="edit-submit-btn" onclick="doReanalyse()"><i class="ti ti-refresh"></i> Nochmals analysieren</button>
+      </div>
+    </div>`;
+  }
+
+
+  function toggleReanalyseForm() {
+    const form = document.getElementById('reanalyseForm');
+    if (!form) return;
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function setEditCond(btn) {
+    document.querySelectorAll('.edit-cond-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  async function doReanalyse() {
+    const name     = (document.getElementById('editObjectName') || {}).value || '';
+    const brand    = (document.getElementById('editBrand')      || {}).value || '';
+    const catEl    = document.getElementById('editCategory');
+    const category = catEl ? catEl.value : '';
+    const condBtn  = document.querySelector('.edit-cond-btn.active');
+    const condition = condBtn ? condBtn.dataset.val : null;
+
+    showView('loadingView');
+    let stepIdx = 0;
+    const stepEl = document.getElementById('loadingStep');
+    const stepInterval = setInterval(() => {
+      stepIdx = (stepIdx + 1) % loadingSteps.length;
+      stepEl.textContent = loadingSteps[stepIdx];
+    }, 1800);
+
+    try {
+      const resp = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: imageBase64 || null,
+          mode: currentMode,
+          buyPrice:   lastBuyPrice,
+          sellPrice:  lastSellPrice,
+          askedPrice: lastAskedPrice,
+          condition:  condition  || null,
+          userBrand:  brand.trim()    || null,
+          userModel:  name.trim()     || null,
+          userCategory: category      || null,
+        })
+      });
+      clearInterval(stepInterval);
+      if (!resp.ok) { const e = await resp.json(); throw new Error(e.error || 'Fehler'); }
+      const data = await resp.json();
+      currentMode === 'resell'
+        ? renderResellResult(data,  lastBuyPrice, lastSellPrice)
+        : renderFairnessResult(data, lastAskedPrice);
+      saveScan(data, currentMode);
+    } catch(err) {
+      clearInterval(stepInterval);
+      showView('resultView');
+      document.getElementById('resultContent').innerHTML =
+        `<div class="error-box"><strong>Fehler</strong><br>${err.message}</div>`;
+    }
   }
 
   function renderListings(listings) {
