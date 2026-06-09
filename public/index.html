@@ -711,18 +711,61 @@
     }
     .edit-submit-btn:active { opacity: 0.85; }
 
-    /* ── LEGAL PAGES ──────────────────────────────────────────────────── */
-    .step1-legal-links {
-      display: flex; justify-content: center; gap: 16px;
-      padding: 4px 0 0;
+    /* ── HAMBURGER + MENU SHEET ──────────────────────────────────────── */
+    .hamburger-btn {
+      background: none; border: none; color: var(--text);
+      font-size: 22px; cursor: pointer; padding: 4px 6px;
+      display: flex; align-items: center; margin-left: 4px;
+      border-radius: 8px; transition: background 0.15s;
     }
-    .step1-legal-link {
-      font-size: 11px; color: var(--text-muted); background: none;
-      border: none; cursor: pointer; text-decoration: underline;
-      text-underline-offset: 2px; opacity: 0.7; padding: 4px 0;
-    }
-    .step1-legal-link:active { opacity: 1; }
+    .hamburger-btn:active { background: var(--surface2); }
 
+    .menu-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      z-index: 997; opacity: 0; pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .menu-backdrop.open { opacity: 1; pointer-events: all; }
+
+    .menu-sheet {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--surface); border-radius: 20px 20px 0 0;
+      z-index: 998; padding: 0 0 max(20px, env(safe-area-inset-bottom));
+      transform: translateY(100%); transition: transform 0.28s ease;
+      box-shadow: 0 -4px 32px rgba(0,0,0,0.4);
+    }
+    .menu-sheet.open { transform: translateY(0); }
+
+    .menu-sheet-handle {
+      width: 36px; height: 4px; background: var(--border);
+      border-radius: 2px; margin: 12px auto 6px;
+    }
+    .menu-sheet-title {
+      font-size: 12px; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 8px 20px 4px;
+    }
+    .menu-item {
+      display: flex; align-items: center; gap: 14px;
+      width: 100%; padding: 14px 20px; background: none; border: none;
+      color: var(--text); font-size: 15px; cursor: pointer;
+      text-align: left; transition: background 0.12s;
+    }
+    .menu-item:active { background: var(--surface2); }
+    .menu-item-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--surface2); display: flex; align-items: center;
+      justify-content: center; font-size: 16px; flex-shrink: 0;
+      color: var(--accent-light);
+    }
+    .menu-item-icon.green  { background: rgba(29,158,117,0.15); color: #1D9E75; }
+    .menu-item-icon.yellow { background: rgba(186,117,23,0.15);  color: #BA7517; }
+    .menu-item-icon.muted  { background: var(--surface2); color: var(--text-muted); }
+    .menu-divider { height: 1px; background: var(--border); margin: 6px 20px; }
+    .menu-item-label { font-size: 15px; font-weight: 500; }
+    .menu-item-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+    /* ── LEGAL PAGES ──────────────────────────────────────────────────── */
     .legal-overlay {
       position: fixed; inset: 0; background: var(--bg);
       z-index: 999; display: flex; flex-direction: column;
@@ -770,6 +813,7 @@
     </svg>
     <div class="logo">Compara<span>doo</span></div>
     <button class="user-btn" id="userBtn" onclick="handleUserBtn()">👤 Anmelden</button>
+    <button class="hamburger-btn" onclick="openMenu()" aria-label="Menü öffnen"><i class="ti ti-menu-2"></i></button>
   </header>
 
   <!-- AUTH MODAL -->
@@ -857,10 +901,6 @@
               <div class="mode-card-desc">Lohnt sich der Kauf? Wie hoch ist dein Gewinnpotenzial?</div>
             </div>
           </div>
-        </div>
-        <div class="step1-legal-links">
-          <button class="step1-legal-link" onclick="showLegal('impressum')">Impressum</button>
-          <button class="step1-legal-link" onclick="showLegal('datenschutz')">Datenschutz</button>
         </div>
         <div class="wizard-nav">
           <button class="btn-next" onclick="goToStep(2)"><i class="ti ti-camera"></i> Foto aufnehmen →</button>
@@ -1037,6 +1077,84 @@
 
           <h2>Änderungen</h2>
           <p>Diese Datenschutzerklärung kann jederzeit angepasst werden. Die aktuelle Version ist stets in der App abrufbar. Stand: Juni 2026.</p>
+        </div>
+      </div>
+
+      <!-- Hamburger Menu Sheet -->
+      <div class="menu-backdrop" id="menuBackdrop" onclick="closeMenu()"></div>
+      <div class="menu-sheet" id="menuSheet">
+        <div class="menu-sheet-handle"></div>
+        <button class="menu-item" onclick="showLegal('ueber')">
+          <div class="menu-item-icon green"><i class="ti ti-info-circle"></i></div>
+          <div><div class="menu-item-label">Über Comparadoo</div></div>
+        </button>
+        <button class="menu-item" onclick="showLegal('faq')">
+          <div class="menu-item-icon yellow"><i class="ti ti-help-circle"></i></div>
+          <div><div class="menu-item-label">FAQ&apos;s</div><div class="menu-item-sub">Häufige Fragen</div></div>
+        </button>
+        <button class="menu-item" onclick="closeMenu(); window.location.href='mailto:info@comparadoo.com?subject=Feedback%20Comparadoo'">
+          <div class="menu-item-icon"><i class="ti ti-message-circle"></i></div>
+          <div><div class="menu-item-label">Feedback geben</div><div class="menu-item-sub">Deine Meinung zählt</div></div>
+        </button>
+        <button class="menu-item" onclick="closeMenu(); window.location.href='mailto:info@comparadoo.com'">
+          <div class="menu-item-icon muted"><i class="ti ti-mail"></i></div>
+          <div><div class="menu-item-label">Kontakt</div><div class="menu-item-sub">info@comparadoo.com</div></div>
+        </button>
+        <div class="menu-divider"></div>
+        <button class="menu-item" onclick="showLegal('impressum')">
+          <div class="menu-item-icon muted"><i class="ti ti-building"></i></div>
+          <div><div class="menu-item-label">Impressum</div></div>
+        </button>
+        <button class="menu-item" onclick="showLegal('datenschutz')">
+          <div class="menu-item-icon muted"><i class="ti ti-shield-lock"></i></div>
+          <div><div class="menu-item-label">Datenschutz</div></div>
+        </button>
+      </div>
+
+      <!-- Über Comparadoo Overlay -->
+      <div class="legal-overlay" id="legalUeber">
+        <div class="legal-header">
+          <span class="legal-title">Über Comparadoo</span>
+          <button class="legal-close" onclick="closeLegal('ueber')"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="legal-body">
+          <h2>Was ist Comparadoo?</h2>
+          <p>Comparadoo ist dein KI-gestützter Preischeck für Secondhand-Artikel. Fotografiere einen Artikel — Comparadoo analysiert ihn automatisch und zeigt dir aktuelle Marktpreise von Ricardo.ch, Tutti.ch, eBay, Vinted und weiteren Plattformen.</p>
+          <h2>Zwei Modi</h2>
+          <p><strong>Preis überprüfen:</strong> Du siehst ein Angebot und willst wissen, ob der Preis fair ist. Comparadoo vergleicht mit aktuellen Marktpreisen und zeigt dir, ob du überbezahlst.</p>
+          <p><strong>Kaufen &amp; Weiterverkaufen:</strong> Du möchtest etwas günstig kaufen und mit Gewinn weiterverkaufen. Comparadoo schätzt dein Gewinnpotenzial und empfiehlt die besten Verkaufskanäle.</p>
+          <h2>Datenquellen</h2>
+          <p>Comparadoo wertet Preise von Ricardo.ch, Tutti.ch, eBay, Vinted, Kleinanzeigen.de, Toppreise.ch und weiteren Plattformen aus. Die Analyse basiert auf aktuellen und abgeschlossenen Angeboten.</p>
+          <h2>Beta-Version</h2>
+          <p>Comparadoo befindet sich aktuell in der Beta-Phase. Preisangaben sind Schätzungen und können von tatsächlichen Marktpreisen abweichen. Feedback ist ausdrücklich erwünscht — schreib uns an <a href="mailto:info@comparadoo.com">info@comparadoo.com</a>.</p>
+          <h2>Version</h2>
+          <p>Beta v0.1 · Juni 2026 · Betrieben von Comparadoo, Silas Spaar, Schweiz</p>
+        </div>
+      </div>
+
+      <!-- FAQ Overlay -->
+      <div class="legal-overlay" id="legalFaq">
+        <div class="legal-header">
+          <span class="legal-title">FAQ&apos;s</span>
+          <button class="legal-close" onclick="closeLegal('faq')"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="legal-body">
+          <h2>Wie funktioniert Comparadoo?</h2>
+          <p>Fotografiere den Artikel, wähle deinen Modus (Preis prüfen oder Resell), gib optional Preis und Zustand ein — und Comparadoo analysiert den Artikel mithilfe von KI und wertet aktuelle Marktdaten von mehreren Plattformen aus.</p>
+          <h2>Welche Plattformen werden ausgewertet?</h2>
+          <p>Ricardo.ch, Tutti.ch, eBay (DE/CH), Vinted, Kleinanzeigen.de, Toppreise.ch und weitere — je nach Kategorie des Artikels.</p>
+          <h2>Wie genau sind die Preisangaben?</h2>
+          <p>Comparadoo liefert Schätzungen auf Basis öffentlicher Marktdaten. Die Genauigkeit hängt von der Datenlage und der Qualität des Fotos ab. Für hochwertige Artikel empfehlen wir, mehrere Quellen zu vergleichen.</p>
+          <h2>Werden meine Fotos gespeichert?</h2>
+          <p>Nein. Fotos werden ausschliesslich zur Analyse übertragen und nicht dauerhaft gespeichert. Details findest du in unserer Datenschutzerklärung.</p>
+          <h2>Ist Comparadoo kostenlos?</h2>
+          <p>Die Beta-Version ist vollständig kostenlos. Zukünftig ist ein Freemium-Modell geplant (kostenlose Basis-Analysen, erweiterte Features im Pro-Abo).</p>
+          <h2>Was tun bei falscher Erkennung?</h2>
+          <p>Tippe nach der Analyse auf "Korrigieren &amp; nochmals analysieren" und gib Marke, Modell oder Details manuell ein — das verbessert die Treffsicherheit deutlich.</p>
+          <h2>Funktioniert Comparadoo offline?</h2>
+          <p>Die App ist als PWA installierbar und lädt schnell. Die Preisanalyse selbst benötigt eine Internetverbindung.</p>
+          <h2>Wie kann ich Feedback geben?</h2>
+          <p>Nach jeder Analyse kannst du direkt ein Rating abgeben. Oder schreib uns an <a href="mailto:info@comparadoo.com">info@comparadoo.com</a> — wir lesen jede Nachricht.</p>
         </div>
       </div>
 
@@ -2160,17 +2278,35 @@
 
   initSupabase();
 
-  // ── LEGAL PAGES ──────────────────────────────────────────────────────────
-  function showLegal(page) {
-    const id = page === 'impressum' ? 'legalImpressum' : 'legalDatenschutz';
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.classList.add('open');
+  // ── MENU + LEGAL PAGES ───────────────────────────────────────────────────
+  function openMenu() {
+    document.getElementById('menuSheet').classList.add('open');
+    document.getElementById('menuBackdrop').classList.add('open');
     document.body.style.overflow = 'hidden';
   }
+  function closeMenu() {
+    document.getElementById('menuSheet').classList.remove('open');
+    document.getElementById('menuBackdrop').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  const legalIdMap = {
+    impressum:  'legalImpressum',
+    datenschutz:'legalDatenschutz',
+    faq:        'legalFaq',
+    ueber:      'legalUeber',
+  };
+  function showLegal(page) {
+    closeMenu();
+    const el = document.getElementById(legalIdMap[page]);
+    if (!el) return;
+    // slight delay so menu closes first
+    setTimeout(() => {
+      el.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }, 150);
+  }
   function closeLegal(page) {
-    const id = page === 'impressum' ? 'legalImpressum' : 'legalDatenschutz';
-    const el = document.getElementById(id);
+    const el = document.getElementById(legalIdMap[page]);
     if (!el) return;
     el.classList.remove('open');
     document.body.style.overflow = '';
