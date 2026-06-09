@@ -545,6 +545,19 @@
     .scan-card-price { font-size: 14px; font-weight: 700; color: var(--green); }
     .scan-empty { text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 14px; }
     .profile-back-btn { background: none; border: none; color: var(--accent-light); font-size: 13px; cursor: pointer; padding: 5px 0; }
+
+    /* -- Feedback Bar & Modal ---------------------------------------- */
+    .feedback-bar { display:flex; align-items:center; gap:10px; margin-top:20px; padding:12px 16px; background:var(--surface); border:1px solid var(--border); border-radius:14px; }
+    .feedback-label { flex:1; font-size:13px; color:var(--text-muted); }
+    .feedback-btn { background:none; border:1px solid var(--border); border-radius:8px; padding:6px 14px; font-size:15px; cursor:pointer; transition:all .15s; color:var(--text); }
+    .feedback-btn:hover { background:rgba(255,255,255,.07); border-color:var(--accent-light); }
+    .feedback-btn.sent { opacity:.4; cursor:default; pointer-events:none; }
+    .feedback-chips { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+    .feedback-chip { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:7px 14px; font-size:13px; cursor:pointer; transition:all .15s; color:var(--text); }
+    .feedback-chip.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .feedback-textarea { width:100%; box-sizing:border-box; background:var(--surface); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:13px; padding:10px 12px; resize:none; font-family:inherit; margin-top:4px; }
+    .feedback-textarea:focus { outline:none; border-color:var(--accent-light); }
+    .feedback-status { text-align:center; font-size:13px; margin-top:10px; min-height:18px; }
   </style>
 </head>
 <body class="on-step1">
@@ -573,6 +586,25 @@
       <input class="auth-input" type="password" id="authPassword" placeholder="Passwort" />
       <button class="auth-btn" id="authSubmitBtn" onclick="submitAuth()">Anmelden</button>
       <div class="auth-msg" id="authMsg"></div>
+    </div>
+  </div>
+
+
+  <!-- FEEDBACK MODAL -->
+  <div class="modal-overlay" id="feedbackModal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeFeedbackModal()">&#x2715;</button>
+      <div class="modal-title">Feedback melden</div>
+      <div class="modal-sub">Was war nicht korrekt?</div>
+      <div class="feedback-chips" id="feedbackChips">
+        <button class="feedback-chip" onclick="selectFeedbackChip(this,'Falsches Objekt')">Falsches Objekt</button>
+        <button class="feedback-chip" onclick="selectFeedbackChip(this,'Falscher Preis')">Falscher Preis</button>
+        <button class="feedback-chip" onclick="selectFeedbackChip(this,'App-Fehler')">App-Fehler</button>
+        <button class="feedback-chip" onclick="selectFeedbackChip(this,'Anderes')">Anderes</button>
+      </div>
+      <textarea class="feedback-textarea" id="feedbackComment" rows="3" placeholder="Was war falsch? (optional, max. 300 Zeichen)" maxlength="300"></textarea>
+      <button class="auth-btn" onclick="submitFeedback()">Senden</button>
+      <div class="feedback-status" id="feedbackStatus"></div>
     </div>
   </div>
 
@@ -786,6 +818,8 @@
   let selectedCondition = 'Sehr gut';
   let selectedCategory = null;
   let currentStep = 1;
+  let lastAnalysisData = null;
+  let selectedFeedbackIssue = null;
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -1086,6 +1120,8 @@
 
   // ── RESELL RESULT ──────────────────────────────────────────────────────────
   function renderResellResult(data, buyPrice, sellPrice) {
+    lastAnalysisData = { objectName: data.objectName, brand: data.brand, model: data.model, category: data.category, priceMin: data.priceMin, priceMax: data.priceMax, marketAvg: data.marketAvg, confidence: data.confidence, mode: 'resell' };
+    selectedFeedbackIssue = null;
     const profit = sellPrice - buyPrice;
     const roi = buyPrice > 0 ? ((profit / buyPrice) * 100).toFixed(0) : 0;
     const profitColor = profit > 0 ? 'green' : profit < 0 ? 'red' : '';
@@ -1231,6 +1267,11 @@
           </a>
         </div>
       </div>
+      <div class="feedback-bar" id="feedbackBar">
+        <span class="feedback-label">War das Ergebnis korrekt?</span>
+        <button class="feedback-btn" id="fbThumbUp" onclick="handleThumbsUp()" title="Ja">&#128077;</button>
+        <button class="feedback-btn" id="fbThumbDown" onclick="openFeedbackModal()" title="Fehler melden">&#128078; Melden</button>
+      </div>
     `;
     showView('resultView');
   }
@@ -1256,6 +1297,8 @@
 
   // ── FAIRNESS RESULT ────────────────────────────────────────────────────────
   function renderFairnessResult(data, askedPrice) {
+    lastAnalysisData = { objectName: data.objectName, brand: data.brand, model: data.model, category: data.category, priceMin: data.priceMin, priceMax: data.priceMax, marketAvg: data.marketAvg, confidence: data.confidence, mode: 'fairness' };
+    selectedFeedbackIssue = null;
     const useSold = data.soldAvg && data.soldCount >= 5;
     const avg = useSold ? parseFloat(data.soldAvg) : (parseFloat(data.marketAvg) || 0);
     const min = useSold ? parseFloat(data.soldMin)  : (parseFloat(data.priceMin)  || 0);
@@ -1408,6 +1451,11 @@
             <span class="angebote-link-arrow">↗</span>
           </a>
         </div>
+      </div>
+      <div class="feedback-bar" id="feedbackBarF">
+        <span class="feedback-label">War das Ergebnis korrekt?</span>
+        <button class="feedback-btn" id="fbThumbUpF" onclick="handleThumbsUp()" title="Ja">&#128077;</button>
+        <button class="feedback-btn" id="fbThumbDownF" onclick="openFeedbackModal()" title="Fehler melden">&#128078; Melden</button>
       </div>
     `;
     showView('resultView');
@@ -1649,6 +1697,71 @@
       }).join('');
     } catch (e) {
       list.innerHTML = '<div class="scan-empty">Fehler: ' + e.message + '</div>';
+    }
+  }
+
+
+  // -- FEEDBACK --------------------------------------------------------
+  function openFeedbackModal() {
+    selectedFeedbackIssue = null;
+    document.querySelectorAll('.feedback-chip').forEach(c => c.classList.remove('active'));
+    document.getElementById('feedbackComment').value = '';
+    document.getElementById('feedbackStatus').textContent = '';
+    document.getElementById('feedbackModal').classList.add('open');
+  }
+
+  function closeFeedbackModal() {
+    document.getElementById('feedbackModal').classList.remove('open');
+  }
+
+  function selectFeedbackChip(el, issueType) {
+    document.querySelectorAll('.feedback-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    selectedFeedbackIssue = issueType;
+  }
+
+  function handleThumbsUp() {
+    ['fbThumbUp', 'fbThumbUpF'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.innerHTML = '&#10003;'; el.classList.add('sent'); }
+    });
+    ['fbThumbDown', 'fbThumbDownF'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('sent');
+    });
+  }
+
+  async function submitFeedback() {
+    if (!selectedFeedbackIssue) {
+      document.getElementById('feedbackStatus').innerHTML = '<span style="color:#e53e3e">Bitte einen Fehlertyp ausw&#228;hlen.</span>';
+      return;
+    }
+    const comment = (document.getElementById('feedbackComment').value || '').trim();
+    const payload = Object.assign({}, lastAnalysisData || {}, {
+      issueType: selectedFeedbackIssue,
+      comment: comment || null,
+      userAgent: navigator.userAgent,
+      timestamp: new Date().toISOString(),
+    });
+    document.getElementById('feedbackStatus').innerHTML = '<span style="color:var(--text-muted)">Wird gesendet...</span>';
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        document.getElementById('feedbackStatus').innerHTML = '<span style="color:var(--green)">&#10003; Danke! Feedback erhalten.</span>';
+        setTimeout(() => closeFeedbackModal(), 1800);
+        ['fbThumbDown', 'fbThumbDownF'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.add('sent');
+        });
+      } else {
+        document.getElementById('feedbackStatus').innerHTML = '<span style="color:#e53e3e">Fehler beim Senden. Bitte erneut versuchen.</span>';
+      }
+    } catch (e) {
+      document.getElementById('feedbackStatus').innerHTML = '<span style="color:#e53e3e">Netzwerkfehler.</span>';
     }
   }
 
