@@ -1301,7 +1301,7 @@
     document.getElementById('barcodeScanner').style.display = 'none';
     const resultDiv = document.getElementById('barcodeResult');
     resultDiv.style.display = 'block';
-    document.getElementById('barcodeProductName').textContent = '✅ Barcode erkannt: ' + barcode;
+    document.getElementById('barcodeProductName').textContent = 'Barcode erkannt: ' + barcode;
     document.getElementById('barcodeProductSub').textContent = 'Produkt wird nach der Analyse identifiziert…';
   }
   // ── End Barcode Scanner ───────────────────────────────────────────
@@ -1514,10 +1514,10 @@
     const profitColor = profit > 0 ? 'green' : profit < 0 ? 'red' : '';
 
     let verdict;
-    if (profit > 0 && data.demandScore >= 60)      verdict = { icon: '✅', title: 'Guter Deal',          sub: 'Hohe Nachfrage und positiver Gewinn.',         cls: 'go' };
-    else if (profit > 0 && data.demandScore >= 30) verdict = { icon: '⚠️', title: 'Mittelmässig',        sub: 'Gewinn möglich, aber Nachfrage verhalten.',    cls: 'caution' };
-    else if (profit <= 0)                          verdict = { icon: '🚫', title: 'Kein Gewinn',          sub: 'Kaufpreis ist zu hoch für diesen Zielpreis.',  cls: 'stop' };
-    else                                           verdict = { icon: '⚠️', title: 'Niedriges Interesse',  sub: 'Schwierig zu verkaufen, Geduld nötig.',        cls: 'caution' };
+    if (profit > 0 && data.demandScore >= 60)      verdict = { icon: '<i class="ti ti-circle-check"></i>', title: 'Guter Deal',          sub: 'Hohe Nachfrage und positiver Gewinn.',         cls: 'go' };
+    else if (profit > 0 && data.demandScore >= 30) verdict = { icon: '<i class="ti ti-alert-triangle"></i>', title: 'Mittelmässig',        sub: 'Gewinn möglich, aber Nachfrage verhalten.',    cls: 'caution' };
+    else if (profit <= 0)                          verdict = { icon: '<i class="ti ti-circle-x"></i>', title: 'Kein Gewinn',          sub: 'Kaufpreis ist zu hoch für diesen Zielpreis.',  cls: 'stop' };
+    else                                           verdict = { icon: '<i class="ti ti-alert-triangle"></i>', title: 'Niedriges Interesse',  sub: 'Schwierig zu verkaufen, Geduld nötig.',        cls: 'caution' };
 
     const demandColor = data.demandScore >= 70 ? '#22c55e' : data.demandScore >= 40 ? '#f59e0b' : '#ef4444';
     const channelsHtml = (data.channels || []).map((ch, i) => `
@@ -1532,7 +1532,7 @@
     const confidenceWarningHtml = showWarning ? `
       <div class="confidence-warning">
         <div class="confidence-warning-left">
-          <span class="confidence-icon">⚠️</span>
+          <i class="ti ti-alert-triangle confidence-icon"></i>
           <div>
             <div class="confidence-title">Unsichere Erkennung</div>
             <div class="confidence-sub">Preise können ungenau sein. Bitte Marke und Modell prüfen.</div>
@@ -1613,7 +1613,7 @@
           </div>
           <div class="price-card">
             ${data.soldAvg && data.soldCount >= 5
-              ? `<div class="price-card-label">✅ Verkauft Ø <span style="font-size:10px;opacity:0.7;">(${data.soldCount} verkauft)</span></div>
+              ? `<div class="price-card-label"><i class="ti ti-circle-check" style="color:#1D9E75;margin-right:3px;"></i> Verkauft Ø <span style="font-size:10px;opacity:0.7;">(${data.soldCount} verkauft)</span></div>
                  <div class="price-card-value">CHF ${parseFloat(data.soldAvg).toFixed(0)}</div>
                  <div class="price-card-range">${data.soldMin && data.soldMax ? parseFloat(data.soldMin).toFixed(0) + '–' + parseFloat(data.soldMax).toFixed(0) + ' CHF' : ''}</div>`
               : `<div class="price-card-label"><i class="ti ti-package"></i> Gebrauchtmarkt-Ø</div>
@@ -1739,13 +1739,13 @@
     if (hasMarketData) {
       const ratio = askedPrice / avg;
       fairnessScore = Math.min(100, Math.max(0, Math.round((ratio - 0.5) * 100)));
-      if (ratio <= 0.75)       verdict = { icon: '🤑', title: 'Schnäppchen!',      sub: `Deutlich unter Marktpreis (Ø CHF ${avg}).`,      cls: 'go' };
-      else if (ratio <= 0.95)  verdict = { icon: '✅', title: 'Fairer Preis',       sub: `Leicht unter Marktpreis (Ø CHF ${avg}).`,        cls: 'go' };
-      else if (ratio <= 1.10)  verdict = { icon: '👍', title: 'Marktkonform',       sub: `Entspricht dem Marktpreis (Ø CHF ${avg}).`,      cls: 'caution' };
-      else if (ratio <= 1.35)  verdict = { icon: '⚠️', title: 'Leicht überteuert', sub: `Etwas über Marktpreis (Ø CHF ${avg}).`,          cls: 'caution' };
-      else                     verdict = { icon: '🚫', title: 'Zu teuer',           sub: `Deutlich über Marktpreis (Ø CHF ${avg}).`,       cls: 'stop' };
+      if (ratio <= 0.75)       verdict = { icon: '<i class="ti ti-trophy"></i>', title: 'Schnäppchen!',      sub: `Deutlich unter Marktpreis (Ø CHF ${avg}).`,      cls: 'go' };
+      else if (ratio <= 0.95)  verdict = { icon: '<i class="ti ti-circle-check"></i>', title: 'Fairer Preis',       sub: `Leicht unter Marktpreis (Ø CHF ${avg}).`,        cls: 'go' };
+      else if (ratio <= 1.10)  verdict = { icon: '<i class="ti ti-thumb-up"></i>', title: 'Marktkonform',       sub: `Entspricht dem Marktpreis (Ø CHF ${avg}).`,      cls: 'caution' };
+      else if (ratio <= 1.35)  verdict = { icon: '<i class="ti ti-alert-triangle"></i>', title: 'Leicht überteuert', sub: `Etwas über Marktpreis (Ø CHF ${avg}).`,          cls: 'caution' };
+      else                     verdict = { icon: '<i class="ti ti-circle-x"></i>', title: 'Zu teuer',           sub: `Deutlich über Marktpreis (Ø CHF ${avg}).`,       cls: 'stop' };
     } else {
-      verdict = { icon: '❓', title: 'Zu wenig Daten', sub: 'Kein direkter Marktvergleich möglich. Siehe AI-Einschätzung unten.', cls: 'caution' };
+      verdict = { icon: '<i class="ti ti-help-circle"></i>', title: 'Zu wenig Daten', sub: 'Kein direkter Marktvergleich möglich. Siehe AI-Einschätzung unten.', cls: 'caution' };
     }
 
     const diff = avg > 0 ? (askedPrice - avg).toFixed(2) : null;
@@ -1758,7 +1758,7 @@
     const confidenceWarningFHtml = showWarningF ? `
       <div class="confidence-warning">
         <div class="confidence-warning-left">
-          <span class="confidence-icon">⚠️</span>
+          <i class="ti ti-alert-triangle confidence-icon"></i>
           <div>
             <div class="confidence-title">Unsichere Erkennung</div>
             <div class="confidence-sub">Preise können ungenau sein. Bitte Marke und Modell prüfen.</div>
@@ -1828,9 +1828,9 @@
             <div class="fairness-marker" style="left: ${markerLeft}%"></div>
           </div>
           <div class="fairness-labels">
-            <span>🤑 Schnäppchen</span>
+            <span><i class="ti ti-trophy"></i> Schnäppchen</span>
             <span>Fair</span>
-            <span>🚫 Zu teuer</span>
+            <span><i class="ti ti-circle-x"></i> Zu teuer</span>
           </div>
         </div>` : ''}
 
