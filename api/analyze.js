@@ -489,7 +489,9 @@ async function generateNote(objectInfo, ebayData, buyPrice, sellPrice, demandSco
 async function generateFairnessNote(objectInfo, ebayData, askedPrice) {
   const avg = parseFloat(ebayData?.marketAvg) || 0;
   const ratio = avg > 0 ? (askedPrice/avg).toFixed(2) : null;
-  const prompt = `Du bist ein Marktpreis-Experte. Bewerte diesen Preis in 1-2 Saetzen auf Deutsch.\nObjekt: ${objectInfo.objectName}, Zustand: ${objectInfo.condition}\nVerlangter Preis: CHF ${askedPrice}, Markt-O: CHF ${avg||'unbekannt'}, Verhaeltnis: ${ratio?ratio+'x':'unbekannt'}\nSei direkt. Lohnt es sich?`;
+  const diffChf = avg > 0 ? (askedPrice - avg).toFixed(0) : null;
+  const diffText = diffChf !== null ? (diffChf < 0 ? 'CHF ' + Math.abs(diffChf) + ' unter Markt' : 'CHF ' + diffChf + ' ueber Markt') : '';
+  const prompt = `Du bist Preisexperte fuer Secondhand-Waren. Schreib 1-2 kurze Saetze auf Deutsch fuer einen normalen Kaeufer (kein Fachjargon, keine Prozente, keine Formeln).\nObjekt: ${objectInfo.objectName}, Zustand: ${objectInfo.condition}\nVerlangter Preis: CHF ${askedPrice}${avg > 0 ? ', Marktdurchschnitt: CHF ' + avg + (diffChf !== null ? ' (' + diffText + ')' : '') : ''}\nIst der Preis fair? Was sollte der Kaeufer konkret wissen? Direkt, klar, ohne Fachbegriffe.`;
   const result = await httpsPost('api.openai.com','/v1/chat/completions',
     {'Content-Type':'application/json',Authorization:`Bearer ${process.env.OPENAI_API_KEY}`},
     {model:'gpt-4o-mini',max_tokens:120,messages:[{role:'user',content:prompt}]}
