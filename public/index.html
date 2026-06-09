@@ -502,7 +502,7 @@
 
     /* SPLASH – Step 1 hero */
     #step1 {
-      background: radial-gradient(ellipse at 50% 22%, rgba(24,95,165,0.35) 0%, rgba(29,158,117,0.12) 45%, transparent 70%);
+      background: radial-gradient(ellipse at 50% 28%, rgba(24,95,165,0.65) 0%, rgba(29,158,117,0.28) 45%, transparent 72%);
     }
     .splash-hero {
       display: flex; flex-direction: column; align-items: center;
@@ -554,6 +554,28 @@
       .ring-outer, .ring-middle, .ring-inner { animation: none; opacity: 1; }
       #step1.active .splash-hero, #step1.active .splash-divider,
       #step1.active .mode-cards, #step1.active .wizard-nav { animation: none; }
+    }
+
+
+    /* ── STEP 1 MOBILE FIXES ──────────────────────────────────────────────── */
+    /* CTA always visible without scrolling */
+    #step1 .wizard-nav {
+      position: sticky;
+      bottom: 0;
+      background: linear-gradient(to top, var(--bg) 65%, transparent);
+      padding: 16px 0 max(16px, env(safe-area-inset-bottom));
+      margin-top: auto;
+      z-index: 2;
+    }
+    /* Compact layout on short screens (iPhone SE, older Android) */
+    @media (max-height: 700px) {
+      .splash-hero { padding: 18px 0 10px; gap: 10px; }
+      .splash-logo-glow svg { width: 108px !important; height: 108px !important; }
+      .splash-name { font-size: 28px; }
+      .splash-tagline { font-size: 13px; }
+      .splash-divider { padding-top: 4px; }
+      .mode-cards { gap: 8px; }
+      .mode-card { padding: 12px 14px; }
     }
 
     /* hide header + progress when on step 1 */
