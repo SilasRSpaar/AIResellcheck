@@ -89,7 +89,7 @@ const CATEGORY_EBAY_MAP = {
     subTypes: {
       // Antique routing → Antiquitäten & Kunst category
       'antik': '20081', 'antiquität': '20081', 'biedermeier': '20081',
-      'jugendstil': '20081', 'art deco': '20081', 'jugendstil': '20081',
+      'jugendstil': '20081', 'art deco': '20081',
       'gründerzeit': '20081', 'historismus': '20081', 'klassizismus': '20081',
       'barock': '20081', 'empire': '20081', 'victorian': '20081',
       // Modern furniture subcategories
@@ -883,7 +883,7 @@ function detectTCGGame(query, objectName) {
   if (text.match(/lorcana/)) return 'lorcana-tcg';
   if (text.match(/digimon/)) return 'digimon-card-game';
   if (text.match(/dragon.?ball/)) return 'dragon-ball-super-card-game';
-  if (text.match(/flesh.?and.?blood|fab/)) return 'flesh-and-blood-tcg';
+  if (text.match(/flesh.?and.?blood|fab/)) return 'flesh-and-blood-tcg';
   // Generic trading card hint: if category is Sammler and text mentions card terms
   if (text.match(/karte|card|booster|sealed|holo|foil|rare/)) return 'pokemon'; // default to pokemon as largest DB
   return null;
