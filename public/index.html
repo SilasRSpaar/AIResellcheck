@@ -11,6 +11,8 @@
   <link rel="manifest" href="/manifest.json" />
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/tabler-icons.min.css" />
+  <style>i.ti { vertical-align: -0.125em; line-height: 1; }</style>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -644,14 +646,14 @@
         <div class="splash-divider">Was möchtest du tun?</div>
         <div class="mode-cards">
           <div class="mode-card" id="cardFairness" onclick="selectMode('fairness')">
-            <div class="mode-card-icon">🔍</div>
+            <div class="mode-card-icon"><i class="ti ti-scale"></i></div>
             <div>
               <div class="mode-card-title">Preis überprüfen</div>
               <div class="mode-card-desc">Ist der verlangte Preis fair? Wie steht er zum Markt?</div>
             </div>
           </div>
           <div class="mode-card selected" id="cardResell" onclick="selectMode('resell')">
-            <div class="mode-card-icon">🔄</div>
+            <div class="mode-card-icon"><i class="ti ti-repeat"></i></div>
             <div>
               <div class="mode-card-title">Kaufen &amp; Weiterverkaufen</div>
               <div class="mode-card-desc">Lohnt sich der Kauf? Wie hoch ist dein Gewinnpotenzial?</div>
@@ -670,11 +672,11 @@
           <div class="step-sub">Klares Foto oder Barcode scannen.</div>
         </div>
         <div class="scan-mode-row">
-          <button class="scan-mode-btn active" id="btnPhotoMode" onclick="setScanMode('photo')">📷 Foto</button>
-          <button class="scan-mode-btn" id="btnBarcodeMode" onclick="setScanMode('barcode')">🔍 Barcode</button>
+          <button class="scan-mode-btn active" id="btnPhotoMode" onclick="setScanMode('photo')"><i class="ti ti-camera"></i> Foto</button>
+          <button class="scan-mode-btn" id="btnBarcodeMode" onclick="setScanMode('barcode')"><i class="ti ti-barcode"></i> Barcode</button>
         </div>
         <div class="camera-area hero" id="cameraArea" onclick="triggerCamera()">
-          <div class="camera-icon">📷</div>
+          <div class="camera-icon"><i class="ti ti-camera"></i></div>
           <div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>
         </div>
         <div id="barcodeScanner" style="display:none;"></div>
@@ -707,16 +709,16 @@
         <div class="input-group">
           <label style="margin-bottom:8px;display:block;">Kategorie</label>
           <div class="cat-picker" id="catPicker">
-            <button class="cat-btn" data-cat="Elektronik" onclick="setCategory(this)"><span class="cat-icon">📱</span>Elektronik</button>
-            <button class="cat-btn" data-cat="Spielzeug" onclick="setCategory(this)"><span class="cat-icon">🧸</span>Spielzeug</button>
-            <button class="cat-btn" data-cat="Uhren & Schmuck" onclick="setCategory(this)"><span class="cat-icon">⌚</span>Uhren & Schmuck</button>
-            <button class="cat-btn" data-cat="Kleidung & Accessoires" onclick="setCategory(this)"><span class="cat-icon">👕</span>Kleidung & Accessoires</button>
-            <button class="cat-btn" data-cat="Sport & Outdoor" onclick="setCategory(this)"><span class="cat-icon">🚴</span>Sport & Outdoor</button>
-            <button class="cat-btn" data-cat="Musik" onclick="setCategory(this)"><span class="cat-icon">🎸</span>Musik</button>
-            <button class="cat-btn" data-cat="Möbel & Wohnen" onclick="setCategory(this)"><span class="cat-icon">🪑</span>Möbel & Wohnen</button>
-            <button class="cat-btn" data-cat="Antiquitäten & Kunst" onclick="setCategory(this)"><span class="cat-icon">🏺</span>Antiquitäten & Kunst</button>
-            <button class="cat-btn" data-cat="Sammler" onclick="setCategory(this)"><span class="cat-icon">🪙</span>Sammler</button>
-            <button class="cat-btn" data-cat="Haushalt & Küche" onclick="setCategory(this)"><span class="cat-icon">🏠</span>Haushalt & Küche</button>
+            <button class="cat-btn" data-cat="Elektronik" onclick="setCategory(this)"><i class="ti ti-device-mobile cat-icon"></i>Elektronik</button>
+            <button class="cat-btn" data-cat="Spielzeug" onclick="setCategory(this)"><i class="ti ti-puzzle cat-icon"></i>Spielzeug</button>
+            <button class="cat-btn" data-cat="Uhren & Schmuck" onclick="setCategory(this)"><i class="ti ti-clock cat-icon"></i>Uhren & Schmuck</button>
+            <button class="cat-btn" data-cat="Kleidung & Accessoires" onclick="setCategory(this)"><i class="ti ti-shirt cat-icon"></i>Kleidung & Accessoires</button>
+            <button class="cat-btn" data-cat="Sport & Outdoor" onclick="setCategory(this)"><i class="ti ti-bike cat-icon"></i>Sport & Outdoor</button>
+            <button class="cat-btn" data-cat="Musik" onclick="setCategory(this)"><i class="ti ti-music cat-icon"></i>Musik</button>
+            <button class="cat-btn" data-cat="Möbel & Wohnen" onclick="setCategory(this)"><i class="ti ti-sofa cat-icon"></i>Möbel & Wohnen</button>
+            <button class="cat-btn" data-cat="Antiquitäten & Kunst" onclick="setCategory(this)"><i class="ti ti-building-arch cat-icon"></i>Antiquitäten & Kunst</button>
+            <button class="cat-btn" data-cat="Sammler" onclick="setCategory(this)"><i class="ti ti-coin cat-icon"></i>Sammler</button>
+            <button class="cat-btn" data-cat="Haushalt & Küche" onclick="setCategory(this)"><i class="ti ti-home cat-icon"></i>Haushalt & Küche</button>
           </div>
         </div>
         <div class="input-group">
@@ -765,7 +767,7 @@
         </div>
         <div class="wizard-nav">
           <button class="btn-back" onclick="goToStep(3)">←</button>
-          <button class="btn-next" onclick="startAnalysis()">🔍 Analysieren</button>
+          <button class="btn-next" onclick="startAnalysis()"><i class="ti ti-search"></i> Analysieren</button>
         </div>
       </div>
 
@@ -1162,9 +1164,9 @@
       ${confidenceWarningHtml}
 
       <div class="result-tabs">
-        <button class="result-tab active" onclick="switchResultTab('preis', this)">💰 Preis</button>
-        <button class="result-tab" onclick="switchResultTab('info', this)">ℹ️ Info</button>
-        <button class="result-tab" onclick="switchResultTab('angebote', this)">🛒 Angebote</button>
+        <button class="result-tab active" onclick="switchResultTab('preis', this)"><i class="ti ti-tag"></i> Preis</button>
+        <button class="result-tab" onclick="switchResultTab('info', this)"><i class="ti ti-info-circle"></i> Info</button>
+        <button class="result-tab" onclick="switchResultTab('angebote', this)"><i class="ti ti-shopping-bag"></i> Angebote</button>
       </div>
 
       <div class="tab-panel active" id="result-tab-preis">
@@ -1188,14 +1190,14 @@
               ? `<div class="price-card-label">✅ Verkauft Ø <span style="font-size:10px;opacity:0.7;">(${data.soldCount} verkauft)</span></div>
                  <div class="price-card-value">CHF ${parseFloat(data.soldAvg).toFixed(0)}</div>
                  <div class="price-card-range">${data.soldMin && data.soldMax ? parseFloat(data.soldMin).toFixed(0) + '–' + parseFloat(data.soldMax).toFixed(0) + ' CHF' : ''}</div>`
-              : `<div class="price-card-label">📦 Gebrauchtmarkt-Ø</div>
+              : `<div class="price-card-label"><i class="ti ti-package"></i> Gebrauchtmarkt-Ø</div>
                  <div class="price-card-value">CHF ${data.marketAvg ? parseFloat(data.marketAvg).toFixed(0) : '–'}</div>
                  <div class="price-card-range">${data.priceMin && data.priceMax ? parseFloat(data.priceMin).toFixed(0) + '–' + parseFloat(data.priceMax).toFixed(0) + ' CHF' : ''}</div>`
             }
             <a class="price-card-link" href="${data.ebaySearchUrl || 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">eBay.de ansehen ↗</a>
           </div>
           <div class="price-card">
-            <div class="price-card-label">🏷️ Neupreis (Referenz)</div>
+            <div class="price-card-label"><i class="ti ti-tag"></i> Neupreis (Referenz)</div>
             <div class="price-card-value">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
             <div class="price-card-range">${(() => {
               if (!data.retailPrice || !data.marketAvg) return data.retailPrice ? (data.retailSource || (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung')) : 'Nicht verfügbar';
@@ -1225,7 +1227,7 @@
           <div class="channels-list">${channelsHtml}</div>
         </div>
         ${sellPrice > 0 ? renderFees(sellPrice, data.channels) : ''}
-        ${data.aiNote ? `<div class="ai-note" style="margin-top:12px;">💡 ${data.aiNote}</div>` : ''}
+        ${data.aiNote ? `<div class="ai-note" style="margin-top:12px;"><i class="ti ti-bulb"></i> ${data.aiNote}</div>` : ''}
       </div>
 
       <div class="tab-panel" id="result-tab-info">
@@ -1236,32 +1238,32 @@
         ${renderListings(data.topListings)}
         <div class="angebote-links">
           <a class="angebote-link" href="${data.ebaySearchUrl || 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
-            <span class="angebote-link-icon">🏪</span>
+            <i class="ti ti-building-store angebote-link-icon"></i>
             <span class="angebote-link-label">eBay.de durchsuchen</span>
             <span class="angebote-link-arrow">↗</span>
           </a>
           <a class="angebote-link" href="${data.amazonSearchUrl || 'https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
-            <span class="angebote-link-icon">📦</span>
+            <i class="ti ti-package angebote-link-icon"></i>
             <span class="angebote-link-label">Amazon.de ansehen</span>
             <span class="angebote-link-arrow">↗</span>
           </a>
           <a class="angebote-link" href="https://www.ricardo.ch/de/s/${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
-            <span class="angebote-link-icon">🇨🇭</span>
+            <i class="ti ti-map-pin angebote-link-icon"></i>
             <span class="angebote-link-label">Ricardo.ch suchen</span>
             <span class="angebote-link-arrow">↗</span>
           </a>
           <a class="angebote-link" href="https://www.tutti.ch/de/q/suche?query=${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
-            <span class="angebote-link-icon">🇨🇭</span>
+            <i class="ti ti-map-pin angebote-link-icon"></i>
             <span class="angebote-link-label">Tutti.ch Kleinanzeigen</span>
             <span class="angebote-link-arrow">↗</span>
           </a>
           <a class="angebote-link" href="https://www.galaxus.ch/de/search?q=${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
-            <span class="angebote-link-icon">🛍️</span>
+            <i class="ti ti-shopping-bag angebote-link-icon"></i>
             <span class="angebote-link-label">Galaxus.ch Neupreis</span>
             <span class="angebote-link-arrow">↗</span>
           </a>
           <a class="angebote-link" href="https://www.vinted.ch/catalog?search_text=${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
-            <span class="angebote-link-icon">👕</span>
+            <i class="ti ti-shirt angebote-link-icon"></i>
             <span class="angebote-link-label">Vinted.ch</span>
             <span class="angebote-link-arrow">↗</span>
           </a>
@@ -1290,7 +1292,7 @@
       </div>`;
     }).join('');
     return `<div class="fees-card">
-      <div class="fees-title">💰 Netto-Erlös nach Plattformgebühren</div>
+      <div class="fees-title"><i class="ti ti-coin"></i> Netto-Erlös nach Plattformgebühren</div>
       ${rows}
     </div>`;
   }
@@ -1346,9 +1348,9 @@
       ${confidenceWarningFHtml}
 
       <div class="result-tabs">
-        <button class="result-tab active" onclick="switchResultTab('preis', this)">⚖️ Bewertung</button>
-        <button class="result-tab" onclick="switchResultTab('info', this)">ℹ️ Info</button>
-        <button class="result-tab" onclick="switchResultTab('angebote', this)">🛒 Angebote</button>
+        <button class="result-tab active" onclick="switchResultTab('preis', this)"><i class="ti ti-scale"></i> Bewertung</button>
+        <button class="result-tab" onclick="switchResultTab('info', this)"><i class="ti ti-info-circle"></i> Info</button>
+        <button class="result-tab" onclick="switchResultTab('angebote', this)"><i class="ti ti-shopping-bag"></i> Angebote</button>
       </div>
 
       <div class="tab-panel active" id="result-tab-preis">
@@ -1377,13 +1379,13 @@
             <div class="stat-sub">${avg > 0 ? diffLabel : '–'}</div>
           </div>
           <div class="price-card">
-            <div class="price-card-label">📦 Gebrauchtmarkt-Ø</div>
+            <div class="price-card-label"><i class="ti ti-package"></i> Gebrauchtmarkt-Ø</div>
             <div class="price-card-value">CHF ${avg > 0 ? avg.toFixed(0) : '–'}</div>
             <div class="price-card-range">${data.priceMin && data.priceMax ? parseFloat(data.priceMin).toFixed(0) + '–' + parseFloat(data.priceMax).toFixed(0) + ' CHF' : ''}</div>
             <a class="price-card-link" href="${data.ebaySearchUrl || 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">eBay.de ansehen ↗</a>
           </div>
           <div class="price-card">
-            <div class="price-card-label">🏷️ Neupreis (Referenz)</div>
+            <div class="price-card-label"><i class="ti ti-tag"></i> Neupreis (Referenz)</div>
             <div class="price-card-value">${data.retailPrice ? 'CHF ~' + parseFloat(data.retailPrice).toFixed(0) : '–'}</div>
             <div class="price-card-range">${(() => {
               if (!data.retailPrice || !askedPrice) return data.retailPrice ? (data.retailSource || (data.retailConfidence === 'high' ? 'Richtpreis' : 'KI-Schätzung')) : 'Nicht verfügbar';
@@ -1410,7 +1412,7 @@
           </div>
         </div>
 
-        ${data.aiNote ? `<div class="ai-note">💡 ${data.aiNote}</div>` : ''}
+        ${data.aiNote ? `<div class="ai-note"><i class="ti ti-bulb"></i> ${data.aiNote}</div>` : ''}
       </div>
 
       <div class="tab-panel" id="result-tab-info">
@@ -1421,32 +1423,32 @@
         ${renderListings(data.topListings)}
         <div class="angebote-links">
           <a class="angebote-link" href="${data.ebaySearchUrl || 'https://www.ebay.de/sch/i.html?_nkw=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
-            <span class="angebote-link-icon">🏪</span>
+            <i class="ti ti-building-store angebote-link-icon"></i>
             <span class="angebote-link-label">eBay.de durchsuchen</span>
             <span class="angebote-link-arrow">↗</span>
           </a>
           <a class="angebote-link" href="${data.amazonSearchUrl || 'https://www.amazon.de/s?k=' + encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
-            <span class="angebote-link-icon">📦</span>
+            <i class="ti ti-package angebote-link-icon"></i>
             <span class="angebote-link-label">Amazon.de ansehen</span>
             <span class="angebote-link-arrow">↗</span>
           </a>
           <a class="angebote-link" href="https://www.ricardo.ch/de/s/${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
-            <span class="angebote-link-icon">🇨🇭</span>
+            <i class="ti ti-map-pin angebote-link-icon"></i>
             <span class="angebote-link-label">Ricardo.ch suchen</span>
             <span class="angebote-link-arrow">↗</span>
           </a>
           <a class="angebote-link" href="https://www.tutti.ch/de/q/suche?query=${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
-            <span class="angebote-link-icon">🇨🇭</span>
+            <i class="ti ti-map-pin angebote-link-icon"></i>
             <span class="angebote-link-label">Tutti.ch Kleinanzeigen</span>
             <span class="angebote-link-arrow">↗</span>
           </a>
           <a class="angebote-link" href="https://www.galaxus.ch/de/search?q=${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
-            <span class="angebote-link-icon">🛍️</span>
+            <i class="ti ti-shopping-bag angebote-link-icon"></i>
             <span class="angebote-link-label">Galaxus.ch Neupreis</span>
             <span class="angebote-link-arrow">↗</span>
           </a>
           <a class="angebote-link" href="https://www.vinted.ch/catalog?search_text=${encodeURIComponent(data.objectName||'')}" target="_blank" rel="noopener">
-            <span class="angebote-link-icon">👕</span>
+            <i class="ti ti-shirt angebote-link-icon"></i>
             <span class="angebote-link-label">Vinted.ch</span>
             <span class="angebote-link-arrow">↗</span>
           </a>
@@ -1534,7 +1536,7 @@
     document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.cond-btn').forEach((b,i) => b.classList.toggle('active', i===0));
     const area = document.getElementById('cameraArea');
-    area.innerHTML = `<div class="camera-icon">📷</div><div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>`;
+    area.innerHTML = `<div class="camera-icon"><i class="ti ti-camera"></i></div><div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>`;
     document.getElementById('btnStep2Next').disabled = true;
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
     document.getElementById('step1').classList.add('active');
