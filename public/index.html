@@ -710,6 +710,54 @@
       display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
     }
     .edit-submit-btn:active { opacity: 0.85; }
+
+    /* ── LEGAL PAGES ──────────────────────────────────────────────────── */
+    .step1-legal-links {
+      display: flex; justify-content: center; gap: 16px;
+      padding: 4px 0 0;
+    }
+    .step1-legal-link {
+      font-size: 11px; color: var(--text-muted); background: none;
+      border: none; cursor: pointer; text-decoration: underline;
+      text-underline-offset: 2px; opacity: 0.7; padding: 4px 0;
+    }
+    .step1-legal-link:active { opacity: 1; }
+
+    .legal-overlay {
+      position: fixed; inset: 0; background: var(--bg);
+      z-index: 999; display: flex; flex-direction: column;
+      transform: translateY(100%); transition: transform 0.3s ease;
+    }
+    .legal-overlay.open { transform: translateY(0); }
+    .legal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .legal-title { font-size: 17px; font-weight: 700; }
+    .legal-close {
+      background: var(--surface2); border: none; border-radius: 50%;
+      width: 32px; height: 32px; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; color: var(--text);
+      font-size: 18px;
+    }
+    .legal-body {
+      flex: 1; overflow-y: auto; padding: 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .legal-body h2 {
+      font-size: 14px; font-weight: 700; color: var(--text);
+      margin: 20px 0 6px; text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .legal-body h2:first-child { margin-top: 0; }
+    .legal-body p, .legal-body li {
+      font-size: 13px; color: var(--text-muted); line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .legal-body ul { padding-left: 18px; margin-bottom: 8px; }
+    .legal-body a { color: var(--accent-light); }
   </style>
 </head>
 <body class="on-step1">
@@ -809,6 +857,10 @@
               <div class="mode-card-desc">Lohnt sich der Kauf? Wie hoch ist dein Gewinnpotenzial?</div>
             </div>
           </div>
+        </div>
+        <div class="step1-legal-links">
+          <button class="step1-legal-link" onclick="showLegal('impressum')">Impressum</button>
+          <button class="step1-legal-link" onclick="showLegal('datenschutz')">Datenschutz</button>
         </div>
         <div class="wizard-nav">
           <button class="btn-next" onclick="goToStep(2)"><i class="ti ti-camera"></i> Foto aufnehmen →</button>
@@ -924,6 +976,69 @@
     </div><!-- end wizard-body -->
     <div class="bottom-safe"></div>
   </div>
+
+      <!-- Impressum Overlay -->
+      <div class="legal-overlay" id="legalImpressum">
+        <div class="legal-header">
+          <span class="legal-title">Impressum</span>
+          <button class="legal-close" onclick="closeLegal('impressum')"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="legal-body">
+          <h2>Betreiber</h2>
+          <p>Silas Spaar<br>Comparadoo (Einzelunternehmen)<br>Hohle Gasse 4<br>4143 Dornach<br>Schweiz</p>
+          <h2>Kontakt</h2>
+          <p>E-Mail: <a href="mailto:info@comparadoo.com">info@comparadoo.com</a></p>
+          <h2>Haftungsausschluss</h2>
+          <p>Die durch Comparadoo bereitgestellten Preisschätzungen und Marktanalysen basieren auf KI-gestützter Auswertung öffentlich zugänglicher Marktdaten. Sie stellen keine verbindliche Finanzberatung dar. Für die Richtigkeit, Vollständigkeit und Aktualität der Angaben wird keine Gewähr übernommen.</p>
+          <h2>Urheberrecht</h2>
+          <p>Die Inhalte und Werke auf dieser Website unterliegen dem Schweizer Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung ausserhalb der Grenzen des Urheberrechts bedürfen der schriftlichen Zustimmung des Betreibers.</p>
+        </div>
+      </div>
+
+      <!-- Datenschutz Overlay -->
+      <div class="legal-overlay" id="legalDatenschutz">
+        <div class="legal-header">
+          <span class="legal-title">Datenschutzerklärung</span>
+          <button class="legal-close" onclick="closeLegal('datenschutz')"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="legal-body">
+          <h2>Verantwortlicher</h2>
+          <p>Silas Spaar, Comparadoo, Hohle Gasse 4, 4143 Dornach<br>
+          E-Mail: <a href="mailto:info@comparadoo.com">info@comparadoo.com</a></p>
+
+          <h2>Erhobene Daten</h2>
+          <p>Comparadoo verarbeitet folgende Daten:</p>
+          <ul>
+            <li><strong>Fotos:</strong> Bilder werden ausschliesslich zur KI-Analyse an unseren Verarbeitungsanbieter übermittelt und nicht dauerhaft gespeichert.</li>
+            <li><strong>Scan-Ergebnisse:</strong> Analyseergebnisse werden anonymisiert in unserer Datenbank gespeichert, um den Dienst zu verbessern.</li>
+            <li><strong>Nutzerkonto:</strong> Bei Registrierung werden E-Mail-Adresse und Passwort-Hash gespeichert (via Supabase).</li>
+            <li><strong>Nutzungsprotokoll:</strong> Technische Logs (IP-Adresse, Zeitstempel) werden durch den Hosting-Anbieter Vercel für max. 30 Tage gespeichert.</li>
+          </ul>
+
+          <h2>Drittanbieter</h2>
+          <ul>
+            <li><strong>Anthropic (USA):</strong> KI-Bildanalyse. Datenschutz: <a href="https://www.anthropic.com/privacy" target="_blank">anthropic.com/privacy</a></li>
+            <li><strong>Supabase (USA/EU):</strong> Authentifizierung und Datenbank. Datenschutz: <a href="https://supabase.com/privacy" target="_blank">supabase.com/privacy</a></li>
+            <li><strong>Vercel (USA):</strong> Hosting und Serverless-Funktionen. Datenschutz: <a href="https://vercel.com/legal/privacy-policy" target="_blank">vercel.com/privacy</a></li>
+            <li><strong>eBay, Ricardo.ch, Tutti.ch, Vinted:</strong> Preisdaten werden von öffentlichen Plattformen abgerufen (keine Nutzerdata übertragen).</li>
+          </ul>
+
+          <h2>Rechtsgrundlage</h2>
+          <p>Die Datenverarbeitung erfolgt auf Grundlage des Schweizerischen Datenschutzgesetzes (DSG, in Kraft seit 1. September 2023) sowie, soweit anwendbar, der EU-Datenschutz-Grundverordnung (DSGVO, Art. 6 Abs. 1 lit. b und f).</p>
+
+          <h2>Ihre Rechte</h2>
+          <p>Sie haben das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung Ihrer personenbezogenen Daten sowie das Recht auf Datenübertragbarkeit. Anfragen richten Sie bitte an: <a href="mailto:info@comparadoo.com">info@comparadoo.com</a></p>
+
+          <h2>Datenspeicherung</h2>
+          <p>Nutzerdaten werden so lange gespeichert, wie ein aktives Konto besteht. Nach Kontolöschung werden alle personenbezogenen Daten innerhalb von 30 Tagen gelöscht. Fotos werden nicht dauerhaft gespeichert.</p>
+
+          <h2>Cookies und lokale Speicherung</h2>
+          <p>Comparadoo verwendet keine Tracking-Cookies. Es werden lediglich technisch notwendige Daten im lokalen Browser-Speicher abgelegt (Sitzungstoken, App-Einstellungen).</p>
+
+          <h2>Änderungen</h2>
+          <p>Diese Datenschutzerklärung kann jederzeit angepasst werden. Die aktuelle Version ist stets in der App abrufbar. Stand: Juni 2026.</p>
+        </div>
+      </div>
 
   <!-- LOADING VIEW -->
   <div id="loadingView" class="view">
@@ -2044,6 +2159,22 @@
   }
 
   initSupabase();
+
+  // ── LEGAL PAGES ──────────────────────────────────────────────────────────
+  function showLegal(page) {
+    const id = page === 'impressum' ? 'legalImpressum' : 'legalDatenschutz';
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLegal(page) {
+    const id = page === 'impressum' ? 'legalImpressum' : 'legalDatenschutz';
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('open');
+    document.body.style.overflow = '';
+  }
 </script>
 </body>
 </html>
