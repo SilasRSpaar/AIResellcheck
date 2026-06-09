@@ -1,4 +1,4 @@
-const CACHE_NAME = 'comparadoo-v35';
+const CACHE_NAME = 'comparadoo-v36';
 const STATIC_ASSETS = ['/', '/manifest.json'];
 
 self.addEventListener('install', (event) => {

@@ -389,13 +389,19 @@
 
     /* CONDITION PILLS */
     .condition-pills { display: flex; gap: 8px; flex-wrap: wrap; }
-    .cond-btn {
+    .cond-btn { display: flex; align-items: center; justify-content: center;
       flex: 1; min-width: 80px; padding: 10px 8px;
       border: 1.5px solid var(--border); border-radius: 10px;
       background: var(--surface2); color: var(--text-muted);
       font-size: 13px; font-weight: 600; cursor: pointer;
       transition: all 0.15s; text-align: center;
     }
+
+    .cond-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; flex-shrink: 0; }
+    .cond-dot-a { background: #1D9E75; }
+    .cond-dot-b { background: #5BC4A4; }
+    .cond-dot-c { background: #BA7517; }
+    .cond-dot-d { background: #E24B4A; }
     .cond-btn.active {
       border-color: var(--accent); color: white;
       background: rgba(24,95,165,0.25);
@@ -766,25 +772,25 @@
         <div class="input-group">
           <label>Zustand</label>
           <div class="condition-pills" style="margin-top:8px;">
-            <button class="cond-btn active" data-val="Sehr gut" onclick="setCondition(this)">✨ Sehr gut</button>
-            <button class="cond-btn" data-val="Gut" onclick="setCondition(this)">👍 Gut</button>
-            <button class="cond-btn" data-val="Akzeptabel" onclick="setCondition(this)">👌 Akzeptabel</button>
-            <button class="cond-btn" data-val="Beschädigt" onclick="setCondition(this)">⚠️ Beschädigt</button>
+            <button class="cond-btn active" data-val="Sehr gut" onclick="setCondition(this)"><span class="cond-dot cond-dot-a"></span>Sehr gut</button>
+            <button class="cond-btn" data-val="Gut" onclick="setCondition(this)"><span class="cond-dot cond-dot-b"></span>Gut</button>
+            <button class="cond-btn" data-val="Akzeptabel" onclick="setCondition(this)"><span class="cond-dot cond-dot-c"></span>Akzeptabel</button>
+            <button class="cond-btn" data-val="Beschädigt" onclick="setCondition(this)"><span class="cond-dot cond-dot-d"></span>Beschädigt</button>
           </div>
         </div>
         <div class="input-group">
           <label style="margin-bottom:8px;display:block;">Kategorie</label>
           <div class="cat-picker" id="catPicker">
-            <button class="cat-btn" data-cat="Elektronik" onclick="setCategory(this)"><i class="ti ti-device-mobile cat-icon"></i>Elektronik</button>
-            <button class="cat-btn" data-cat="Spielzeug" onclick="setCategory(this)"><i class="ti ti-puzzle cat-icon"></i>Spielzeug</button>
-            <button class="cat-btn" data-cat="Uhren & Schmuck" onclick="setCategory(this)"><i class="ti ti-clock cat-icon"></i>Uhren & Schmuck</button>
-            <button class="cat-btn" data-cat="Kleidung & Accessoires" onclick="setCategory(this)"><i class="ti ti-shirt cat-icon"></i>Kleidung & Accessoires</button>
-            <button class="cat-btn" data-cat="Sport & Outdoor" onclick="setCategory(this)"><i class="ti ti-bike cat-icon"></i>Sport & Outdoor</button>
-            <button class="cat-btn" data-cat="Musik" onclick="setCategory(this)"><i class="ti ti-music cat-icon"></i>Musik</button>
-            <button class="cat-btn" data-cat="Möbel & Wohnen" onclick="setCategory(this)"><i class="ti ti-sofa cat-icon"></i>Möbel & Wohnen</button>
-            <button class="cat-btn" data-cat="Antiquitäten & Kunst" onclick="setCategory(this)"><i class="ti ti-building-arch cat-icon"></i>Antiquitäten & Kunst</button>
-            <button class="cat-btn" data-cat="Sammler" onclick="setCategory(this)"><i class="ti ti-coin cat-icon"></i>Sammler</button>
-            <button class="cat-btn" data-cat="Haushalt & Küche" onclick="setCategory(this)"><i class="ti ti-home cat-icon"></i>Haushalt & Küche</button>
+            <button class="cat-btn" data-cat="Elektronik" onclick="setCategory(this)">Elektronik</button>
+            <button class="cat-btn" data-cat="Spielzeug" onclick="setCategory(this)">Spielzeug</button>
+            <button class="cat-btn" data-cat="Uhren & Schmuck" onclick="setCategory(this)">Uhren & Schmuck</button>
+            <button class="cat-btn" data-cat="Kleidung & Accessoires" onclick="setCategory(this)">Kleidung & Accessoires</button>
+            <button class="cat-btn" data-cat="Sport & Outdoor" onclick="setCategory(this)">Sport & Outdoor</button>
+            <button class="cat-btn" data-cat="Musik" onclick="setCategory(this)">Musik</button>
+            <button class="cat-btn" data-cat="Möbel & Wohnen" onclick="setCategory(this)">Möbel & Wohnen</button>
+            <button class="cat-btn" data-cat="Antiquitäten & Kunst" onclick="setCategory(this)">Antiquitäten & Kunst</button>
+            <button class="cat-btn" data-cat="Sammler" onclick="setCategory(this)">Sammler</button>
+            <button class="cat-btn" data-cat="Haushalt & Küche" onclick="setCategory(this)">Haushalt & Küche</button>
           </div>
         </div>
         <div class="input-group">
@@ -1209,7 +1215,7 @@
 
     const thumb = imageBase64 ? `<img class="result-thumb" src="data:image/jpeg;base64,${imageBase64}" />` : '';
 
-    const showWarning = (data.confidence != null && data.confidence < 70) || data.usedFallbackQuery;
+    const showWarning = (data.confidence != null && data.confidence < 50);
     const confidenceWarningHtml = showWarning ? `
       <div class="confidence-warning">
         <div class="confidence-warning-left">
@@ -1404,7 +1410,7 @@
     const thumb = imageBase64 ? `<img class="result-thumb" src="data:image/jpeg;base64,${imageBase64}" />` : '';
     const markerLeft = Math.round(5 + (fairnessScore / 100) * 90);
 
-    const showWarningF = (data.confidence != null && data.confidence < 70) || data.usedFallbackQuery;
+    const showWarningF = (data.confidence != null && data.confidence < 50);
     const confidenceWarningFHtml = showWarningF ? `
       <div class="confidence-warning">
         <div class="confidence-warning-left">
