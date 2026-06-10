@@ -27,9 +27,12 @@ module.exports = async function handler(req, res) {
   const priceMax    = b.priceMax;
   const marketAvg   = b.marketAvg;
   const confidence  = b.confidence;
-  const mode        = b.mode        || '';
-  const userAgent   = b.userAgent   || '';
-  const timestamp   = b.timestamp   || new Date().toISOString();
+  const mode           = b.mode           || '';
+  const userAgent      = b.userAgent      || '';
+  const timestamp      = b.timestamp      || new Date().toISOString();
+  const userCorrection = b.userCorrection || '';
+  const ebayQuery      = b.ebayQuery      || '';
+  const sourcesUsed    = b.sourcesUsed    || [];
 
   if (!issueType) return res.status(400).json({ error: 'issueType required' });
 
@@ -48,6 +51,9 @@ module.exports = async function handler(req, res) {
     ['Preis',        priceStr],
     ['Confidence',   confidence != null ? confidence + '%' : '-'],
     ['Modus',        modeLabel],
+    ['Richtige Antwort', userCorrection || '-'],
+    ['eBay Query',   ebayQuery || '-'],
+    ['Quellen',      sourcesUsed.length ? sourcesUsed.join(', ') : '-'],
     ['Zeitstempel',  timestamp],
     ['User-Agent',   '<span style="font-size:11px;color:#999">' + userAgent.substring(0, 120) + '</span>'],
   ];
