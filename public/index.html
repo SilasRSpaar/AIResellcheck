@@ -2433,4 +2433,12 @@ new MutationObserver(function(ms){
   ms.forEach(function(m){
     m.addedNodes.forEach(function(nd){
       if(nd.nodeType!==1)return;
-      if(
+      if(nd.tagName==='I'&&nd.classList&&nd.classList.contains('ti'))fill(nd);
+      else if(nd.querySelectorAll)run(nd);
+    });
+  });
+}).observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+</body>
+</html>
