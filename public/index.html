@@ -395,6 +395,8 @@
     .context-card { background: var(--surface); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; border-left: 3px solid var(--accent); }
     .context-title { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em; }
     .context-text { font-size: 13px; color: var(--text-muted); line-height: 1.65; margin: 0; }
+    .clues-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .clue-chip { font-size: 11px; background: var(--surface-2, rgba(255,255,255,0.06)); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; color: var(--text-muted); }
 
     /* Angebote tab links */
     .angebote-links { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
@@ -977,15 +979,17 @@
           <label style="margin-bottom:8px;display:block;">Kategorie</label>
           <div class="cat-picker" id="catPicker">
             <button class="cat-btn" data-cat="Elektronik" onclick="setCategory(this)"><i class="ti ti-device-mobile cat-icon"></i>Elektronik</button>
+            <button class="cat-btn" data-cat="Gaming" onclick="setCategory(this)"><i class="ti ti-device-gamepad cat-icon"></i>Gaming</button>
             <button class="cat-btn" data-cat="Spielzeug" onclick="setCategory(this)"><i class="ti ti-puzzle cat-icon"></i>Spielzeug</button>
             <button class="cat-btn" data-cat="Uhren & Schmuck" onclick="setCategory(this)"><i class="ti ti-clock cat-icon"></i>Uhren & Schmuck</button>
             <button class="cat-btn" data-cat="Kleidung & Accessoires" onclick="setCategory(this)"><i class="ti ti-shirt cat-icon"></i>Kleidung & Accessoires</button>
             <button class="cat-btn" data-cat="Sport & Outdoor" onclick="setCategory(this)"><i class="ti ti-bike cat-icon"></i>Sport & Outdoor</button>
             <button class="cat-btn" data-cat="Musik" onclick="setCategory(this)"><i class="ti ti-music cat-icon"></i>Musik</button>
+            <button class="cat-btn" data-cat="Bücher & Medien" onclick="setCategory(this)"><i class="ti ti-books cat-icon"></i>Bücher & Medien</button>
             <button class="cat-btn" data-cat="Möbel & Wohnen" onclick="setCategory(this)"><i class="ti ti-lamp cat-icon"></i>Möbel & Wohnen</button>
             <button class="cat-btn" data-cat="Antiquitäten & Kunst" onclick="setCategory(this)"><i class="ti ti-diamond cat-icon"></i>Antiquitäten & Kunst</button>
             <button class="cat-btn" data-cat="Sammler" onclick="setCategory(this)"><i class="ti ti-coin cat-icon"></i>Sammler</button>
-            <button class="cat-btn" data-cat="Haushalt & Küche" onclick="setCategory(this)"><i class="ti ti-tools cat-icon"></i>Haushalt & Küche</button>
+            <button class="cat-btn" data-cat="Haushalt & Werkzeug" onclick="setCategory(this)"><i class="ti ti-tools cat-icon"></i>Haushalt & Werkzeug</button>
           </div>
         </div>
         <div class="input-group">
@@ -1441,7 +1445,7 @@
     sizeInput.placeholder = sizePlaceholders[selectedCategory] || 'Grösse / Variante – optional';
 
     // userRef: only show for Uhren & Schmuck and Sammler
-    const showRef = ['Uhren & Schmuck', 'Sammler', 'Antiquitäten & Kunst'].includes(selectedCategory);
+    const showRef = ['Uhren & Schmuck', 'Sammler', 'Gaming', 'Bücher & Medien', 'Antiquitäten & Kunst'].includes(selectedCategory);
     refInput.style.display = showRef ? 'block' : 'none';
     if (!showRef) refInput.value = '';
 
@@ -1449,6 +1453,8 @@
     const refPlaceholders = {
       'Uhren & Schmuck':       'Referenznummer (z.B. 116610) – optional',
       'Sammler':               'Set-Nr. / Karten-Set / Edition – optional',
+      'Gaming':               'Spiel-Titel / Konsolen-Modell – optional',
+      'Bücher & Medien':     'Vinyl: Katalog-Nr. / Buch: ISBN – optional',
       'Antiquitäten & Kunst':  'Stempel / Signatur / Marke – optional',
     };
     refInput.placeholder = refPlaceholders[selectedCategory] || 'Referenz – optional';
@@ -1622,7 +1628,7 @@
         <div class="edit-field-row">
           <label class="edit-field-label">Kategorie</label>
           <select class="edit-field-select" id="editCategory">
-            ${['Elektronik','Spielzeug','Uhren & Schmuck','Kleidung & Accessoires','Sport & Outdoor','Musik','Möbel & Wohnen','Antiquitäten & Kunst','Sammler','Haushalt & Küche'].map(cat => `<option value="${cat}" ${data.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+            ${['Elektronik','Gaming','Spielzeug','Uhren & Schmuck','Kleidung & Accessoires','Sport & Outdoor','Musik','Bücher & Medien','Möbel & Wohnen','Antiquitäten & Kunst','Sammler','Haushalt & Werkzeug'].map(cat => `<option value="${cat}" ${data.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
           </select>
         </div>
         <div class="edit-field-row">
@@ -1843,7 +1849,7 @@
         <div class="edit-field-row">
           <label class="edit-field-label">Kategorie</label>
           <select class="edit-field-select" id="editCategory">
-            ${['Elektronik','Spielzeug','Uhren & Schmuck','Kleidung & Accessoires','Sport & Outdoor','Musik','Möbel & Wohnen','Antiquitäten & Kunst','Sammler','Haushalt & Küche'].map(cat => `<option value="${cat}" ${data.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+            ${['Elektronik','Gaming','Spielzeug','Uhren & Schmuck','Kleidung & Accessoires','Sport & Outdoor','Musik','Bücher & Medien','Möbel & Wohnen','Antiquitäten & Kunst','Sammler','Haushalt & Werkzeug'].map(cat => `<option value="${cat}" ${data.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
           </select>
         </div>
         <div class="edit-field-row">
@@ -1978,13 +1984,43 @@
   }
 
   function renderInfoTab(data) {
-    if (!data.contextInfo || data.contextInfo === 'null') {
-      return '<div style="padding:16px;color:var(--text-muted);font-size:13px;text-align:center;">Keine weiteren Informationen verfügbar.</div>';
+    let html = '';
+
+    // ── Über dieses Objekt
+    if (data.contextInfo && data.contextInfo !== 'null') {
+      html += `<div class="context-card">
+        <div class="context-title">Über dieses Objekt</div>
+        <p class="context-text">${data.contextInfo}</p>
+      </div>`;
     }
-    return `<div class="context-card">
-      <div class="context-title">\u00dcber dieses Objekt</div>
-      <p class="context-text">${data.contextInfo}</p>
-    </div>`;
+
+    // ── Erkennungsmerkmale
+    if (data.visualClues && data.visualClues !== 'null') {
+      const chips = data.visualClues.split(',').map(s => s.trim()).filter(Boolean);
+      if (chips.length) {
+        html += `<div class="context-card">
+          <div class="context-title">Erkennungsmerkmale</div>
+          <div class="clues-wrap">${chips.map(c => `<span class="clue-chip">${c}</span>`).join('')}</div>
+        </div>`;
+      }
+    }
+
+    // ── Details (material, era, makerMark)
+    const details = [
+      data.material     && data.material     !== 'null' ? { label: 'Material',   val: data.material }     : null,
+      data.stylePeriod  && data.stylePeriod  !== 'null' ? { label: 'Stilepoche', val: data.stylePeriod }  : null,
+      data.estimatedEra && data.estimatedEra !== 'null' ? { label: 'Periode',    val: data.estimatedEra } : null,
+      data.makerMark    && data.makerMark    !== 'null' ? { label: 'Signatur',   val: data.makerMark }    : null,
+      data.isAntique                                     ? { label: 'Antik',      val: 'Ja (> 80 Jahre)' } : null,
+    ].filter(Boolean);
+    if (details.length) {
+      html += `<div class="info-section">${details.map(d =>
+        `<div class="info-row"><span class="info-label">${d.label}</span><span class="info-val">${d.val}</span></div>`
+      ).join('')}</div>`;
+    }
+
+    if (!html) html = '<div style="padding:16px;color:var(--text-muted);font-size:13px;text-align:center;">Keine weiteren Informationen verfügbar.</div>';
+    return html;
   }
   function toggleReanalyseForm() {
     const form = document.getElementById('reanalyseForm');
@@ -2408,6 +2444,8 @@ var I={
 'ti-music':'<circle cx="6" cy="17" r="3"/><circle cx="16" cy="15" r="3"/><path d="M9 17V5l10-2v10"/>',
 'ti-package':'<path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m12 12 8-4.5M12 12v9M12 12 4 7.5M16 5.25 8 10"/>',
 'ti-puzzle':'<path d="M4 7h3a1 1 0 0 0 1-1V5a2 2 0 0 1 4 0v1a1 1 0 0 0 1 1h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1a2 2 0 0 0 0 4h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-1a2 2 0 0 0-4 0v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a2 2 0 0 0 0-4H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/>',
+'ti-device-gamepad':'<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 11v.01M17 13v.01"/>',
+'ti-books':'<path d="M5 4h4v16H5zM5 8h4M5 12h4"/><path d="M9 4h2l4 16h-2zM13 8l3.5 1M14 12l3.5 1"/>',
 'ti-refresh':'<path d="M20 11A8.1 8.1 0 0 0 4.5 9M4 5v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>',
 'ti-repeat':'<path d="M4 12v-3a3 3 0 0 1 3-3h13m0 0-3-3m3 3-3 3"/><path d="M20 12v3a3 3 0 0 1-3 3H4m0 0 3 3m-3-3 3-3"/>',
 'ti-scale':'<path d="M7 21h10M12 4v17"/><path d="M3 9l9-4 9 4"/><path d="M5 13a4 4 0 0 0 8 0M11 13a4 4 0 0 0 8 0"/>',
@@ -2431,14 +2469,4 @@ function run(r){(r||document).querySelectorAll('i.ti').forEach(fill);}
 run();
 new MutationObserver(function(ms){
   ms.forEach(function(m){
-    m.addedNodes.forEach(function(nd){
-      if(nd.nodeType!==1)return;
-      if(nd.tagName==='I'&&nd.classList&&nd.classList.contains('ti'))fill(nd);
-      else if(nd.querySelectorAll)run(nd);
-    });
-  });
-}).observe(document.body,{childList:true,subtree:true});
-})();
-</script>
-</body>
-</html>
+    m.addedNodes.forEach(func
