@@ -398,6 +398,36 @@
     .clues-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
     .clue-chip { font-size: 11px; background: var(--surface-2, rgba(255,255,255,0.06)); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; color: var(--text-muted); }
 
+    /* -- Multi-Photo Slots ---------------------------------------- */
+    .photo-slots { display: flex; gap: 8px; margin-top: 8px; }
+    .photo-slot-thumb {
+      width: 72px; height: 72px; border-radius: 10px; border: 2px dashed var(--border);
+      background: var(--surface); display: flex; align-items: center; justify-content: center;
+      cursor: pointer; overflow: hidden; position: relative; flex-shrink: 0; transition: border-color 0.2s;
+    }
+    .photo-slot-thumb:active { border-color: var(--accent); }
+    .photo-slot-thumb img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+    .photo-slot-thumb .slot-icon { font-size: 22px; opacity: 0.35; }
+    .photo-slot-thumb .slot-remove { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px;
+      background: rgba(0,0,0,0.65); border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: #fff; cursor: pointer; z-index: 2; }
+
+    /* -- Confirm View ---------------------------------------- */
+    #confirmView { flex-direction: column; gap: 0; padding: 0; }
+    .confirm-header { padding: 20px 20px 12px; }
+    .confirm-title { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+    .confirm-sub { font-size: 14px; color: var(--text-muted); }
+    .confirm-card { background: var(--surface); border-radius: var(--radius); margin: 0 16px 12px; padding: 16px; border-left: 3px solid var(--accent); }
+    .confirm-objname { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+    .confirm-meta { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+    .confirm-actions { display: flex; gap: 10px; margin: 0 16px 12px; }
+    .confirm-btn-ok { flex: 2; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .confirm-btn-fix { flex: 1; padding: 14px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .confirm-google { display: block; margin: 0 16px 12px; padding: 12px 16px; background: var(--surface2); border-radius: 10px; color: var(--text-muted); font-size: 13px; text-decoration: none; text-align: center; }
+    .confirm-fix-panel { margin: 0 16px 12px; display: none; }
+    .confirm-fix-input { width: 100%; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; box-sizing: border-box; }
+    .confirm-fix-btn { width: 100%; margin-top: 8px; padding: 13px; background: var(--accent); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
+
     /* Angebote tab links */
     .angebote-links { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
     .angebote-link {
@@ -953,7 +983,17 @@
           <div class="barcode-result-title" id="barcodeProductName">—</div>
           <div class="barcode-result-sub" id="barcodeProductSub">Produkt wird nach Analyse identifiziert…</div>
         </div>
+        <div class="photo-slots" id="photoSlots" style="display:none;">
+          <div class="photo-slot-thumb" id="slot1" onclick="triggerCameraSlot(1)" title="2. Foto (z.B. Etikett, Rückseite)">
+            <span class="slot-icon"><i class="ti ti-camera-plus"></i></span>
+          </div>
+          <div class="photo-slot-thumb" id="slot2" onclick="triggerCameraSlot(2)" title="3. Foto (z.B. Detail, Signatur)">
+            <span class="slot-icon"><i class="ti ti-camera-plus"></i></span>
+          </div>
+          <div style="flex:1;font-size:12px;color:var(--text-muted);line-height:1.3;padding:4px 0;align-self:center">Bis zu 2 weitere Fotos — z.B. Etikett, Rückseite, Details</div>
+        </div>
         <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="onImageSelected(event)" />
+        <input type="file" id="fileInputExtra" accept="image/*" capture="environment" style="display:none" />
         <div class="wizard-nav">
           <button class="btn-back" onclick="goToStep(1)">←</button>
           <button class="btn-next" id="btnStep2Next" onclick="goToStep(3)" disabled>Details eingeben →</button>
@@ -1188,6 +1228,30 @@
       </div>
 
   <!-- LOADING VIEW -->
+  <!-- Confirm View: KI-Erkennung bestaetigen -->
+  <div id="confirmView" class="view">
+    <div class="confirm-header">
+      <div class="confirm-title">KI-Erkennung</div>
+      <div class="confirm-sub">Stimmt das mit dem Objekt überein?</div>
+    </div>
+    <div class="confirm-card" id="confirmCard">
+      <div class="confirm-objname" id="confirmObjName">—</div>
+      <div class="confirm-meta" id="confirmMeta"></div>
+      <div class="clues-wrap" id="confirmClues"></div>
+    </div>
+    <a id="confirmGoogleLink" href="#" target="_blank" class="confirm-google">
+      🔍 Bilder in Google ansehen ↗
+    </a>
+    <div class="confirm-actions">
+      <button class="confirm-btn-ok" onclick="confirmAndGetPrices()">Stimmt — Weiter</button>
+      <button class="confirm-btn-fix" onclick="toggleConfirmFix()">Korrigieren</button>
+    </div>
+    <div class="confirm-fix-panel" id="confirmFixPanel">
+      <input class="confirm-fix-input" id="confirmFixInput" type="text" placeholder="Was ist es wirklich? (z.B. Garmin Fenix 7X)" />
+      <button class="confirm-fix-btn" onclick="applyConfirmFix()">Bestätigen &amp; Preise suchen</button>
+    </div>
+  </div>
+
   <div id="loadingView" class="view">
     <div class="spinner"></div>
     <div>
@@ -1226,6 +1290,9 @@
 <script>
   let selectedImage = null;
   let imageBase64 = null;
+  let capturedImages = [];   // array of base64 strings, up to 3
+  let currentExtraSlot = -1; // which extra slot is being filled
+  let pendingObjectInfo = null; // objectInfo from identify phase
   let detectedBarcode = null;
   let html5QrCode = null;
   let currentMode = 'resell'; // 'resell' | 'fairness'
@@ -1372,16 +1439,14 @@
     return { avgBrightness, corrected, warning, warnClass };
   }
 
-  function onImageSelected(event) {
-    const file = event.target.files[0];
+  function processImageFile(file, slot) {
+    // slot: 0 = primary, 1 = second, 2 = third
     if (!file) return;
-    selectedImage = file;
     const reader = new FileReader();
     reader.onload = (e) => {
       const rawSrc = e.target.result;
       const imgEl = new Image();
       imgEl.onload = () => {
-        // 1. Resize to max 1200px
         const MAX = 1200;
         let w = imgEl.width, h = imgEl.height;
         if (w > MAX || h > MAX) {
@@ -1392,32 +1457,55 @@
         canvas.width = w; canvas.height = h;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(imgEl, 0, 0, w, h);
-
-        // 2. Analyze quality + auto-correct brightness
         const quality = analyzeAndCorrectImage(ctx, w, h);
-
-        // 3. Compress to JPEG (uses corrected image)
         const compressed = canvas.toDataURL('image/jpeg', 0.80);
-        imageBase64 = compressed.split(',')[1];
+        const b64 = compressed.split(',')[1];
 
-        // 4. Show preview + optional quality badge
-        const preview = document.createElement('img');
-        preview.src = compressed;
-        const area = document.getElementById('cameraArea');
-        area.innerHTML = '';
-        area.appendChild(preview);
-        if (quality.warning) {
-          const badge = document.createElement('div');
-          badge.className = quality.warnClass;
-          badge.textContent = quality.warning;
-          area.appendChild(badge);
+        if (slot === 0) {
+          imageBase64 = b64;
+          capturedImages[0] = b64;
+          const area = document.getElementById('cameraArea');
+          area.innerHTML = '';
+          const preview = document.createElement('img'); preview.src = compressed;
+          area.appendChild(preview);
+          if (quality.warning) {
+            const badge = document.createElement('div');
+            badge.className = quality.warnClass; badge.textContent = quality.warning;
+            area.appendChild(badge);
+          }
+          // Show extra slots after first photo
+          document.getElementById('photoSlots').style.display = 'flex';
+        } else {
+          capturedImages[slot] = b64;
+          const thumb = document.getElementById('slot' + slot);
+          if (thumb) {
+            thumb.innerHTML = '<img src="' + compressed + '" /><span class="slot-remove" onclick="removeSlot(' + slot + ',event)">×</span>';
+          }
         }
-
         updateAnalyzeBtn();
       };
       imgEl.src = rawSrc;
     };
     reader.readAsDataURL(file);
+  }
+
+  function onImageSelected(event) {
+    selectedImage = event.target.files[0];
+    processImageFile(selectedImage, 0);
+  }
+
+  function triggerCameraSlot(slot) {
+    currentExtraSlot = slot;
+    const fi = document.getElementById('fileInputExtra');
+    fi.onchange = (e) => { processImageFile(e.target.files[0], slot); fi.value = ''; };
+    fi.click();
+  }
+
+  function removeSlot(slot, event) {
+    event.stopPropagation();
+    capturedImages[slot] = undefined;
+    const thumb = document.getElementById('slot' + slot);
+    if (thumb) thumb.innerHTML = '<span class="slot-icon"><i class="ti ti-camera-plus"></i></span>';
   }
 
   function updateAnalyzeBtn() {
@@ -1471,17 +1559,34 @@
     document.getElementById(id).classList.add('active');
   }
 
-  const loadingSteps = [
-    'KI erkennt Objekt…',
+  const loadingStepsIdentify = [
+    'KI analysiert Foto…',
+    'Objekt wird erkannt…',
+    'Merkmale werden ausgewertet…',
+  ];
+  const loadingStepsPrices = [
     'Marktpreise werden abgefragt…',
     'Neupreis wird recherchiert…',
     'Nachfrage wird analysiert…',
     'Preis wird bewertet…',
     'Ergebnis wird aufbereitet…',
   ];
+  // Keep legacy alias for any remaining references
+  const loadingSteps = loadingStepsPrices;
+
+  function getUserInputs() {
+    return {
+      userBrand: document.getElementById('userBrand')?.value.trim() || null,
+      userModel: document.getElementById('userModel')?.value.trim() || null,
+      userYear:  document.getElementById('userYear')?.value.trim()  || null,
+      userSize:  document.getElementById('userSize')?.value.trim()  || null,
+      userRef:   document.getElementById('userRef')?.value.trim()   || null,
+    };
+  }
 
   async function startAnalysis() {
-    if (!imageBase64 && !detectedBarcode) return;
+    const images = capturedImages.filter(Boolean);
+    if (!images.length && !detectedBarcode) return;
 
     const buyPrice   = parseFloat(document.getElementById('buyPrice').value)   || 0;
     const sellPrice  = parseFloat(document.getElementById('sellPrice').value)  || 0;
@@ -1489,43 +1594,28 @@
     lastBuyPrice = buyPrice; lastSellPrice = sellPrice; lastAskedPrice = askedPrice;
 
     showView('loadingView');
+    document.getElementById('loadingStep').textContent = 'KI analysiert Foto…';
     let stepIdx = 0;
     const stepEl = document.getElementById('loadingStep');
     const stepInterval = setInterval(() => {
-      stepIdx = (stepIdx + 1) % loadingSteps.length;
-      stepEl.textContent = loadingSteps[stepIdx];
-    }, 1800);
+      stepIdx = (stepIdx + 1) % loadingStepsIdentify.length;
+      stepEl.textContent = loadingStepsIdentify[stepIdx];
+    }, 1500);
 
-    // Capture all user inputs for Sentry context
-    const _sentryCtx = {
-      mode: currentMode,
-      condition: selectedCondition,
-      category: selectedCategory || null,
-      userBrand: document.getElementById('userBrand')?.value.trim() || null,
-      userModel: document.getElementById('userModel')?.value.trim() || null,
-      userYear:  document.getElementById('userYear')?.value.trim()  || null,
-      userSize:  document.getElementById('userSize')?.value.trim()  || null,
-      userRef:   document.getElementById('userRef')?.value.trim()   || null,
-      hasPhoto:  !!imageBase64,
-      hasBarcode: !!detectedBarcode,
-      buyPrice, sellPrice, askedPrice,
-    };
+    const inputs = getUserInputs();
+    const _sentryCtx = { mode: currentMode, condition: selectedCondition, category: selectedCategory || null, ...inputs, hasPhoto: !!images.length, hasBarcode: !!detectedBarcode, buyPrice, sellPrice, askedPrice };
 
     try {
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          image: imageBase64 || null,
+          images: images.length ? images : null,
           barcode: detectedBarcode || null,
-          mode: currentMode, buyPrice, sellPrice, askedPrice,
+          phase: 'identify',
           condition: selectedCondition,
-          userBrand: _sentryCtx.userBrand,
-          userModel: _sentryCtx.userModel,
-          userYear:  _sentryCtx.userYear,
-          userSize:  _sentryCtx.userSize,
           userCategory: selectedCategory || null,
-          userRef:   _sentryCtx.userRef,
+          ...inputs,
         }),
       });
 
@@ -1534,23 +1624,113 @@
       if (!response.ok) {
         const errBody = await response.json().catch(() => ({}));
         const err = new Error(errBody.error || 'Server-Fehler ' + response.status);
-        err.httpStatus = response.status;
-        throw err;
+        err.httpStatus = response.status; throw err;
       }
 
       const data = await response.json();
-      currentMode === 'resell' ? renderResellResult(data, buyPrice, sellPrice) : renderFairnessResult(data, askedPrice);
-      saveScan(data, currentMode).then(id => { if (lastAnalysisData && id) lastAnalysisData.scanId = id; }); // store to Supabase if logged in
+      pendingObjectInfo = data.objectInfo;
+      renderConfirmView(data.objectInfo);
 
     } catch (err) {
       clearInterval(stepInterval);
       sentryCatch(err, Object.assign({ context: 'startAnalysis', httpStatus: err.httpStatus || null }, _sentryCtx));
       showView('resultView');
-      document.getElementById('resultContent').innerHTML = `
-        <div class="error-box">
-          <strong>Fehler bei der Analyse</strong><br>${err.message}<br><br>
-          Bitte prüfe deine API Keys in den Vercel Einstellungen.
-        </div>`;
+      document.getElementById('resultContent').innerHTML = `<div class="error-box"><strong>Fehler bei der Analyse</strong><br>${err.message}</div>`;
+    }
+  }
+
+  function renderConfirmView(objectInfo) {
+    const name = objectInfo.objectName || 'Unbekanntes Objekt';
+    const cat  = objectInfo.category   || '';
+    const conf = objectInfo.confidence != null ? objectInfo.confidence + '% Sicherheit' : '';
+    document.getElementById('confirmObjName').textContent = name;
+    document.getElementById('confirmMeta').textContent = [cat, conf].filter(Boolean).join(' · ');
+
+    // Visual clues chips
+    const cluesWrap = document.getElementById('confirmClues');
+    cluesWrap.innerHTML = '';
+    if (objectInfo.visualClues) {
+      objectInfo.visualClues.split(',').map(s => s.trim()).filter(Boolean).forEach(clue => {
+        const chip = document.createElement('span');
+        chip.className = 'clue-chip'; chip.textContent = clue;
+        cluesWrap.appendChild(chip);
+      });
+    }
+
+    // Google Images link
+    const q = encodeURIComponent(name + (objectInfo.brand ? ' ' + objectInfo.brand : ''));
+    document.getElementById('confirmGoogleLink').href = 'https://www.google.com/search?q=' + q + '&tbm=isch';
+
+    document.getElementById('confirmFixPanel').style.display = 'none';
+    document.getElementById('confirmFixInput').value = '';
+    showView('confirmView');
+  }
+
+  function toggleConfirmFix() {
+    const panel = document.getElementById('confirmFixPanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    if (panel.style.display === 'block') document.getElementById('confirmFixInput').focus();
+  }
+
+  function applyConfirmFix() {
+    const correction = document.getElementById('confirmFixInput').value.trim();
+    if (!correction) return;
+    if (pendingObjectInfo) {
+      pendingObjectInfo.objectName = correction;
+      pendingObjectInfo.ebaySearchQuery = correction;
+      pendingObjectInfo.ebaySearchQueryBroad = correction;
+    }
+    confirmAndGetPrices();
+  }
+
+  async function confirmAndGetPrices() {
+    if (!pendingObjectInfo) return;
+
+    const buyPrice   = lastBuyPrice;
+    const sellPrice  = lastSellPrice;
+    const askedPrice = lastAskedPrice;
+    const inputs     = getUserInputs();
+
+    showView('loadingView');
+    document.getElementById('loadingStep').textContent = 'Marktpreise werden abgefragt…';
+    let stepIdx = 0;
+    const stepEl = document.getElementById('loadingStep');
+    const stepInterval = setInterval(() => {
+      stepIdx = (stepIdx + 1) % loadingStepsPrices.length;
+      stepEl.textContent = loadingStepsPrices[stepIdx];
+    }, 1800);
+
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phase: 'prices',
+          confirmedObjectInfo: pendingObjectInfo,
+          mode: currentMode, buyPrice, sellPrice, askedPrice,
+          condition: selectedCondition,
+          userCategory: selectedCategory || null,
+          ...inputs,
+        }),
+      });
+
+      clearInterval(stepInterval);
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        const err = new Error(errBody.error || 'Server-Fehler ' + response.status);
+        err.httpStatus = response.status; throw err;
+      }
+
+      const data = await response.json();
+      currentMode === 'resell' ? renderResellResult(data, buyPrice, sellPrice) : renderFairnessResult(data, askedPrice);
+      saveScan(data, currentMode).then(id => { if (lastAnalysisData && id) lastAnalysisData.scanId = id; });
+
+    } catch (err) {
+      clearInterval(stepInterval);
+      sentryCatch(err, { context: 'confirmAndGetPrices', httpStatus: err.httpStatus || null });
+      showView('resultView');
+      document.getElementById('resultContent').innerHTML = `<div class="error-box"><strong>Fehler bei der Analyse</strong><br>${err.message}</div>`;
     }
   }
 
@@ -2107,7 +2287,7 @@
   }
 
   function resetApp() {
-    selectedImage = null; imageBase64 = null; detectedBarcode = null;
+    selectedImage = null; imageBase64 = null; capturedImages = []; pendingObjectInfo = null; currentExtraSlot = -1; detectedBarcode = null;
     selectedCondition = 'Sehr gut'; selectedCategory = null; currentStep = 1;
     document.getElementById('userRef').style.display = 'none';
     document.getElementById('userRef').value = '';
@@ -2126,6 +2306,8 @@
     document.querySelectorAll('.cond-btn').forEach((b,i) => b.classList.toggle('active', i===0));
     const area = document.getElementById('cameraArea');
     area.innerHTML = `<div class="camera-icon"><i class="ti ti-camera"></i></div><div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>`;
+    document.getElementById('photoSlots').style.display = 'none';
+    ['slot1','slot2'].forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = '<span class="slot-icon"><i class="ti ti-camera-plus"></i></span>'; });
     document.getElementById('btnStep2Next').disabled = true;
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
     document.getElementById('step1').classList.add('active');
@@ -2446,6 +2628,7 @@ var I={
 'ti-puzzle':'<path d="M4 7h3a1 1 0 0 0 1-1V5a2 2 0 0 1 4 0v1a1 1 0 0 0 1 1h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1a2 2 0 0 0 0 4h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-1a2 2 0 0 0-4 0v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a2 2 0 0 0 0-4H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/>',
 'ti-device-gamepad':'<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 11v.01M17 13v.01"/>',
 'ti-books':'<path d="M5 4h4v16H5zM5 8h4M5 12h4"/><path d="M9 4h2l4 16h-2zM13 8l3.5 1M14 12l3.5 1"/>',
+'ti-camera-plus':'<path d="M15 8h.01"/><path d="M6 9a3 3 0 0 0 3 3h.01A3 3 0 0 0 12 9a3 3 0 0 0-3-3H9A3 3 0 0 0 6 9z"/><path d="M2 14h1v5h16v-5h1"/><path d="M8 14H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1l2-2h6l2 2h1a2 2 0 0 1 2 2v1"/><path d="M19 5v6m-3-3h6"   />',
 'ti-refresh':'<path d="M20 11A8.1 8.1 0 0 0 4.5 9M4 5v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>',
 'ti-repeat':'<path d="M4 12v-3a3 3 0 0 1 3-3h13m0 0-3-3m3 3-3 3"/><path d="M20 12v3a3 3 0 0 1-3 3H4m0 0 3 3m-3-3 3-3"/>',
 'ti-scale':'<path d="M7 21h10M12 4v17"/><path d="M3 9l9-4 9 4"/><path d="M5 13a4 4 0 0 0 8 0M11 13a4 4 0 0 0 8 0"/>',
