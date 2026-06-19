@@ -714,6 +714,13 @@
     .feedback-textarea { width:100%; box-sizing:border-box; background:var(--surface); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:13px; padding:10px 12px; resize:none; font-family:inherit; margin-top:4px; }
     .feedback-textarea:focus { outline:none; border-color:var(--accent-light); }
     .feedback-status { text-align:center; font-size:13px; margin-top:10px; min-height:18px; }
+    .feedback-sub-panel { margin-top:10px; }
+    .feedback-price-btns { display:flex; gap:10px; margin-bottom:8px; }
+    .feedback-price-btn { flex:1; padding:11px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text); font-size:14px; font-weight:600; cursor:pointer; transition:all .15s; }
+    .feedback-price-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .feedback-cat-grid { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+    .feedback-cat-chip { padding:6px 12px; border:1px solid var(--border); border-radius:16px; background:var(--surface); color:var(--text-muted); font-size:12px; cursor:pointer; transition:all .15s; }
+    .feedback-cat-chip.active { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
 
     /* ── RE-ANALYSE FORM ─────────────────────────────────────────────── */
     .reanalyse-toggle-row { margin: 4px 0 12px; }
@@ -898,11 +905,11 @@
       <div class="feedback-chips" id="feedbackChips">
         <button class="feedback-chip" onclick="selectFeedbackChip(this,'Falsches Objekt')">Falsches Objekt</button>
         <button class="feedback-chip" onclick="selectFeedbackChip(this,'Falscher Preis')">Falscher Preis</button>
+        <button class="feedback-chip" onclick="selectFeedbackChip(this,'Falsche Kategorie')">Falsche Kategorie</button>
         <button class="feedback-chip" onclick="selectFeedbackChip(this,'App-Fehler')">App-Fehler</button>
         <button class="feedback-chip" onclick="selectFeedbackChip(this,'Anderes')">Anderes</button>
       </div>
-      <textarea class="feedback-textarea" id="feedbackComment" rows="2" placeholder="Was war falsch? (optional)" maxlength="300"></textarea>
-      <textarea class="feedback-textarea" id="feedbackCorrection" rows="2" placeholder="Was wäre richtig gewesen? (optional, z.B. 'Wanduhr-Pendel, nicht Dekoartikel')" maxlength="200" style="margin-top:8px"></textarea>
+      <div class="feedback-sub-panel" id="feedbackSubPanel" style="display:none"></div>
       <button class="auth-btn" onclick="submitFeedback()">Senden</button>
       <div class="feedback-status" id="feedbackStatus"></div>
     </div>
@@ -2480,10 +2487,18 @@
 
 
   // -- FEEDBACK --------------------------------------------------------
+  let selectedPriceDir = null;
+  let selectedCorrectCategory = null;
+
+  const FEEDBACK_CATEGORIES = ['Elektronik','Gaming','Spielzeug','Uhren \u0026 Schmuck','Kleidung \u0026 Accessoires','Sport \u0026 Outdoor','Musik','B\u00fccher \u0026 Medien','M\u00f6bel \u0026 Wohnen','Antiquit\u00e4ten \u0026 Kunst','Sammler','Haushalt \u0026 Werkzeug'];
+
   function openFeedbackModal() {
     selectedFeedbackIssue = null;
+    selectedPriceDir = null;
+    selectedCorrectCategory = null;
     document.querySelectorAll('.feedback-chip').forEach(c => c.classList.remove('active'));
-    document.getElementById('feedbackComment').value = '';
+    const sub = document.getElementById('feedbackSubPanel');
+    sub.innerHTML = ''; sub.style.display = 'none';
     document.getElementById('feedbackStatus').textContent = '';
     document.getElementById('feedbackModal').classList.add('open');
   }
@@ -2496,6 +2511,52 @@
     document.querySelectorAll('.feedback-chip').forEach(c => c.classList.remove('active'));
     el.classList.add('active');
     selectedFeedbackIssue = issueType;
+    selectedPriceDir = null;
+    selectedCorrectCategory = null;
+    renderFeedbackSubPanel(issueType);
+  }
+
+  function renderFeedbackSubPanel(issueType) {
+    const sub = document.getElementById('feedbackSubPanel');
+    sub.innerHTML = '';
+    sub.style.display = 'block';
+
+    if (issueType === 'Falsches Objekt') {
+      sub.innerHTML = '<input class="confirm-fix-input" id="fbObjCorrection" type="text" placeholder="Was ist es wirklich? (z.B. Garmin Fenix 7X)" maxlength="150" style="margin-bottom:8px" />';
+
+    } else if (issueType === 'Falscher Preis') {
+      sub.innerHTML = '<div class="feedback-price-btns">'
+        + '<button class="feedback-price-btn" id="fpHigh" onclick="selectPriceDir(this,\"zu_hoch\")">\u2B06 Zu hoch</button>'
+        + '<button class="feedback-price-btn" id="fpLow" onclick="selectPriceDir(this,\"zu_tief\")">\u2B07 Zu tief</button>'
+        + '</div>'
+        + '<input class="confirm-fix-input" id="fbPriceComment" type="text" placeholder="Dein Richtwert (optional, z.B. CHF 80-100)" maxlength="100" />';
+
+    } else if (issueType === 'Falsche Kategorie') {
+      let chips = '<div class="feedback-cat-grid">';
+      FEEDBACK_CATEGORIES.forEach(cat => {
+        chips += '<button class="feedback-cat-chip" onclick="selectCorrectCategory(this,\'' + cat + '\')">'+cat+'</button>';
+      });
+      chips += '</div>';
+      sub.innerHTML = chips;
+
+    } else if (issueType === 'App-Fehler' || issueType === 'Anderes') {
+      sub.innerHTML = '<textarea class="feedback-textarea" id="fbComment" rows="2" placeholder="Beschreibe das Problem (optional)" maxlength="300"></textarea>';
+
+    } else {
+      sub.style.display = 'none';
+    }
+  }
+
+  function selectPriceDir(el, dir) {
+    document.querySelectorAll('.feedback-price-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    selectedPriceDir = dir;
+  }
+
+  function selectCorrectCategory(el, cat) {
+    document.querySelectorAll('.feedback-cat-chip').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    selectedCorrectCategory = cat;
   }
 
   function handleThumbsUp() {
@@ -2519,12 +2580,24 @@
       document.getElementById('feedbackStatus').innerHTML = '<span style="color:#e53e3e">Bitte einen Fehlertyp ausw&#228;hlen.</span>';
       return;
     }
-    const comment    = (document.getElementById('feedbackComment').value || '').trim();
-    const correction = (document.getElementById('feedbackCorrection').value || '').trim();
+    // Collect sub-panel inputs based on issue type
+    let comment = null, correction = null, priceDirection = null, correctCategory = null;
+    if (selectedFeedbackIssue === 'Falsches Objekt') {
+      correction = (document.getElementById('fbObjCorrection')?.value || '').trim() || null;
+    } else if (selectedFeedbackIssue === 'Falscher Preis') {
+      priceDirection = selectedPriceDir;
+      comment = (document.getElementById('fbPriceComment')?.value || '').trim() || null;
+    } else if (selectedFeedbackIssue === 'Falsche Kategorie') {
+      correctCategory = selectedCorrectCategory;
+    } else {
+      comment = (document.getElementById('fbComment')?.value || '').trim() || null;
+    }
     const payload = Object.assign({}, lastAnalysisData || {}, {
       issueType: selectedFeedbackIssue,
       comment: comment || null,
       userCorrection: correction || null,
+      priceDirection: priceDirection || null,
+      correctCategory: correctCategory || null,
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
     });

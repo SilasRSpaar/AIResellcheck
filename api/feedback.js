@@ -30,9 +30,11 @@ module.exports = async function handler(req, res) {
   const mode           = b.mode           || '';
   const userAgent      = b.userAgent      || '';
   const timestamp      = b.timestamp      || new Date().toISOString();
-  const userCorrection = b.userCorrection || '';
-  const ebayQuery      = b.ebayQuery      || '';
-  const sourcesUsed    = b.sourcesUsed    || [];
+  const userCorrection   = b.userCorrection   || '';
+  const priceDirection   = b.priceDirection   || '';
+  const correctCategory  = b.correctCategory  || '';
+  const ebayQuery        = b.ebayQuery        || '';
+  const sourcesUsed      = b.sourcesUsed      || [];
 
   if (!issueType) return res.status(400).json({ error: 'issueType required' });
 
@@ -40,22 +42,26 @@ module.exports = async function handler(req, res) {
   const objDisplay = [objectName, brand, model].filter(Boolean).join(' / ') || '-';
   const modeLabel  = mode === 'fairness' ? 'Fairness-Check' : 'Resell';
 
-  const issueColors = { 'Falsches Objekt': '#E53E3E', 'Falscher Preis': '#DD6B20', 'App-Fehler': '#9B2C2C', 'Anderes': '#2B6CB0' };
+  const issueColors = { 'Falsches Objekt': '#E53E3E', 'Falscher Preis': '#DD6B20', 'Falsche Kategorie': '#6B46C1', 'App-Fehler': '#9B2C2C', 'Anderes': '#2B6CB0' };
   const issueColor = issueColors[issueType] || '#185FA5';
 
+  const priceDirLabel = priceDirection === 'zu_hoch' ? '⬆ Zu hoch' : priceDirection === 'zu_tief' ? '⬇ Zu tief' : '-';
+
   const rows = [
-    ['Fehlertyp',    '<span style="color:' + issueColor + ';font-weight:700">' + issueType + '</span>'],
-    ['Kommentar',    comment || '-'],
-    ['Objekt',       objDisplay],
-    ['Kategorie',    category || '-'],
-    ['Preis',        priceStr],
-    ['Confidence',   confidence != null ? confidence + '%' : '-'],
-    ['Modus',        modeLabel],
-    ['Richtige Antwort', userCorrection || '-'],
-    ['eBay Query',   ebayQuery || '-'],
-    ['Quellen',      sourcesUsed.length ? sourcesUsed.join(', ') : '-'],
-    ['Zeitstempel',  timestamp],
-    ['User-Agent',   '<span style="font-size:11px;color:#999">' + userAgent.substring(0, 120) + '</span>'],
+    ['Fehlertyp',         '<span style="color:' + issueColor + ';font-weight:700">' + issueType + '</span>'],
+    ['KI-Objekt (war)',   objDisplay],
+    ['KI-Kategorie (war)',category || '-'],
+    ['Richtige Antwort',  userCorrection || '-'],
+    ['Korrekte Kategorie',correctCategory ? '<strong style="color:' + issueColor + '">' + correctCategory + '</strong>' : '-'],
+    ['Preis-Richtung',    priceDirLabel],
+    ['Preis (war)',       priceStr],
+    ['Kommentar',         comment || '-'],
+    ['Confidence',        confidence != null ? confidence + '%' : '-'],
+    ['Modus',             modeLabel],
+    ['eBay Query',        ebayQuery || '-'],
+    ['Quellen',           sourcesUsed.length ? sourcesUsed.join(', ') : '-'],
+    ['Zeitstempel',       timestamp],
+    ['User-Agent',        '<span style="font-size:11px;color:#999">' + userAgent.substring(0, 120) + '</span>'],
   ];
 
   const tableRows = rows.map(function(row, i) {
