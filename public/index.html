@@ -412,6 +412,19 @@
       background: rgba(0,0,0,0.65); border-radius: 50%; display: flex; align-items: center; justify-content: center;
       font-size: 11px; color: #fff; cursor: pointer; z-index: 2; }
 
+    /* -- Community Prices ---------------------------------------- */
+    .community-box { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin: 12px 0 4px; }
+    .community-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+    .community-icon { font-size:18px; }
+    .community-title { font-size:13px; font-weight:700; color:var(--text); }
+    .community-count { font-size:11px; color:var(--text-muted); margin-left:auto; }
+    .community-row { display:flex; align-items:center; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--border); font-size:13px; }
+    .community-row:last-child { border-bottom:none; }
+    .community-cond { color:var(--text-muted); }
+    .community-price { font-weight:700; color:var(--accent-light,#4da6ff); }
+    .community-n { font-size:11px; color:var(--text-muted); margin-left:6px; }
+    .community-total { margin-top:8px; padding-top:8px; border-top:1px solid var(--border); display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); }
+
     /* -- Confirm View ---------------------------------------- */
     #confirmView { flex-direction: column; gap: 0; padding: 0; }
     .confirm-header { padding: 20px 20px 12px; }
@@ -1932,6 +1945,7 @@
         </div>
       </div>
       <button class="btn-rescan-primary" onclick="resetApp()"><i class="ti ti-refresh"></i> Neu scannen</button>
+      <div id="communityPricesBlock"></div>
       <div class="feedback-bar" id="feedbackBar">
         <span class="feedback-label">War das Ergebnis korrekt?</span>
         <button class="feedback-btn" id="fbThumbUp" onclick="handleThumbsUp()" title="Ja">&#128077;</button>
@@ -1939,6 +1953,7 @@
       </div>
     `;
     showView('resultView');
+    if (data.communityPrices) renderCommunityPrices(data.communityPrices, 'communityPricesBlock');
   }
   function renderFees(sellPrice, channels) {
     const fees = [
@@ -2153,6 +2168,7 @@
         </div>
       </div>
       <button class="btn-rescan-primary" onclick="resetApp()"><i class="ti ti-refresh"></i> Neu scannen</button>
+      <div id="communityPricesBlockF"></div>
       <div class="feedback-bar" id="feedbackBarF">
         <span class="feedback-label">War das Ergebnis korrekt?</span>
         <button class="feedback-btn" id="fbThumbUpF" onclick="handleThumbsUp()" title="Ja">&#128077;</button>
@@ -2160,6 +2176,34 @@
       </div>
     `;
     showView('resultView');
+    if (data.communityPrices) renderCommunityPrices(data.communityPrices, 'communityPricesBlockF');
+  }
+
+  function renderCommunityPrices(cp, targetId) {
+    const el = document.getElementById(targetId);
+    if (!el || !cp || cp.count < 2) return;
+    let rows = '';
+    if (cp.byCondition && cp.byCondition.length) {
+      cp.byCondition.forEach(row => {
+        rows += `<div class="community-row">`
+          + `<span class="community-cond">${row.condition}</span>`
+          + `<span><span class="community-price">\u00d8 CHF ${row.avg}</span>`
+          + `<span class="community-n">(${row.count}\u00d7)</span></span></div>`;
+      });
+    }
+    el.innerHTML = `
+      <div class="community-box">
+        <div class="community-header">
+          <span class="community-icon">\ud83d\udcca</span>
+          <span class="community-title">Comparadoo Community-Preise</span>
+          <span class="community-count">${cp.count} Beobachtungen</span>
+        </div>
+        ${rows}
+        <div class="community-total">
+          <span>Alle Zust\u00e4nde</span>
+          <span>\u00d8 CHF ${cp.avg} &nbsp;|&nbsp; CHF ${cp.min}\u2013${cp.max}</span>
+        </div>
+      </div>`;
   }
 
   function switchResultTab(tabId, btn) {
