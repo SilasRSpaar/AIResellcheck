@@ -481,7 +481,7 @@
     .cond-dot-b { background: #5BC4A4; }
     .cond-dot-c { background: #BA7517; }
     .cond-dot-d { background: #E24B4A; }
-    .cond-icon { font-size: 14px; margin-right: 4px; vertical-align: -0.1em; }
+    .cond-icon { width: 15px; height: 15px; margin-right: 4px; flex-shrink: 0; }
     .cond-btn[data-val="Sehr gut"] .cond-icon  { color: #1D9E75; }
     .cond-btn[data-val="Gut"] .cond-icon       { color: #5BC4A4; }
     .cond-btn[data-val="Akzeptabel"] .cond-icon { color: #BA7517; }
@@ -661,7 +661,7 @@
     body.on-step1 #appHeader .logo,
     body.on-step1 #appHeader svg,
     body.on-step1 .wizard-top { display: none !important; }
-    body.on-step1 #appHeader { background: transparent; border-bottom: none; box-shadow: none; justify-content: flex-end; padding: 6px 16px; }
+    body.on-step1 #appHeader { background: transparent; border-bottom: none; box-shadow: none; justify-content: flex-end; padding: 3px 16px; }
 
     /* ── USER BUTTON ─────────────────────────────────────────────── */
     .user-btn {
@@ -1032,10 +1032,10 @@
         <div class="input-group">
           <label>Zustand</label>
           <div class="condition-pills" style="margin-top:8px;">
-            <button class="cond-btn active" data-val="Sehr gut" onclick="setCondition(this)"><i class="ti ti-circle-check cond-icon"></i>Sehr gut</button>
-            <button class="cond-btn" data-val="Gut" onclick="setCondition(this)"><i class="ti ti-check cond-icon"></i>Gut</button>
-            <button class="cond-btn" data-val="Akzeptabel" onclick="setCondition(this)"><i class="ti ti-circle-minus cond-icon"></i>Akzeptabel</button>
-            <button class="cond-btn" data-val="Beschädigt" onclick="setCondition(this)"><i class="ti ti-alert-triangle cond-icon"></i>Beschädigt</button>
+            <button class="cond-btn active" data-val="Sehr gut" onclick="setCondition(this)"><svg class="cond-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>Sehr gut</button>
+            <button class="cond-btn" data-val="Gut" onclick="setCondition(this)"><svg class="cond-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Gut</button>
+            <button class="cond-btn" data-val="Akzeptabel" onclick="setCondition(this)"><svg class="cond-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>Akzeptabel</button>
+            <button class="cond-btn" data-val="Beschädigt" onclick="setCondition(this)"><svg class="cond-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>Beschädigt</button>
           </div>
         </div>
         <div class="input-group">
@@ -1072,7 +1072,6 @@
       <div class="step" id="step4">
         <div>
           <div class="step-title">Preisangaben</div>
-          <div class="step-sub">Gib den relevanten Preis ein.</div>
         </div>
         <div class="input-group" id="inputsResell" style="display:none;">
           <div class="input-row">
