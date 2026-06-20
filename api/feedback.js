@@ -83,7 +83,7 @@ module.exports = async function handler(req, res) {
 
   const emailBody = JSON.stringify({
     from: 'Comparadoo Feedback <info@comparadoo.com>',
-    to: ['info@comparadoo.com'],
+    to: ['silas.spaar@gmail.com'],
     subject: '[Comparadoo] ' + issueType + ' - ' + (objectName || 'Unbekannt').substring(0, 50),
     html: html,
   });
