@@ -195,7 +195,17 @@
     }
 
     /* LOADING */
-    #loadingView { align-items: center; justify-content: center; gap: 24px; text-align: center; }
+    #loadingView { align-items: center; justify-content: center; gap: 28px; text-align: center; }
+    .loading-logo-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+    @keyframes loading-pulse-outer { 0%,100%{opacity:0.5;} 50%{opacity:1;} }
+    @keyframes loading-pulse-mid   { 0%,100%{opacity:0.4;} 50%{opacity:1;} }
+    @keyframes loading-pulse-inner { 0%,100%{opacity:0.3;} 50%{opacity:1;} }
+    .loading-logo .loading-ring-outer { animation: loading-pulse-outer 1.8s ease-in-out infinite; }
+    .loading-logo .loading-ring-middle { animation: loading-pulse-mid 1.8s ease-in-out 0.3s infinite; }
+    .loading-logo .loading-ring-inner { animation: loading-pulse-inner 1.8s ease-in-out 0.6s infinite; }
+    .loading-steps-wrap { min-height: 52px; }
+    .loading-step-label { font-size: 17px; font-weight: 600; color: var(--text); }
+    .loading-step-sub { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
     .spinner {
       width: 60px; height: 60px;
       border: 4px solid var(--border); border-top-color: var(--accent);
@@ -374,15 +384,17 @@
     }
 
     /* ── RESULT TABS ─────────────────────────────────────────────────── */
-    .result-tabs { display: flex; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+    .result-tabs { display: flex; margin-bottom: 14px; border-bottom: 2px solid var(--border); background: var(--surface); border-radius: 10px 10px 0 0; }
     .result-tab {
-      flex: 1; padding: 10px 4px; background: none; border: none;
-      color: var(--text-muted); font-size: 13px; font-weight: 600;
-      cursor: pointer; border-bottom: 2px solid transparent;
-      margin-bottom: -1px; transition: color 0.15s, border-color 0.15s;
-      font-family: inherit;
+      flex: 1; padding: 13px 6px; background: none; border: none;
+      color: var(--text-muted); font-size: 14px; font-weight: 700;
+      cursor: pointer; border-bottom: 3px solid transparent;
+      margin-bottom: -2px; transition: color 0.15s, border-color 0.15s, background 0.15s;
+      font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 5px;
     }
-    .result-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .result-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(55,138,221,0.08); }
+    .result-tab:first-child { border-radius: 10px 0 0 0; }
+    .result-tab:last-child { border-radius: 0 10px 0 0; }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
 
@@ -538,7 +550,7 @@
     .bottom-safe { height: env(safe-area-inset-bottom, 20px); }
     .cat-picker { display: flex; flex-wrap: wrap; gap: 8px; }
     .cat-btn { flex: 1 0 calc(25% - 6px); min-width: 70px; padding: 10px 4px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text-muted); font-size: 11px; font-weight: 600; cursor: pointer; text-align: center; line-height: 1.4; transition: all 0.15s; }
-    .cat-btn .cat-icon { font-size: 20px; display: block; margin-bottom: 3px; }
+    .cat-btn .cat-icon { width: 20px; height: 20px; display: block; margin: 0 auto 4px; }
     .cat-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
     .details-toggle { background: none; border: 1px dashed var(--border); border-radius: 10px; color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 10px 14px; width: 100%; cursor: pointer; text-align: left; transition: all 0.2s; }
     .details-toggle:hover { border-color: var(--accent); color: var(--accent-light); }
@@ -573,7 +585,7 @@
     }
     .splash-hero {
       display: flex; flex-direction: column; align-items: center;
-      padding: 44px 0 24px; gap: 14px; flex: 1;
+      padding: 24px 0 20px; gap: 14px; flex: 1;
       justify-content: center;
     }
 
@@ -601,9 +613,9 @@
       max-width: 260px;
     }
     .splash-divider {
-      font-size: 11px; font-weight: 700; color: var(--text-muted);
-      text-transform: uppercase; letter-spacing: 0.8px;
-      text-align: center; padding-top: 8px;
+      font-size: 13px; font-weight: 700; color: var(--text);
+      text-transform: uppercase; letter-spacing: 1.2px;
+      text-align: center; padding-top: 10px; padding-bottom: 4px;
     }
 
     /* Staggered fade-in */
@@ -649,7 +661,7 @@
     body.on-step1 #appHeader .logo,
     body.on-step1 #appHeader svg,
     body.on-step1 .wizard-top { display: none !important; }
-    body.on-step1 #appHeader { background: transparent; border-bottom: none; box-shadow: none; justify-content: flex-end; }
+    body.on-step1 #appHeader { background: transparent; border-bottom: none; box-shadow: none; justify-content: flex-end; padding: 6px 16px; }
 
     /* ── USER BUTTON ─────────────────────────────────────────────── */
     .user-btn {
@@ -964,15 +976,15 @@
         <!-- Mode selection -->
         <div class="splash-divider">Was möchtest du tun?</div>
         <div class="mode-cards">
-          <div class="mode-card" id="cardFairness" onclick="selectMode('fairness')">
-            <div class="mode-card-icon"><i class="ti ti-scale"></i></div>
+          <div class="mode-card selected" id="cardFairness" onclick="selectMode('fairness')">
+            <div class="mode-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28" aria-hidden="true"><path d="M7 21h10M12 4v17"/><path d="M3 9l9-4 9 4"/><path d="M5 13a4 4 0 0 0 8 0M11 13a4 4 0 0 0 8 0"/></svg></div>
             <div>
               <div class="mode-card-title">Preis überprüfen</div>
               <div class="mode-card-desc">Ist der verlangte Preis fair? Wie steht er zum Markt?</div>
             </div>
           </div>
-          <div class="mode-card selected" id="cardResell" onclick="selectMode('resell')">
-            <div class="mode-card-icon"><i class="ti ti-repeat"></i></div>
+          <div class="mode-card" id="cardResell" onclick="selectMode('resell')">
+            <div class="mode-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28" aria-hidden="true"><path d="M4 12v-3a3 3 0 0 1 3-3h13m0 0-3-3m3 3-3 3"/><path d="M20 12v3a3 3 0 0 1-3 3H4m0 0 3 3m-3-3 3-3"/></svg></div>
             <div>
               <div class="mode-card-title">Kaufen &amp; Weiterverkaufen</div>
               <div class="mode-card-desc">Lohnt sich der Kauf? Wie hoch ist dein Gewinnpotenzial?</div>
@@ -988,20 +1000,11 @@
       <div class="step" id="step2">
         <div>
           <div class="step-title">Objekt fotografieren</div>
-          <div class="step-sub">Klares Foto oder Barcode scannen.</div>
-        </div>
-        <div class="scan-mode-row">
-          <button class="scan-mode-btn active" id="btnPhotoMode" onclick="setScanMode('photo')"><i class="ti ti-camera"></i> Foto</button>
-          <button class="scan-mode-btn" id="btnBarcodeMode" onclick="setScanMode('barcode')"><i class="ti ti-barcode"></i> Barcode</button>
+          <div class="step-sub">Foto machen oder aus Galerie wählen.</div>
         </div>
         <div class="camera-area hero" id="cameraArea" onclick="triggerCamera()">
           <div class="camera-icon"><i class="ti ti-camera"></i></div>
           <div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>
-        </div>
-        <div id="barcodeScanner" style="display:none;"></div>
-        <div class="barcode-result" id="barcodeResult" style="display:none;">
-          <div class="barcode-result-title" id="barcodeProductName">—</div>
-          <div class="barcode-result-sub" id="barcodeProductSub">Produkt wird nach Analyse identifiziert…</div>
         </div>
         <div class="photo-slots" id="photoSlots" style="display:none;">
           <div class="photo-slot-thumb" id="slot1" onclick="triggerCameraSlot(1)" title="2. Foto (z.B. Etikett, Rückseite)">
@@ -1012,8 +1015,8 @@
           </div>
           <div style="flex:1;font-size:12px;color:var(--text-muted);line-height:1.3;padding:4px 0;align-self:center">Bis zu 2 weitere Fotos — z.B. Etikett, Rückseite, Details</div>
         </div>
-        <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="onImageSelected(event)" />
-        <input type="file" id="fileInputExtra" accept="image/*" capture="environment" style="display:none" />
+        <input type="file" id="fileInput" accept="image/*" onchange="onImageSelected(event)" />
+        <input type="file" id="fileInputExtra" accept="image/*" style="display:none" />
         <div class="wizard-nav">
           <button class="btn-back" onclick="goToStep(1)">←</button>
           <button class="btn-next" id="btnStep2Next" onclick="goToStep(3)" disabled>Details eingeben →</button>
@@ -1038,18 +1041,18 @@
         <div class="input-group">
           <label style="margin-bottom:8px;display:block;">Kategorie</label>
           <div class="cat-picker" id="catPicker">
-            <button class="cat-btn" data-cat="Elektronik" onclick="setCategory(this)"><i class="ti ti-device-mobile cat-icon"></i>Elektronik</button>
-            <button class="cat-btn" data-cat="Gaming" onclick="setCategory(this)"><i class="ti ti-device-gamepad cat-icon"></i>Gaming</button>
-            <button class="cat-btn" data-cat="Spielzeug" onclick="setCategory(this)"><i class="ti ti-puzzle cat-icon"></i>Spielzeug</button>
-            <button class="cat-btn" data-cat="Uhren & Schmuck" onclick="setCategory(this)"><i class="ti ti-clock cat-icon"></i>Uhren & Schmuck</button>
-            <button class="cat-btn" data-cat="Kleidung & Accessoires" onclick="setCategory(this)"><i class="ti ti-shirt cat-icon"></i>Kleidung & Accessoires</button>
-            <button class="cat-btn" data-cat="Sport & Outdoor" onclick="setCategory(this)"><i class="ti ti-bike cat-icon"></i>Sport & Outdoor</button>
-            <button class="cat-btn" data-cat="Musik" onclick="setCategory(this)"><i class="ti ti-music cat-icon"></i>Musik</button>
-            <button class="cat-btn" data-cat="Bücher & Medien" onclick="setCategory(this)"><i class="ti ti-books cat-icon"></i>Bücher & Medien</button>
-            <button class="cat-btn" data-cat="Möbel & Wohnen" onclick="setCategory(this)"><i class="ti ti-lamp cat-icon"></i>Möbel & Wohnen</button>
-            <button class="cat-btn" data-cat="Antiquitäten & Kunst" onclick="setCategory(this)"><i class="ti ti-diamond cat-icon"></i>Antiquitäten & Kunst</button>
-            <button class="cat-btn" data-cat="Sammler" onclick="setCategory(this)"><i class="ti ti-coin cat-icon"></i>Sammler</button>
-            <button class="cat-btn" data-cat="Haushalt & Werkzeug" onclick="setCategory(this)"><i class="ti ti-tools cat-icon"></i>Haushalt & Werkzeug</button>
+            <button class="cat-btn" data-cat="Elektronik" onclick="setCategory(this)"><svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="4" width="10" height="16" rx="1"/><path d="M11 5h2M12 17v.01"/></svg>Elektronik</button>
+            <button class="cat-btn" data-cat="Gaming" onclick="setCategory(this)"><svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 11v.01M17 13v.01"/></svg>Gaming</button>
+            <button class="cat-btn" data-cat="Spielzeug" onclick="setCategory(this)"><svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h3a1 1 0 0 0 1-1V5a2 2 0 0 1 4 0v1a1 1 0 0 0 1 1h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1a2 2 0 0 0 0 4h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-1a2 2 0 0 0-4 0v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a2 2 0 0 0 0-4H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/></svg>Spielzeug</button>
+            <button class="cat-btn" data-cat="Uhren &amp; Schmuck" onclick="setCategory(this)"><svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Uhren &amp; Schmuck</button>
+            <button class="cat-btn" data-cat="Kleidung &amp; Accessoires" onclick="setCategory(this)"><svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4 21 6l-2 3h-5M9 4 3 6l2 3h5M3 19V9M21 19V9M9 4v6a3 3 0 0 0 6 0V4M3 19h18"/></svg>Kleidung &amp; Accessoires</button>
+            <button class="cat-btn" data-cat="Sport &amp; Outdoor" onclick="setCategory(this)"><svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="15" r="4"/><circle cx="17" cy="15" r="4"/><path d="M7 15 12 6l5 9M8 11h7M12 6h4"/></svg>Sport &amp; Outdoor</button>
+            <button class="cat-btn" data-cat="Musik" onclick="setCategory(this)"><svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="17" r="3"/><circle cx="16" cy="15" r="3"/><path d="M9 17V5l10-2v10"/></svg>Musik</button>
+            <button class="cat-btn" data-cat="Bücher &amp; Medien" onclick="setCategory(this)"><svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4v16H5zM5 8h4M5 12h4"/><path d="M9 4h2l4 16h-2zM13 8l3.5 1M14 12l3.5 1"/></svg>Bücher &amp; Medien</button>
+            <button class="cat-btn" data-cat="Möbel &amp; Wohnen" onclick="setCategory(this)"><svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 16h8M9.5 16 8 5h8l-1.5 11"/><path d="M13 5.5V4a1 1 0 0 0-1-1h-1a1 1 0 0 0-1 1v1.5"/><path d="M10 16 8 21M14 16l2 5"/></svg>Möbel &amp; Wohnen</button>
+            <button class="cat-btn" data-cat="Antiquitäten &amp; Kunst" onclick="setCategory(this)"><svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5h12l3 5-9 9-9-9 3-5z"/><path d="M5.5 10h13"/></svg>Antiquitäten &amp; Kunst</button>
+            <button class="cat-btn" data-cat="Sammler" onclick="setCategory(this)"><svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M14.8 9A2 2 0 0 0 13 8h-2a2 2 0 1 0 0 4h2a2 2 0 1 1 0 4h-2a2 2 0 0 1-1.8-1"/><path d="M12 7v1M12 16v1"/></svg>Sammler</button>
+            <button class="cat-btn" data-cat="Haushalt &amp; Werkzeug" onclick="setCategory(this)"><svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h4L18.5 5.5a2.121 2.121 0 0 0-3-3L4 14v3z"/><path d="M14.5 6.5l3 3"/></svg>Haushalt &amp; Werkzeug</button>
           </div>
         </div>
         <div class="input-group">
@@ -1069,9 +1072,9 @@
       <div class="step" id="step4">
         <div>
           <div class="step-title">Preisangaben</div>
-          <div class="step-sub">Gib die relevanten Preise ein.</div>
+          <div class="step-sub">Gib den relevanten Preis ein.</div>
         </div>
-        <div class="input-group" id="inputsResell">
+        <div class="input-group" id="inputsResell" style="display:none;">
           <div class="input-row">
             <label>Kaufpreis (was du bezahlst)</label>
             <div class="input-with-currency">
@@ -1087,7 +1090,7 @@
             </div>
           </div>
         </div>
-        <div class="input-group" id="inputsFairness" style="display:none;">
+        <div class="input-group" id="inputsFairness">
           <div class="input-row">
             <label>Verlangter Preis (was der Verkäufer will)</label>
             <div class="input-with-currency">
@@ -1273,10 +1276,17 @@
   </div>
 
   <div id="loadingView" class="view">
-    <div class="spinner"></div>
-    <div>
-      <div class="loading-text" id="loadingStep" style="font-size:17px;font-weight:600;color:var(--text-primary);min-height:28px;">KI erkennt Objekt…</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-top:4px;">Das dauert 5–10 Sekunden</div>
+    <div class="loading-logo-wrap">
+      <svg class="loading-logo" width="90" height="90" viewBox="0 0 68 68" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g class="loading-ring-outer"><rect x="6" y="6" width="56" height="56" rx="5" fill="none" stroke="#378ADD" stroke-width="4" transform="rotate(0 34 34)"/></g>
+        <g class="loading-ring-middle"><rect x="14" y="14" width="40" height="40" rx="5" fill="none" stroke="#1D9E75" stroke-width="4" transform="rotate(22 34 34)"/></g>
+        <g class="loading-ring-inner"><rect x="22" y="22" width="24" height="24" rx="5" fill="none" stroke="#BA7517" stroke-width="4" transform="rotate(44 34 34)"/></g>
+        <circle cx="34" cy="34" r="4" fill="#fff"/>
+      </svg>
+    </div>
+    <div class="loading-steps-wrap">
+      <div class="loading-step-label" id="loadingStep">KI erkennt Objekt…</div>
+      <div class="loading-step-sub" id="loadingStepSub">Bitte einen Moment warten</div>
     </div>
     <div class="bottom-safe"></div>
   </div>
@@ -1315,7 +1325,7 @@
   let pendingObjectInfo = null; // objectInfo from identify phase
   let detectedBarcode = null;
   let html5QrCode = null;
-  let currentMode = 'resell'; // 'resell' | 'fairness'
+  let currentMode = 'fairness'; // 'resell' | 'fairness'
   let selectedCondition = 'Sehr gut';
   let lastBuyPrice = 0, lastSellPrice = 0, lastAskedPrice = 0;
   let selectedCategory = null;
@@ -1362,65 +1372,7 @@
     document.getElementById('fileInput').click();
   }
 
-  // ── Barcode Scanner ──────────────────────────────────────────────
-  let scanMode = 'photo';
-
-  function setScanMode(mode) {
-    scanMode = mode;
-    document.getElementById('btnPhotoMode').classList.toggle('active', mode === 'photo');
-    document.getElementById('btnBarcodeMode').classList.toggle('active', mode === 'barcode');
-    const cameraArea = document.getElementById('cameraArea');
-    const scannerDiv = document.getElementById('barcodeScanner');
-    if (mode === 'barcode') {
-      cameraArea.style.display = 'none';
-      scannerDiv.style.display = 'block';
-      startBarcodeScanner();
-    } else {
-      stopBarcodeScanner();
-      cameraArea.style.display = '';
-      scannerDiv.style.display = 'none';
-      document.getElementById('barcodeResult').style.display = 'none';
-      detectedBarcode = null;
-    }
-    updateAnalyzeBtn();
-  }
-
-  function startBarcodeScanner() {
-    detectedBarcode = null;
-    if (!html5QrCode) {
-      html5QrCode = new Html5Qrcode('barcodeScanner');
-    }
-    html5QrCode.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 240, height: 120 }, aspectRatio: 1.5 },
-      (decodedText) => {
-        detectedBarcode = decodedText;
-        stopBarcodeScanner();
-        showBarcodeDetected(decodedText);
-        updateAnalyzeBtn();
-      },
-      () => {}
-    ).catch(err => {
-      console.error('Scanner error:', err);
-      document.getElementById('barcodeScanner').innerHTML =
-        '<p style="padding:20px;color:var(--text-muted);text-align:center">Kamera-Zugriff verweigert oder nicht verfügbar</p>';
-    });
-  }
-
-  function stopBarcodeScanner() {
-    if (html5QrCode && html5QrCode.isScanning) {
-      html5QrCode.stop().catch(() => {});
-    }
-  }
-
-  function showBarcodeDetected(barcode) {
-    document.getElementById('barcodeScanner').style.display = 'none';
-    const resultDiv = document.getElementById('barcodeResult');
-    resultDiv.style.display = 'block';
-    document.getElementById('barcodeProductName').textContent = 'Barcode erkannt: ' + barcode;
-    document.getElementById('barcodeProductSub').textContent = 'Produkt wird nach der Analyse identifiziert…';
-  }
-  // ── End Barcode Scanner ───────────────────────────────────────────
+  // Barcode Scanner entfernt (Beta: nicht benötigt)
 
   // ── Image quality analysis + auto-correction ────────────────────────
   function analyzeAndCorrectImage(ctx, w, h) {
@@ -1529,7 +1481,7 @@
   }
 
   function updateAnalyzeBtn() {
-    const ready = !!(imageBase64 || detectedBarcode);
+    const ready = !!imageBase64;
     const btn = document.getElementById('btnStep2Next');
     if (btn) btn.disabled = !ready;
   }
@@ -1584,12 +1536,24 @@
     'Objekt wird erkannt…',
     'Merkmale werden ausgewertet…',
   ];
+  const loadingSubsIdentify = [
+    'Das dauert nur einen Moment',
+    'Visuelle Details werden analysiert',
+    'Fast fertig…',
+  ];
   const loadingStepsPrices = [
     'Marktpreise werden abgefragt…',
     'Neupreis wird recherchiert…',
     'Nachfrage wird analysiert…',
     'Preis wird bewertet…',
     'Ergebnis wird aufbereitet…',
+  ];
+  const loadingSubsPrices = [
+    'eBay, Ricardo, Vinted & mehr werden durchsucht',
+    'Toppreise und Galaxus werden abgefragt',
+    'Angebote und Nachfrage werden verglichen',
+    'Dein Preis wird eingeordnet',
+    'Gleich ist es so weit…',
   ];
   // Keep legacy alias for any remaining references
   const loadingSteps = loadingStepsPrices;
@@ -1606,7 +1570,7 @@
 
   async function startAnalysis() {
     const images = capturedImages.filter(Boolean);
-    if (!images.length && !detectedBarcode) return;
+    if (!images.length) return;
 
     const buyPrice   = parseFloat(document.getElementById('buyPrice').value)   || 0;
     const sellPrice  = parseFloat(document.getElementById('sellPrice').value)  || 0;
@@ -1614,13 +1578,16 @@
     lastBuyPrice = buyPrice; lastSellPrice = sellPrice; lastAskedPrice = askedPrice;
 
     showView('loadingView');
-    document.getElementById('loadingStep').textContent = 'KI analysiert Foto…';
+    document.getElementById('loadingStep').textContent = loadingStepsIdentify[0];
+    document.getElementById('loadingStepSub').textContent = loadingSubsIdentify[0];
     let stepIdx = 0;
     const stepEl = document.getElementById('loadingStep');
+    const subEl  = document.getElementById('loadingStepSub');
     const stepInterval = setInterval(() => {
       stepIdx = (stepIdx + 1) % loadingStepsIdentify.length;
       stepEl.textContent = loadingStepsIdentify[stepIdx];
-    }, 1500);
+      subEl.textContent  = loadingSubsIdentify[stepIdx];
+    }, 1800);
 
     const inputs = getUserInputs();
     const _sentryCtx = { mode: currentMode, condition: selectedCondition, category: selectedCategory || null, ...inputs, hasPhoto: !!images.length, hasBarcode: !!detectedBarcode, buyPrice, sellPrice, askedPrice };
@@ -1712,12 +1679,15 @@
     const inputs     = getUserInputs();
 
     showView('loadingView');
-    document.getElementById('loadingStep').textContent = 'Marktpreise werden abgefragt…';
+    document.getElementById('loadingStep').textContent = loadingStepsPrices[0];
+    document.getElementById('loadingStepSub').textContent = loadingSubsPrices[0];
     let stepIdx = 0;
     const stepEl = document.getElementById('loadingStep');
+    const subEl2 = document.getElementById('loadingStepSub');
     const stepInterval = setInterval(() => {
       stepIdx = (stepIdx + 1) % loadingStepsPrices.length;
       stepEl.textContent = loadingStepsPrices[stepIdx];
+      subEl2.textContent = loadingSubsPrices[stepIdx];
     }, 1800);
 
     try {
@@ -1887,14 +1857,6 @@
             <div class="stat-label">Nachfrage</div>
             <div class="stat-value" style="color:${demandColor}">${data.demandScore || 0}/100</div>
             <div class="stat-sub">${data.demandLabel || ''}</div>
-          </div>
-        </div>
-        <div class="price-range">
-          <div class="price-range-title">Marktpreis-Spanne</div>
-          <div class="price-range-row">
-            <div class="price-min"><div class="price-val">CHF ${data.priceMin || '–'}</div><div class="price-lbl">Minimum</div></div>
-            <div class="price-mid">↔</div>
-            <div class="price-max"><div class="price-val">CHF ${data.priceMax || '–'}</div><div class="price-lbl">Maximum</div></div>
           </div>
         </div>
         <div>
@@ -2113,15 +2075,6 @@
             <div class="stat-label">${avg > 0 ? (diff < 0 ? 'Du sparst' : diff > 0 ? 'Du zahlst mehr' : 'Marktpreis') : 'Preisvergleich'}</div>
             <div class="stat-value ${diffColor}">${avg > 0 ? (diff < 0 ? '−' : diff > 0 ? '+' : '') + 'CHF ' + Math.abs(diff) : '–'}</div>
             <div class="stat-sub">gegenüber Marktdurchschnitt</div>
-          </div>
-        </div>
-
-        <div class="price-range">
-          <div class="price-range-title">Marktpreis-Spanne</div>
-          <div class="price-range-row">
-            <div class="price-min"><div class="price-val">CHF ${data.priceMin || '–'}</div><div class="price-lbl">Minimum</div></div>
-            <div class="price-mid">↔</div>
-            <div class="price-max"><div class="price-val">CHF ${data.priceMax || '–'}</div><div class="price-lbl">Maximum</div></div>
           </div>
         </div>
 
