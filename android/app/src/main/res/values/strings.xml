@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Comparadoo</string>
+    <string name="title_activity_main">Comparadoo</string>
+    <string name="package_name">com.comparadoo.app</string>
+    <string name="custom_url_scheme">com.comparadoo.app</string>
+</resources>
