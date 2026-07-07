@@ -2,6 +2,8 @@ workflows:
   ios-testflight:
     name: Comparadoo iOS TestFlight
     max_build_duration: 60
+    integrations:
+      app_store_connect: Codemagic
     environment:
       groups:
         - Beta Tester
@@ -9,8 +11,6 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.comparadoo.app
       vars:
-        APP_STORE_CONNECT_KEY_IDENTIFIER: ABC97SS28P
-        APP_STORE_CONNECT_ISSUER_ID: 5e83f2da-7fb5-42f6-aa51-6d223426eb20
         BUNDLE_ID: com.comparadoo.app
         XCODE_PROJECT: ios/App/App.xcodeproj
         XCODE_SCHEME: App
@@ -36,9 +36,7 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        auth: integration
         submit_to_testflight: true
         beta_groups:
           - Beta Tester
