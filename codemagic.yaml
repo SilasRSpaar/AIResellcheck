@@ -14,13 +14,6 @@ workflows:
         BUNDLE_ID: com.comparadoo.app
         XCODE_PROJECT: ios/App/App.xcodeproj
         XCODE_SCHEME: App
-      app_store_connect:
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        key: $APP_STORE_CONNECT_PRIVATE_KEY
-        submit_to_testflight: true
-        beta_groups:
-          - Beta Tester
     scripts:
       - name: Install npm dependencies
         script: npm install
@@ -47,3 +40,5 @@ workflows:
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
+        beta_groups:
+          - Beta Tester
