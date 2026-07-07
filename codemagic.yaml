@@ -25,6 +25,11 @@ workflows:
         script: npx cap sync ios
       - name: Initialize keychain
         script: keychain initialize
+      - name: Create distribution certificate
+        script: |
+          app-store-connect certificates create \
+            --type IOS_DISTRIBUTION \
+            --save
       - name: Fetch signing files
         script: |
           app-store-connect fetch-signing-files $BUNDLE_ID \
