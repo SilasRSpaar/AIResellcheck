@@ -1003,7 +1003,7 @@
           <div class="step-title">Objekt fotografieren</div>
           <div class="step-sub">Foto machen oder aus Galerie wählen.</div>
         </div>
-        <div class="camera-area hero" id="cameraArea" onclick="showPhotoChooser()">
+        <div class="camera-area hero" id="cameraArea" onclick="currentExtraSlot=-1;showPhotoChooser()">
           <div class="camera-icon"><i class="ti ti-camera"></i></div>
           <div class="camera-label">Foto aufnehmen oder<br>aus Galerie wählen</div>
         </div>
@@ -1019,13 +1019,14 @@
         <input type="file" id="fileInput" accept="image/*" onchange="onImageSelected(event)" />
         <input type="file" id="fileInputCamera" accept="image/*" capture="environment" onchange="onImageSelected(event)" style="display:none" />
         <input type="file" id="fileInputExtra" accept="image/*" style="display:none" />
+        <input type="file" id="fileInputExtraCamera" accept="image/*" capture="environment" style="display:none" />
 
         <!-- Kamera/Galerie Chooser -->
         <div id="photoChooser" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999;align-items:flex-end;" onclick="hidePhotoChooser()">
           <div style="width:100%;background:var(--surface);border-radius:20px 20px 0 0;padding:20px;padding-bottom:max(20px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;" onclick="event.stopPropagation()">
             <div style="font-size:15px;font-weight:600;color:var(--text);text-align:center;margin-bottom:4px;">Foto hinzufügen</div>
-            <button onclick="hidePhotoChooser();document.getElementById('fileInputCamera').click()" style="width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ti ti-camera"></i> Kamera</button>
-            <button onclick="hidePhotoChooser();document.getElementById('fileInput').click()" style="width:100%;padding:14px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ti ti-photo"></i> Galerie</button>
+            <button onclick="chooserKamera()" style="width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ti ti-camera"></i> Kamera</button>
+            <button onclick="chooserGalerie()" style="width:100%;padding:14px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ti ti-photo"></i> Galerie</button>
             <button onclick="hidePhotoChooser()" style="width:100%;padding:12px;background:transparent;color:var(--text-muted);border:none;border-radius:12px;font-size:14px;cursor:pointer;">Abbrechen</button>
           </div>
         </div>
@@ -1485,11 +1486,33 @@
     processImageFile(selectedImage, 0);
   }
 
+  function chooserKamera() {
+    hidePhotoChooser();
+    if (currentExtraSlot >= 0) {
+      const fi = document.getElementById('fileInputExtraCamera');
+      const slot = currentExtraSlot;
+      fi.onchange = (e) => { processImageFile(e.target.files[0], slot); fi.value = ''; currentExtraSlot = -1; };
+      fi.click();
+    } else {
+      document.getElementById('fileInputCamera').click();
+    }
+  }
+
+  function chooserGalerie() {
+    hidePhotoChooser();
+    if (currentExtraSlot >= 0) {
+      const fi = document.getElementById('fileInputExtra');
+      const slot = currentExtraSlot;
+      fi.onchange = (e) => { processImageFile(e.target.files[0], slot); fi.value = ''; currentExtraSlot = -1; };
+      fi.click();
+    } else {
+      document.getElementById('fileInput').click();
+    }
+  }
+
   function triggerCameraSlot(slot) {
     currentExtraSlot = slot;
-    const fi = document.getElementById('fileInputExtra');
-    fi.onchange = (e) => { processImageFile(e.target.files[0], slot); fi.value = ''; };
-    fi.click();
+    showPhotoChooser();
   }
 
   function removeSlot(slot, event) {
