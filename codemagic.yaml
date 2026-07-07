@@ -15,7 +15,9 @@ workflows:
         APP_STORE_CONNECT_KEY_IDENTIFIER: "ZS6S52CKNU"
     scripts:
       - name: Install npm dependencies
-        script: npm install
+        script: |
+          npm install
+          chmod +x node_modules/.bin/cap || true
       - name: Add iOS platform
         script: |
           if [ ! -d "ios" ]; then
