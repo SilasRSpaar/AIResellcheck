@@ -25,11 +25,12 @@ workflows:
         script: npx cap sync ios
       - name: Initialize keychain
         script: keychain initialize
-      - name: Create distribution certificate
+      - name: Generate certificate private key
         script: |
-          app-store-connect certificates create \
-            --type IOS_DISTRIBUTION \
-            --save
+          CERT_KEY=$(openssl genrsa 2048)
+          echo "CERTIFICATE_PRIVATE_KEY<<EOF" >> $CM_ENV
+          echo "$CERT_KEY" >> $CM_ENV
+          echo "EOF" >> $CM_ENV
       - name: Fetch signing files
         script: |
           app-store-connect fetch-signing-files $BUNDLE_ID \
