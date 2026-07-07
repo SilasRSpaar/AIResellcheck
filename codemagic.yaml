@@ -13,6 +13,7 @@ workflows:
         XCODE_SCHEME: App
         APP_STORE_CONNECT_ISSUER_ID: "5e83f2da-7fb5-42f6-aa51-6d223426eb20"
         APP_STORE_CONNECT_KEY_IDENTIFIER: "ZS6S52CKNU"
+        APPLE_TEAM_ID: "692Q82MS2B"
     scripts:
       - name: Install npm dependencies
         script: |
@@ -30,9 +31,12 @@ workflows:
           keychain initialize
           app-store-connect fetch-signing-files $BUNDLE_ID \
             --type IOS_APP_STORE \
+            --team-id $APPLE_TEAM_ID \
             --create
           keychain add-certificates
-          xcode-project use-profiles --project ios/App/App.xcodeproj
+          xcode-project use-profiles \
+            --project ios/App/App.xcodeproj \
+            --team-id $APPLE_TEAM_ID
       - name: Build iOS
         script: |
           xcode-project build-ipa \
