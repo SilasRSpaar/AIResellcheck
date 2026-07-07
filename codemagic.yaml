@@ -7,13 +7,12 @@ workflows:
     environment:
       groups:
         - Beta Tester
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.comparadoo.app
       vars:
         BUNDLE_ID: com.comparadoo.app
         XCODE_PROJECT: ios/App/App.xcodeproj
         XCODE_SCHEME: App
+        APP_STORE_CONNECT_ISSUER_ID: "5e83f2da-7fb5-42f6-aa51-6d223426eb20"
+        APP_STORE_CONNECT_KEY_IDENTIFIER: "ZS6S52CKNU"
     scripts:
       - name: Install npm dependencies
         script: npm install
@@ -25,7 +24,13 @@ workflows:
       - name: Sync Capacitor
         script: npx cap sync ios
       - name: Set up code signing
-        script: xcode-project use-profiles
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files $BUNDLE_ID \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
       - name: Build iOS
         script: |
           xcode-project build-ipa \
