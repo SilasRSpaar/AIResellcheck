@@ -3,6 +3,8 @@ workflows:
     name: Comparadoo iOS TestFlight
     max_build_duration: 60
     environment:
+      groups:
+        - Beta Tester
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.comparadoo.app
